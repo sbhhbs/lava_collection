@@ -1,0 +1,354 @@
+//----------------------------------------------------------------键值
+#define UP_KEY    0x14
+#define DOWN_KEY  0x15
+#define LEFT_KEY  0x17
+#define RIGHT_KEY 0x16
+#define UP_PAGE_KEY   19
+#define DOWN_PAGE_KEY 14
+#define EXIT_KEY  0x1b
+#define HELP_KEY  0x19
+#define ENTER_KEY 0x0d
+#define TIME_KEY  0x74
+
+//------------------------------------------------------------数据参数-------
+#define DAT_MAX 155
+#define DAT_LEAST 0
+
+//--------------------------------------------------------------------------------数据结构
+struct DATA
+{
+char a[27];
+char b[27];
+char c[27];
+};
+struct DATA dat;
+
+//时间结构
+struct TIME
+{
+int  year;
+char month;
+char day;
+char hour;
+char min;
+char s;
+char week;
+};
+struct TIME time;
+
+//---------------------------------------------------------------------------------------文件打开
+    char bmp[1601];
+int Open()
+{
+    char fp,x;
+    if ((fp=fopen("/LavaData/brain.dat","r"))!=0) {
+        fread(bmp,1,1600,fp);
+        return (fp)&0xffff;
+    }
+    else fclose(fp);
+    if ((fp=fopen("/GVMdata/brain.dat","r"))!=0){
+        fread(bmp,1,1600,fp);
+        return (fp)&0xffff;
+    }
+    else fclose(fp);
+    SetScreen(1);
+    printf("很报歉...\n数据读取失败!");
+    Delay(500);
+    for (x=0;x<40;x=x+2){
+        Line (0,x,160,x,0);
+        Delay(10);
+    }
+    for (x=0;x<40;x++){
+        Line(0,x,160,x,0);
+        Delay(10);
+    }
+    exit(0);
+}
+
+
+//----------------------------------------------------------随机数
+
+int Rand()
+{
+    int r;
+    srand(Getms());
+    do r=rand();
+    while (r>(DAT_MAX+400) || r<DAT_LEAST);
+    while (r>DAT_MAX) {r=r-100;}
+    return (r)&0xffff;
+}
+void main()
+{
+    char fp,key,de,TIME[100],WEEK[7];
+    int st,ra,ch,x;
+    fp=Open();
+    //刷图
+    ClearScreen();
+    WriteBlock(0,0,160,80,1,bmp);
+    Refresh();
+    Delay(20);
+    for(;;){
+        de=CheckKey(128);
+        key=CheckKey(128);
+        if (key) break;
+    }
+    fread(bmp,1,1600,fp);
+    ch=24;
+    //menu
+    CHOOSE:
+    ClearScreen();
+    SetScreen(1);
+    WriteBlock(0,0,160,80,1,bmp);
+    TextOut(56,24,"进入程序",1);
+    TextOut(56,39,"关于程序",1);
+    TextOut(56,54,"离开程序",1);
+    Block(56,ch,105,ch+12,2);
+    Refresh();
+    Delay(120);
+    de=CheckKey(128);
+    key=CheckKey(128);
+    de=CheckKey(128);
+    if (key==DOWN_KEY) ch=ch+15;
+    if (key==UP_KEY) ch=ch-15;
+    if (ch>54) ch=54;
+    if (ch<24) ch=24;
+    if (key==ENTER_KEY){
+        if (ch==24){
+              x=30;
+              goto main_choose;
+          }
+          if (ch==39) goto about;
+          if (ch==54) goto end;
+      }
+      if (key==EXIT_KEY)
+        {
+            goto end;
+        }
+    goto CHOOSE;
+    end:
+    ch=54;
+    for(;;){
+        Block(40,25,126,72,0);
+        Rectangle(40,25,126,72,2);
+        TextOut(43,26,"EXIT",1);
+        Block(41,26,125,39,2);
+        Rectangle(114,28,124,38,0);
+        Line(115,28,124,38,64);
+        Line(115,38,124,28,64);
+        TextOut(49,42,"确定退出么?",1);
+        Rectangle(52,55,79,70,2);
+        TextOut(54,57,"确定",1);
+        Rectangle(88,55,115,70,2);
+        TextOut(90,57,"取消",1);
+        Block(ch,57,ch+23,68,2);
+        Refresh();
+        Delay(130);
+        key=CheckKey(128);
+        de=CheckKey(128);
+        if (key==EXIT_KEY) {
+              ch=24;
+              goto CHOOSE;
+          }
+        if (key==RIGHT_KEY) ch=ch+36;
+        else if(key==LEFT_KEY) ch=ch-36;
+        if (ch<54) ch=54;
+        if (ch>90) ch=90;
+        if (key==ENTER_KEY)
+          {
+              Block(ch,57,ch+23,68,2);
+              Refresh();
+              Delay(130);
+              Block(ch,57,ch+23,68,2);
+              Refresh();
+              Delay(100);
+              if (ch==54) goto EXIT;
+              if (ch==90) ch=24;
+              goto CHOOSE;
+           }
+    }
+    EXIT:
+    fclose(fp);
+    ClearScreen();
+    for (x=0;x<80;x=x+2)
+        {
+            Line (0,x,159,x,0);
+            Delay(8);
+        }
+        for (x=0;x<80;x++){
+            Line (0,x,159,x,0);
+            Delay(8);
+        }
+    getchar();
+    exit(0);
+    about:
+    for (;;){
+        ClearScreen();
+        WriteBlock(0,0,160,80,1,bmp);
+        Block(15,7,145,19,0);
+        FillArea(16,10,0);
+        TextOut(15,22,"脑 筋 急 转 弯 Ver1.1",1);
+        TextOut(25,39,"程序:Alucard.X",1);
+        TextOut(10,56,"QQ:455273859 2007.10.27",1);
+    for(x=14;x<90;x++){
+          TextOut(x,8," 欢迎光临",9);
+          Refresh();
+          key=CheckKey(128);
+          if (key==EXIT_KEY){
+            ch=24;
+            goto CHOOSE;
+          }
+      Delay(40);
+      }
+      TextOut(13,39,"网盘:xioozq.ys168.com ",1);
+      for (x=90;x>14;x--){
+          TextOut(x,8," 感谢使用",9);
+          Refresh();
+          Delay(40);
+          key=CheckKey(128);
+          if (key==EXIT_KEY){
+            ch=24;
+            goto CHOOSE;
+          }
+      }
+    }
+    main_choose:
+    SetScreen(1);
+    ClearScreen();
+    WriteBlock(0,0,160,80,1,bmp);
+    TextOut(56,30,"顺序流览",1);
+    TextOut(56,44,"随机流览",1);
+    Block(56,x,103,x+13,2);
+    Refresh();
+    Delay(140);
+    de=CheckKey(128);
+    key=CheckKey(128);
+    if (key==EXIT_KEY) goto CHOOSE;
+    if (key==UP_KEY) x=x-14;
+    if (key==DOWN_KEY) x=x+14;
+    if (x>44) x=44;
+    if (x<30) x=30;
+    if (key==ENTER_KEY)
+      {
+          if (x==30)
+            {
+                st=0;
+                ra=0;
+                goto main;
+            }
+          if (x==44)
+            {
+              ra=1;
+              st=Rand();
+              goto main;
+            }
+        }
+    goto main_choose;
+    //主程序
+    main:
+      if (st>DAT_MAX) st=DAT_LEAST;
+      else if (st<DAT_LEAST) st=DAT_MAX;
+      x=3200+(st*78);
+      rewind(fp);
+      fseek(fp,x,1);
+      fread(dat.a,1,26,fp);
+      fread(dat.b,1,26,fp);
+      fread(dat.c,1,26,fp);
+      ClearScreen();
+      WriteBlock(0,0,160,80,1,bmp);
+      Rectangle(1,20,159,45,1);
+      TextOut(2,21,dat.a,1);
+      TextOut(2,33,dat.b,1);
+      TextOut(15,53,"忍不住,看答案~~",1);
+      TextOut(116,53,"输入",1);
+      Rectangle(13,51,142,67,2);
+      Rectangle(11,49,144,69,2);
+      Rectangle(115,52,140,65,2);
+      Refresh();
+      Delay(80);
+      de=CheckKey(128);
+      key=CheckKey(128);
+      de=CheckKey(128);
+      if (key==DOWN_KEY||key==DOWN_PAGE_KEY)
+        {
+            if (ra==0) st=st+1;
+            if (ra==1) st=Rand();
+        }
+      if (key==UP_KEY||key==UP_PAGE_KEY)
+        {
+          if (ra==0) st=st-1;
+          if (ra==1) st=Rand();
+        }
+       if (key==ENTER_KEY)
+         {
+             //答案
+             Block(116,53,139,64,2);
+             Refresh();
+             Delay(150);
+             Block(116,53,139,64,2);
+             Refresh();
+             Delay(110);
+        for(;;){
+             ClearScreen();
+             WriteBlock(0,0,160,80,1,bmp);
+             Rectangle(1,32,159,45,1);
+             TextOut(2,33,dat.c,1);
+             TextOut(20,53,"嘻嘻~~你答对了么?",1);
+             Refresh();
+             Delay(120);
+             de=CheckKey(128);
+             key=CheckKey(128);
+             if (key) break;
+        }
+         }
+         if (key==EXIT_KEY)
+           {
+               ch=24;
+               goto CHOOSE;
+           }
+         if (key==HELP_KEY)
+           {
+              for (;;){
+                ClearScreen();
+                WriteBlock(0,0,160,80,1,bmp);
+                TextOut(15,24,"[上下]键或[翻页]键翻页",1);
+                TextOut(15,42,"  [输入]答案  [t]时间",1);
+                TextOut(25,59,"注:翻页有长按效应.",1);
+                Refresh();
+                Delay(120);
+                key=CheckKey(128);
+                if (key==EXIT_KEY) goto main;
+           }
+      }
+      if (key==TIME_KEY){
+          for(;;){
+//显示时间及判断
+          ClearScreen();
+          WriteBlock(0,0,160,80,1,bmp);
+          GetTime(time);
+          sprintf(TIME,"%d年%d月%d日 %d:%d:%d",time.year,time.month,time.day,time.hour,time.min,time.s);
+          if (time.week==0) sprintf(WEEK,"星期日");
+          else if(time.week==1) sprintf(WEEK,"星期一");
+          else if(time.week==2) sprintf(WEEK,"星期二");
+          else if(time.week==3) sprintf(WEEK,"星期三");
+          else if(time.week==4) sprintf(WEEK,"星期四");
+          else if(time.week==5) sprintf(WEEK,"星期五");
+          else if(time.week==6) sprintf(WEEK,"星期六");
+          if (time.hour>=22) TextOut(55,57,"夜深了注意休息~",1);
+          if (time.hour>=0 && time.hour <=4) TextOut(55,57,"夜猫子,该睡啦~",1);
+          if (time.hour>4 && time.hour<=7) TextOut(55,57,"早晨真清爽!",1);
+          if (time.hour>7 && time.hour<=11) TextOut(55,57,"好好学习ing...",1);
+          if (time.hour>11 && time.hour<=14) TextOut(55,57,"中午休息好喔!",1);
+          if (time.hour>14 && time.hour<=18) TextOut(55,57,"下午好 -_-#",1);
+          if (time.year<2007) TextOut(55,57,"时间貌似不对哦~",1);
+          TextOut(15,25,"Moon Studio为您报时:",1);
+          TextOut(13,42,TIME,1);
+          TextOut(13,57,WEEK,1);
+          Refresh();
+          key=CheckKey(128);
+          if (key==EXIT_KEY) goto main;
+          }
+      }
+      goto main;
+}
+//The End ^_^
+ 

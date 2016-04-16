@@ -1,0 +1,101 @@
+机 型:NC3000
+
+原型:int ComOpen(char BaudRate);
+功能:以波特率BaudRate，打开串口
+说明:成功则返回0，失败返回-1，BaudRate只能取以下数值：
+1:115k bps设置波特率
+2:57k bps设置波特率
+3:38k bps设置波特率
+4:19k bps设置波特率
+5:9600 bps设置波特率
+6:2400 bps设置波特率
+
+原型:void ComClose();
+功能:关闭串口
+
+原型:int ComPutc(char c);
+功能:发送1B数据到串口
+说明:成功则返回0，失败返回-1，该函数有超时设置
+
+原型:int ComWrite(char &data[], int size);
+功能:发送size个数据到串口（数据在data中），并且在最后发送data数据的异或校验值（即实际发送size+1字节）。
+说明:成功则返回0，失败返回-1，该函数有超时设置
+
+原型:int ComGetc();
+功能:从串口接收1B数据
+说明:失败返回-1，该函数有超时设置
+
+原型:int ComRead(char &data[], int size);
+功能:从串口接收size个数据（数据在data中），并且在最后接收异或校验值，并校验。
+说明:成功且校验正确则返回0，失败返回-1，该函数有超时设置
+
+原型:int ComWaitReady();
+功能:检查发送缓冲区是否完成发送。
+说明:发送缓冲区为空（即发送完毕）则返回0，否则返回-1
+
+原型:int ComPutData(char &data[], int size);
+功能:发送大小为size，地址为data的数据包，与ComWrite不同的是该函数含有握手，可以直接与ComGetData配合传输数据。
+说明:成功且校验正确则返回0，失败返回-1，该函数有超时设置
+举例:
+#include <uart/UNC3K.y>
+
+int size;
+char data[2048] = "你好！已收到来信！";
+
+void main()
+{
+ int t;
+
+ SetScreen(1);
+ printf(">正在通信...\n");
+ ComOpen(1);
+ size = strlen(data) + 1;
+ do {
+  t = ComPutData(data, size);
+  if (Inkey() == 27) break;//跳出键
+ } while (t);
+ ComClose();
+ if (t)
+ {
+  printf(">发送失败！\n");
+ }
+ else
+ {
+  printf(">发送成功！\n");
+ }
+ getchar();
+}
+
+原型:int ComGetData(char &data[], int &size);
+功能:从串口接收数据包，数据保存在data中，大小保存在size中，与ComRead不同的是该函数含有握手，可以直接与ComPutData配合传输数据。
+说明:成功且校验正确则返回0，失败返回-1，该函数有超时设置
+举例:
+#include <uart/UNC3K.y>
+
+int size;
+char data[2048];
+
+void main()
+{
+ int t;
+
+ SetScreen(1);
+ printf(">正在通信...\n");
+ ComOpen(1);
+ do {
+  t = ComGetData(data, &size);
+  if (Inkey() == 27) break;//跳出键
+ } while (t);
+ ComClose();
+ if (t)
+ {
+  printf(">没有信号！\n");
+ }
+ else
+ {
+  printf(">收到信号！\n");
+  printf(">大小: %d\n", size);
+  printf(">内容: %s", data);
+ }
+ getchar();
+}

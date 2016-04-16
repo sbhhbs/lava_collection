@@ -1,0 +1,95 @@
+机型:NC3000
+注意:该链接库使用了0x2000~0x2500左右的内存，为了避免冲突，请在源程序的头部加入:char sndbuf[1500];其中1500只大不小。
+原型:int SndOpen();
+功能:打开声音设备，准备播放。
+说明:成功返回0，失败返回非0，有可能是电量不足。
+
+原型:int SndPlayFile(char fp,long playlen,long sndtype);
+功能:播放声音文件。
+说明:可以播放vnt，mid文件。fp为文件句柄，playlen为播放长度，sndtype为播放文件的类型，如果是vnt，只支持高品质的vnt，参数为0x40xxyy，xxyy是vnt文件开头的两个字节，如:07 80或09 80等，所以一般的vnt参数是0x408007或0x408009，如果是mid，则参数为0。成功返回0，失败返回非0。
+
+原型:int SndIfEnd();
+功能:填装声音数据并判断播放是否结束。
+说明:播放结束或出现异常则返回非0，否则返回0。
+
+原型:void SndPause();
+功能:暂停声音播放。
+说明:对mid文件会发生错误。
+
+原型:int VntResume();
+功能:继续声音播放。
+说明:出现异常则返回非0，否则返回0。对mid文件会发生错误。
+
+原型:int SndSwitch();
+功能:声音触发器。
+说明:一般返回0，而每隔1秒返回变为非0，相当于秒计数器，用于计时。对mid文件会发生错误。
+
+原型:char GetVolume();
+功能:获取当前音量大小。
+说明:返回0～14的音量值。
+
+原型:void SndSetSpeed(char DspSpeed);
+功能:设置播放速度。
+说明:DspSpeed取值在0~4之间。
+
+原型:char SndGetSpeed();
+功能:获取当前播放速度大小。
+说明:返回0～4的速度值。
+
+举例:
+#include <DspSnd.y>
+char sndbuf[1500];//一定要加这个，该库播放时占用了0x2000起的一段内存。
+void main()
+{
+ char fp,key;
+ char volume = 1;
+ long sndlen, type;
+ char str[30];
+
+ if(SndOpen())
+ {
+  printf("电压不足够发音！");
+  getchar();
+  return;
+ }
+ SetVolume(volume);
+ if (!(fp = fopen("/双语声音/夜曲.vnt", "r")))
+ {
+  printf("无法打开文件！");
+  getchar();
+  return;
+ }
+ type = 0x400000;
+ fread(&type, 1, 2, fp);//读取类型
+ sndlen = fseek(fp, 0, 2) - 2;//播放长度
+ fseek(fp, 2, 0);//设置播放起点
+ if (SndPlayFile(fp, sndlen, type))
+ {
+  SetScreen(0);
+  printf("播放错误！");
+  getchar();
+  return;
+ }
+ for(;;)
+ {
+  if (SndIfEnd()) break;
+  key = Inkey();
+  if (key == 'q') break;
+  else if (key == 'k')
+  {
+   if (volume < 14) SetVolume(++volume);
+  }
+  else if (key == 'l')
+  {
+   if (volume) SetVolume(--volume);
+  }
+  sprintf(str, "%d", volume);
+  TextOut(74, 36, str, 0xc1);
+ }
+ PlayStops();
+ PlaySleep();
+ fclose(fp);
+ SetScreen(0);
+ printf("\n\n      播放结束");
+ getchar();
+}

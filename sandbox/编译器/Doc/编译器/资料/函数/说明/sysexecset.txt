@@ -1,0 +1,3 @@
+原型:void sysexecset(char &path[], int, int)
+功能:调用汇编程序
+说明:path:要调用的程序的绝对路径。

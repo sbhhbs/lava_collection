@@ -1,0 +1,53 @@
+#define CR_KEY 	    0x0d
+#define ESC_KEY     0x1b
+#define HELP_KEY    0x19
+#define SHIFT_KEY   0x1a
+#define CAPS_KEY    0x12
+#define UP_KEY	    0x14
+#define	DOWN_KEY    0x15
+#define LEFT_KEY    0x17
+#define RIGHT_KEY   0x16
+#define UU_KEY 	    0x13
+#define DD_KEY 	    0x0e
+char str[30];
+void main()
+{char fp;
+ char b[156];//缓冲 g
+ char j[156];//h 当前行数
+ char k[156];//e 当前行偏移
+ char i[156];//f 总偏移
+ char m[156];//l 单词长度
+ //c,n:单词个数 a:总长度
+ int f,g,a,c,h,e,l,n;
+ int key;
+ if(!(fp=fopen("/文本文件/a.txt","r")))return;fseek(fp,24,0);a=fread(b,1,156,fp);fclose(fp);
+ c=0;h=0;e=0;
+ for(f=0;f<a;f++)
+  {g=b[f];
+   if(g==10){h++;e=0;}
+   else if(g<161)
+    {if(isalpha(g))
+      {i[c]=f;j[c]=h;k[c]=e;l=1;
+       for(;;){if(isalpha(b[f+1])){l++;f++;e++;}else break;}
+       m[c]=l;c++;
+      }
+     e++;
+    }
+   else{f++;e=e+2;}
+  }
+ n=c;if(n==0)return;c=0;
+ for(;;)
+ {SetScreen(1);printf("%s",b);
+  h=j[c];e=k[c];a=m[c];Block(2+e*6,h*13,1+(e+a)*6,h*13+11,66);
+  key=getchar();
+  if(key==ESC_KEY)break;
+  else if(key==LEFT_KEY){if(c>0)c--;}
+  else if(key==RIGHT_KEY){if(c+1<n)c++;}
+  else if(key==DOWN_KEY){for(f=0;f<n;f++){if(j[f]>h)break;}if(f<n)c=f;}
+  else if(key==UP_KEY){g=-1;for(f=0;f<n;f++){if(j[f]<h&&j[f]>g){g=j[f];c=f;}}}
+  else if(key==CR_KEY)
+  {memcpy(str,b+i[c],30);
+   if(FindWord(str,m[c],0))break;
+  }
+ }
+}

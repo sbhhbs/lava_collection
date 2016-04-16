@@ -1,0 +1,26 @@
+原型:long ftell(char fp);
+功能:取文件指针
+说明:返回句柄为fp的文件中的读写位置
+举例:
+char s[]="www.ggv.com.cn";
+
+void main()
+{
+ char fp;
+ char t[20];
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!");
+ }
+ else
+ {
+  printf("创建文件成功!");
+  fwrite(s, 1, strlen(s) + 1, fp);
+  rewind(fp);
+  fread(t, 1, strlen(s) + 1, fp);
+  printf("\n%s\n%d", t, ftell(fp));
+  fclose(fp);
+ }
+ getchar();
+}

@@ -1,0 +1,1977 @@
+#define UP_KEY		20
+#define DOWN_KEY	21
+#define LEFT_KEY	23
+#define RIGHT_KEY	22
+#define W_KEY		119
+#define S_KEY		115
+#define A_KEY		97
+#define D_KEY		100
+#define Z_KEY		122
+#define PGUP_KEY	19
+#define PGDN_KEY	14
+#define ENTER_KEY	13
+#define F1_KEY		28
+#define F2_KEY		29
+#define HELP_KEY	25
+#define DOT_KEY		46
+#define ESC_KEY		27
+long aaa;
+int canPassRound=0;			//能否放弃一回合,让对方下子
+int canPaoKillOff=0;		//炮能否打未翻开的棋子
+int canPaoKillTool=1;		//炮能否打毁宝物
+int isToolUsable=1;			//能否使用宝物
+int canKillPal=0;			//能否自相残杀
+int AI=2;				//人工智能,大于1时关闭
+int Piece_Background=30;
+int Difficulty=1;			//AI难度,暂时无用的变量
+
+struct ChPiece
+{
+// char name[3];
+ int property;					//棋子的属性值
+ int offset;					//属性的位偏移
+ int score;						//棋子的分数值
+};
+struct ChPiece piece[15];
+
+struct Person
+{
+ char name[9];					//玩家的名字
+ int score;						//玩家的分数
+ int tool[4];			//玩家所拥有的宝物
+ int killed[36];	//吃掉的棋子
+ int isToolEnable;				//玩家在该回合能否使宝物
+};
+struct Person player[2];
+
+int this_player;		//当前玩家
+int round;				//对弈的回合数
+int tool_round;			//用来记录工具使用的回合
+int canGoOn=0;		//用于记录"靴子"的使用情况
+int restart;			//游戏状态，1为重新开局
+
+char OnBoard[36]={		//棋盘上的所有元素
+1,1,1,1,1,2,2,3,3,4,4,5,5,6,6,7,
+8,8,8,8,8,9,9,10,10,11,11,12,12,13,13,14,
+15,15,15,15
+};	
+int board[9][4];		//棋盘数组
+
+char pic[][30]={
+//0-空白
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+//1-白兵
+0x7,0xc0,0x18,0x30,0x20,0x48,0x47,0x84,0x48,0x4,0x8f,0xe2,0x88,0x22,0x88,
+0x22,0xbf,0xfa,0x84,0x42,0x4c,0x64,0x48,0x24,0x20,0x8,0x18,0x30,0x7,0xc0,
+//2-白炮
+0x7,0xc0,0x18,0x30,0x20,0x48,0x40,0x84,0x7d,0xfc,0x9a,0xa,0xbd,0xea,0xd5,
+0x22,0x95,0xe2,0x95,0xa,0x5d,0xc,0x41,0xfc,0x20,0x8,0x18,0x30,0x7,0xc0,
+//3-白车
+0x7,0xc0,0x18,0x30,0x21,0x8,0x5f,0xf4,0x41,0x4,0x9f,0xf2,0x91,0x12,0x9f,
+0xf2,0x91,0x12,0x9f,0xf2,0x41,0x4,0x7f,0xfc,0x21,0x8,0x19,0x30,0x7,0xc0,
+//4-白马
+0x7,0xc0,0x18,0x30,0x2f,0xc8,0x49,0x4,0x4f,0x84,0x89,0x2,0x8f,0x82,0x89,
+0x2,0x8f,0xf2,0x80,0x12,0x55,0x54,0x55,0x54,0x20,0x78,0x18,0x30,0x7,0xc0,
+//5-白相
+0x7,0xc0,0x18,0x30,0x28,0xf8,0x48,0x94,0x7e,0x94,0x9c,0xf2,0xaa,0x92,0xaa,
+0x92,0xaa,0xf2,0xaa,0x92,0x6a,0x94,0x48,0xf4,0x20,0x8,0x18,0x30,0x7,0xc0,
+//6-白仕
+0x7,0xe0,0x18,0x30,0x2c,0x88,0x58,0x84,0x70,0x84,0xdf,0xfa,0x90,0x82,0x90,
+0x82,0x90,0x82,0x90,0x82,0x50,0x84,0x57,0xf4,0x20,0x8,0x18,0x30,0x7,0xc0,
+//7-白帅
+0x7,0xc0,0x18,0x30,0x28,0x48,0x50,0x44,0x7d,0xf4,0xa5,0x52,0xbd,0x52,0xa1,
+0x52,0xbd,0x52,0xa4,0x42,0x7c,0x44,0x60,0x44,0x20,0x48,0x18,0x30,0x7,0xc0,
+//8-黑卒
+0x7,0xc0,0x1d,0xf0,0x3e,0xf8,0x7f,0xfc,0x70,0x1c,0xff,0xfe,0xf6,0xde,0xe6,
+0x9e,0xea,0xae,0xfe,0xfe,0x40,0x4,0x7e,0xfc,0x3e,0xf8,0x1e,0xf0,0x7,0xc0,
+//9-黑炮
+0x7,0xc0,0x1f,0xf0,0x3f,0x38,0x7e,0x7c,0x2,0x4,0xed,0xf6,0xde,0x16,0xa2,
+0xd6,0xaa,0x16,0xaa,0xfe,0x6a,0xf4,0x62,0x4,0x3f,0xf8,0x1f,0xf0,0x7,0xc0,
+//10-黑车
+0x7,0xc0,0x1e,0xf0,0x20,0x8,0x7e,0xfc,0x60,0xc,0xee,0xee,0xe0,0xe,0xee,
+0xee,0xe0,0xe,0xfe,0xfe,0x7e,0xfc,0x60,0xc,0x3e,0xf8,0x1e,0xf0,0x7,0xc0,
+//11-黑马
+0x7,0xc0,0x10,0x10,0x36,0xf8,0x70,0x7c,0x76,0xfc,0xf0,0x7e,0xf6,0xfe,0xf0,
+0xe,0xff,0xee,0xea,0xae,0x6a,0xac,0x7f,0xec,0x3f,0x8,0x1f,0xf0,0x7,0xc0,
+//12-黑象
+0x7,0xc0,0x1b,0xf0,0x30,0x38,0x6f,0x7c,0x60,0xc,0xee,0xee,0xe0,0xe,0xfd,
+0xfe,0xe1,0x8e,0xee,0x7e,0x7d,0xc,0x7a,0xbc,0x35,0xb8,0x1b,0x70,0x6,0xc0,
+//13-黑士
+0x7,0xc0,0x1f,0xf0,0x3f,0xf8,0x7e,0xfc,0x7e,0xfc,0xfe,0xfe,0xc0,0x6,0xfe,
+0xfe,0xfe,0xfe,0xfe,0xfe,0x7e,0xfc,0x70,0x1c,0x3f,0xf8,0x1f,0xf0,0x7,0xc0,
+//14-黑将
+0x7,0xc0,0x1b,0xb0,0x3b,0x78,0x6a,0xbc,0x61,0x4c,0xf3,0xde,0xfb,0xbe,0xfb,
+0x7e,0xf0,0xe,0xe3,0xde,0x4a,0xdc,0x5b,0x5c,0x3b,0xd8,0x1b,0x90,0x7,0xc0,
+//15-宝物棋子
+0x7,0xc0,0x18,0x30,0x22,0x8,0x41,0x4,0x7f,0xfc,0xa0,0xa,0xaf,0xea,0x81,
+0x2,0x87,0xc2,0x81,0x22,0x41,0x24,0x5f,0xf4,0x20,0x8,0x18,0x30,0x7,0xc0,
+//16-棋子背面图案(默认)
+0xf,0xe0,0x1f,0xf0,0x3d,0xb8,0x7b,0x6c,0xf6,0xde,0xed,0xb6,0xdb,0x6e,0xf6,
+0xde,0xed,0xb6,0xdb,0x6e,0xf6,0xde,0x6d,0xbc,0x3b,0x78,0x1f,0xf0,0xf,0xe0,
+//17-翻转图案1
+0x7,0xf0,0xf,0x98,0x1b,0xcc,0x16,0xc4,0x2d,0xa4,0x3b,0x62,0x76,0xd2,0x6d,
+0xb2,0x7b,0x72,0x36,0xe2,0x2d,0xa4,0x1b,0x44,0x1e,0xcc,0xd,0x98,0x7,0xf0,
+//18-翻转图案2
+0xf,0xe0,0x8,0x20,0x8,0x20,0x8,0x20,0x8,0x20,0x8,0x20,0x8,0x20,0x8,
+0x20,0x8,0x20,0x8,0x20,0x8,0x20,0x8,0x20,0x8,0x20,0x8,0x20,0xf,0xe0,
+//19-宝物1:升级
+0x1,0x0,0x3,0x80,0x7,0xc0,0xf,0xe0,0x1f,0xf0,0x3f,0xf8,0x7f,0xfc,0xff,0xfe,
+0xf,0xe0,0xb,0x60,0xd,0xa0,0xe,0xe0,0xb,0xa0,0xd,0x60,0x0,0x0,
+//20-宝物2:降级
+0x0,0x0,0xd,0x60,0xa,0x20,0xf,0xe0,0x8,0xa0,0xe,0xe0,0xb,0x60,0xff,0xfe,
+0x7f,0xfc,0x3f,0xf8,0x1f,0xf0,0xf,0xe0,0x7,0xc0,0x3,0x80,0x1,0x0,
+//21-宝物3:骰子
+0x0,0x0,0x0,0x0,0x0,0x0,0x7,0xf0,0x8,0x30,0x1f,0xd0,0x10,0x50,0x14,0x50,
+0x12,0x50,0x11,0x50,0x10,0x60,0x1f,0xc0,0x0,0x0,0x0,0x0,0x0,0x0,
+//22-宝物4:眼睛
+0x0,0x0,0x0,0x0,0x0,0x0,0x7,0xc0,0x1f,0xf0,0x33,0x98,0x66,0xcc,0xc7,0xc6,
+0x67,0xcc,0x33,0x98,0x1f,0xf0,0x7,0xc0,0x0,0x0,0x0,0x0,0x0,0x0,
+//23-宝物5:炸弹
+0x0,0x0,0x1,0x40,0x0,0x0,0x1,0xa0,0x3,0x0,0x1e,0x20,0x3f,0x0,0x79,
+0x80,0x7d,0x80,0x7f,0x80,0x7f,0x80,0x3f,0x0,0x1e,0x0,0x0,0x0,0x0,0x0,
+//24-宝物6:沼气
+0x0,0x0,0x0,0x0,0x0,0x30,0x0,0x48,0x1c,0x48,0x36,0x30,0x22,0x0,0x36,
+0x0,0x1c,0x78,0x0,0xcc,0x0,0x84,0x0,0x84,0x0,0xcc,0x0,0x78,0x0,0x0,
+//25-宝物7:复活
+0x1,0x0,0x41,0x8,0x21,0x10,0x10,0x20,0x3,0x80,0x7,0xc0,0x77,0xdc,0x7,
+0xc0,0x3,0x80,0x1,0x0,0x7,0xc0,0xf,0xe0,0x1f,0xf0,0x1f,0xf0,0x1f,0xf0,
+//26-宝物8:锁
+0x0,0x0,0x0,0x0,0x7,0xc0,0xc,0x60,0x18,0x30,0x10,0x10,0x3f,0xf8,0x3c,0x78,
+0x3c,0x78,0x3e,0xf8,0x3e,0xf8,0x3e,0xf8,0x3f,0xf8,0x0,0x0,0x0,0x0,
+//27-宝物9:盾牌
+0x0,0x0,0x0,0x0,0x1f,0xf0,0x10,0x10,0x17,0xd0,0x17,0xd0,0x15,0x50,0x15,0x50,
+0x17,0xd0,0x12,0x90,0x18,0x30,0xc,0x60,0x6,0xc0,0x3,0x80,0x0,0x0,
+//28-宝物10:靴子
+0x0,0x0,0x0,0x0,0x3,0xf8,0xa,0x8,0x4b,0xf8,0x21,0xf0,0x1,0xf0,0xd,0xf0,0x1f,
+0xf0,0x3f,0xf0,0x3f,0xf0,0x3f,0xf0,0x0,0x0,0x0,0x0,0x0,0x0,
+//29-沼泽地
+0x0,0x0,0x0,0x0,0x0,0x30,0x0,0x48,0x1c,0x48,0x36,0x30,0x22,0x0,0x77,0x54,
+0xbe,0xfa,0x0,0xcc,0x55,0x84,0xaa,0x86,0x0,0xcc,0x55,0x7c,0xaa,0xaa,
+
+//30-棋子背面图案(默认)
+0x7,0xc0,0x1f,0xf0,0x3d,0xb8,0x7b,0x6c,0x76,0xdc,0xed,0xb6,0xdb,0x6e,0xf6,
+0xde,0xed,0xb6,0xdb,0x6e,0x76,0xdc,0x6d,0xbc,0x3b,0x78,0x1f,0xf0,0x7,0xc0,
+//31-棋子背面图案1(备选)
+0x7,0xc0,0x18,0x30,0x31,0x18,0x62,0x8c,0x44,0x44,0x8b,0xa2,0x95,0x52,0xa6,
+0xca,0x95,0x52,0x8b,0xa2,0x44,0x44,0x62,0x8c,0x31,0x18,0x18,0x30,0x7,0xc0,
+//32-棋子背面图案2(备选)
+0x7,0xc0,0x18,0x30,0x20,0x8,0x40,0x4,0x40,0x4,0x80,0x2,0x80,0x2,0x80,
+0x2,0x80,0x2,0x80,0x2,0x40,0x4,0x40,0x4,0x20,0x8,0x18,0x30,0x7,0xc0,
+//33-棋子背面图案3(备选)
+0x7,0xc0,0x1a,0xb0,0x3d,0xf8,0x6a,0xac,0x5f,0xdc,0xaa,0xaa,0xfd,0xfe,0xaa,
+0xaa,0xdf,0xde,0xaa,0xaa,0x7d,0xfc,0x6a,0xac,0x3f,0xd8,0x1a,0xb0,0x7,0xc0,
+//34-棋子背面图案4(备选)
+0x7,0xc0,0x18,0x30,0x3d,0xf8,0x60,0xc,0x5f,0xdc,0x80,0x2,0xfd,0xfe,0x80,
+0x2,0xdf,0xde,0x80,0x2,0x7d,0xfc,0x60,0xc,0x3f,0xd8,0x18,0x30,0x7,0xc0,
+//35-手指
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xf,0x30,0x5d,0xdc,0x5e,0x0,
+0x5d,0xe0,0x5e,0x0,0x1b,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
+};
+
+char MenuIcon[][72]={				//24×24的图标
+//0-控制
+0x0,0x0,0x0,0x0,0x60,0x0,0x0,0x60,0x0,0x3,0x6c,0x0,0x1b,0x6c,0x0,0x1b,
+0x6c,0x0,0x1b,0x6c,0x0,0x1b,0x6c,0x0,0x1b,0x6c,0x0,0x1b,0x6c,0x30,0x1b,
+0x6c,0x30,0x1b,0x6c,0xe0,0x1b,0x6c,0xe0,0x1f,0xfc,0xe0,0x1f,0xff,0xe0,
+0x1f,0xff,0xe0,0x1f,0xff,0xc0,0x1f,0xff,0x80,0xf,0xff,0x80,0xf,0xff,0x0,
+0xf,0xfe,0x0,0x7,0xfc,0x0,0x7,0xfc,0x0,0x7,0xfc,0x0,
+//1-选项
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1f,0xc0,0x0,0x3f,0xc0,0x0,0x7c,0x20,0x0,0xf3,0xc0,
+0x1,0xec,0x0,0x1,0xe8,0x6,0x1,0xe8,0x6,0x1,0xe8,0x6,0x1,0xe8,0x6,0x1,0xe8,0xe,
+0x1,0xe0,0x1e,0x3,0xe0,0x3e,0x7,0xff,0xfd,0xf,0xff,0xfa,0x1f,0xff,0xf4,0x3f,
+0xff,0xe8,0x7f,0xf0,0x10,0xff,0xef,0xe0,0xff,0xd0,0x0,0xff,0xa0,0x0,0xff,
+0x40,0x0,0xfe,0x80,0x0,
+//2-存档
+0xff,0xff,0xff,0xff,0xff,0xff,0xe0,0x0,0x19,0xe0,0x0,0x19,0xe0,0x0,0x1f,0xe0,0x0,
+0x1f,0xe0,0x0,0x1f,0xe0,0x0,0x1f,0xe0,0x0,0x1f,0xe0,0x0,0x1f,0xe0,0x0,0x1f,0xe0,
+0x0,0x1f,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xfe,0x31,
+0x9f,0xfe,0x31,0x9f,0xfe,0x31,0x9f,0xfe,0x31,0x9f,0xfe,0x31,0x9f,0xfe,0x31,0x9f,
+0xff,0xff,0xff,0xff,0xff,0xff,
+//3-读档
+0xff,0xff,0x3f,0xff,0xff,0x7f,0xc0,0x0,0xde,0xc0,0x1,0xec,0xc0,0x3,0xeb,0xcf,0xff,
+0xd3,0xc0,0xf,0xa3,0xc0,0x1f,0x43,0xcf,0xfe,0xc3,0xc0,0x7d,0x3,0xc0,0xfa,0x3,0xcf,
+0xf7,0xc3,0xc3,0xe8,0x3,0xc7,0xd0,0x3,0xcf,0xbf,0xc6,0xc7,0x40,0xc,0xc7,0x80,0x18,
+0xc8,0x0,0x30,0xc0,0x0,0x60,0xc0,0x0,0xc0,0xc0,0x1,0x80,0xc0,0x3,0x0,0xff,0xfe,
+0x0,0xff,0xfc,0x0,
+//4-帮助
+0x0,0x18,0x0,0x0,0x3c,0x0,0x0,0x7e,0x0,0x0,0xff,0x0,0x1,0xff,0x80,0x3,0x83,0xc0,
+0x7,0x81,0xe0,0xf,0xf9,0xf0,0x1f,0xf9,0xf8,0x3f,0x81,0xf0,0x7f,0x1,0xe8,0x7e,
+0x3f,0xd8,0xbf,0x7f,0xb8,0xd9,0xff,0x70,0xe9,0xfe,0xe0,0xf7,0xfd,0xc0,0x7b,0xfb,
+0x80,0x3d,0xf7,0x0,0x1e,0xee,0x0,0xf,0x5c,0x0,0x7,0xb8,0x0,0x3,0xb0,0x0,0x1,
+0xa0,0x0,0x0,0xc0,0x0,
+//5-退出
+0x0,0x0,0x0,0x0,0x0,0x0,0x7,0xff,0xf0,0x4,0x3,0xf0,0x4,0x1c,0x10,0x5,0xe0,0x10,
+0x5,0x0,0x10,0x5,0x0,0x10,0x1,0x0,0x10,0x21,0x0,0x10,0x31,0x0,0x10,0xf9,0x40,
+0x10,0xfd,0x40,0x10,0xff,0x40,0x10,0xfd,0x40,0x10,0xf9,0x0,0x10,0x31,0x0,0x10,
+0x21,0x0,0x10,0x5,0x0,0x10,0x5,0x0,0x10,0x5,0x0,0x10,0x7,0x1,0xf0,0x1,0xe,
+0x0,0x1,0xf0,0x0
+};
+
+char MenuBar[]={			//图形菜单模块,159*30
+0x7,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+0xff,0xff,0xfc,0xf4,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x14,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x1,0x78,0xd4,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,
+0x48,0x94,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x48,
+0x94,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x58,0xf4,
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x40,0x4,0x0,
+0x0,0x0,0x0,0x0,0x0,0xf,0xff,0xe0,0xf,0xfd,0xe0,0x0,0x18,0x0,0x0,0x0,0x1,0x7c,0xf4,0x0,
+0x40,0x0,0x0,0x7c,0x0,0xe,0x0,0xa0,0x8,0x3,0xe0,0x0,0x3c,0x0,0x1,0xff,0x1,0x0,0x14,0x1,
+0x50,0x0,0x0,0xe2,0x0,0xe,0x0,0xe0,0x9,0xff,0x40,0x0,0x7e,0x0,0x1,0xf,0x1,0x78,0xd4,
+0x1,0x50,0x0,0x1,0xdc,0x0,0xe,0x0,0xe0,0x8,0xe,0xa0,0x0,0xe7,0x0,0x1,0x79,0x1,0x48,
+0x94,0x5,0x50,0x0,0x1,0xb1,0x0,0xe,0x0,0xe0,0x9,0xfd,0x20,0x1,0xfb,0x80,0x1,0x41,0x1,
+0x48,0x94,0x5,0x50,0x0,0x1,0xa1,0x0,0xe,0x0,0xe0,0x8,0x3a,0x20,0x3,0xf3,0xc0,0x0,0x41,
+0x1,0x58,0xf4,0x5,0x50,0x0,0x1,0xa3,0x0,0xe,0x0,0xe0,0x9,0xf7,0x20,0x7,0xef,0x40,0x2,
+0x41,0x1,0x40,0x4,0x5,0x52,0x0,0x1,0x87,0x0,0xe,0x0,0xe0,0x8,0xe8,0x20,0xf,0xfe,0xc0,
+0xf,0x51,0x1,0x7c,0xf4,0x7,0xf4,0x0,0x3,0xfe,0x80,0xf,0xff,0xe0,0x9,0xdf,0x20,0xb,0xbd,
+0x80,0xf,0xd1,0x1,0x0,0x14,0x7,0xfc,0x0,0x7,0xfd,0x0,0xf,0xff,0xe0,0x8,0xe0,0x20,0xd,
+0xfb,0x0,0xf,0x41,0x1,0x78,0xd4,0x7,0xf8,0x0,0xf,0xc2,0x0,0xf,0xff,0xe0,0x9,0x0,0x60,
+0x6,0xf6,0x0,0x2,0x41,0x1,0x48,0x94,0x3,0xf8,0x0,0x1f,0xbc,0x0,0xf,0x92,0xe0,0x8,0x1,
+0x80,0x3,0x6c,0x0,0x1,0x41,0x1,0x48,0x94,0x3,0xf0,0x0,0x3f,0x40,0x0,0xf,0x92,0xe0,0x8,
+0x2,0x0,0x1,0x98,0x0,0x1,0x41,0x1,0x58,0xf4,0x1,0xe0,0x0,0x3e,0x80,0x0,0xf,0x92,0xe0,
+0x8,0xc,0x0,0x0,0xd0,0x0,0x1,0xcf,0x1,0x40,0x4,0x1,0xe0,0x0,0x3d,0x0,0x0,0xf,0xff,0xe0,
+0xf,0xf0,0x0,0x0,0x60,0x0,0x0,0x78,0x1,0x7c,0xf4,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x14,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x78,0xd4,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x48,0x94,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x0,0x0,0x1,0x48,0x94,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x0,0x1,0x58,0xf4,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x0,0x1,0x40,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+0x0,0x0,0x1,0x7c,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+0xff,0xff,0xff,0xff,0xff,0x0
+};
+
+char XiangLu[]={
+	// 宽=14,高=20
+	0x8,0x8,0x6,0x10,0x4,0x60,0x3,0x40,0x1,0x60,0x0,0xa0,0x40,0xc8,0x40,0x88,
+	0xff,0xfc,0x7f,0xf8,0x7f,0xf8,0x3f,0xf0,0x3f,0xf0,0x1f,0xe0,0x1f,0xe0,
+	0xf,0xe0,0x8,0xa0,0x8,0xa0,0x10,0x50,0x20,0x48
+};
+
+char ErrMsg[][26]={
+//0
+"对不起,空气不能当棋子!",	
+//1
+"喂,想赖皮啊?!",
+//2
+"对不起,宝物没长腿!",
+//3
+"你拿俺的棋子做甚?!",
+//4
+"本是同种兵,相煎何太急!",
+//5
+"炮只能隔一个棋子轰击!",
+//6
+"每回合只能使用一次宝物!",
+//7
+"本版本暂不提供此功能",
+//8
+"该功能当前设置为不启用",
+//9
+"棋子已被锁住!",
+//10
+"棋子正被防御盾保护!",
+//11
+"找死啊,前面是沼泽!",
+//12
+"该记录为空,无法读取!"
+};
+
+char ToolName[][9]={
+"升职令牌",
+"降职令牌",
+"天兵骰子",
+"二郎神眼",
+"无耻炸弹",	//"雷神之符"也行
+"死亡沼气",
+"复活之光",
+"怯战枷锁",
+"免死盾牌",
+"疾风战靴"
+};
+
+char AI_Name[][8]={
+"玩家一",
+"玩家二",
+"(关闭)"
+};
+
+char str[30];		//用来存放临时的文字信息
+char fp;			//文件指针
+
+
+/******* Functions Describtion *******
+
+
+/********* End Describtion *********/
+
+//----------------------------------------------------------------
+void LoadData()			//
+{
+ char FileType[3];
+ //fp=fopen("/LavaData/SCC.dat","r+");
+ fseek(fp,0,0);
+ fread(FileType,1,3,fp);
+ /*在此处设置断点测试/
+	printf("123%s",FileType);
+ 	getchar();
+ 	exit(0);
+ //断点结束*/
+ 
+ if(FileType[aaa=0]!='S'||FileType[aaa=1]!='C'||FileType[aaa=2]!='C')
+ {
+  printf("\nFile type is incorrect!");
+  getchar();
+  exit(0);
+ }
+ printf(".");
+ 
+/***初始化玩家和棋子的属性值***/
+ player[aaa=0].score=0;
+ //playet[aaa=0].isToolEnable=1;
+ 
+ player[aaa=1].score=0;
+ //playet[aaa=1].isToolEnable=1;
+
+ piece[aaa=0].property=0;
+ piece[aaa=0].offset=0x0;
+ piece[aaa=0].score=0;
+ piece[aaa=1].property=0x41;		//白兵:01000001
+ piece[aaa=1].offset=0;
+ piece[aaa=1].score=1;
+ piece[aaa=2].property=0x7f;		//白炮:01111111
+ piece[aaa=2].offset=1;
+ piece[aaa=2].score=5;
+ piece[aaa=3].property=0x07;		//白车:00000111
+ piece[aaa=3].offset=2;
+ piece[aaa=3].score=2;
+ piece[aaa=4].property=0x0f;		//白马:00001111
+ piece[aaa=4].offset=3;
+ piece[aaa=4].score=3;
+ piece[aaa=5].property=0x1f;		//白象:00011111
+ piece[aaa=5].offset=4;
+ piece[aaa=5].score=4;
+ piece[aaa=6].property=0x3f;		//白士:00111111
+ piece[aaa=6].offset=5;
+ piece[aaa=6].score=5;
+ piece[aaa=7].property=0x7e;		//白帅:01111110
+ piece[aaa=7].offset=6;
+ piece[aaa=7].score=7;
+ piece[aaa=8].property=0xc1;		//黑卒:11000001
+ piece[aaa=8].offset=0;
+ piece[aaa=8].score=1;
+ piece[aaa=9].property=0xff;		//黑炮:11111111
+ piece[aaa=9].offset=1;
+ piece[aaa=9].score=5;
+ piece[aaa=10].property=0x87;		//黑车:10000111
+ piece[aaa=10].offset=2;
+ piece[aaa=10].score=2;
+ piece[aaa=11].property=0x8f;		//黑马:10001111
+ piece[aaa=11].offset=3;
+ piece[aaa=11].score=3;
+ piece[aaa=12].property=0x9f;		//黑相:10011111
+ piece[aaa=12].offset=4;
+ piece[aaa=12].score=4;
+ piece[aaa=13].property=0xbf;		//黑仕:10111111
+ piece[aaa=13].offset=5;
+ piece[aaa=13].score=5;
+ piece[aaa=14].property=0xfe;		//黑将:11111110
+ piece[aaa=14].offset=6;
+ piece[aaa=14].score=7;
+ printf(".");
+ 
+/***读取Config值***/
+ fseek(fp,10,0);
+ canPassRound=getc(fp);
+ canPaoKillOff=getc(fp);
+ canPaoKillTool=getc(fp);
+ isToolUsable=getc(fp);
+ canKillPal=getc(fp);
+ AI=getc(fp);
+ Piece_Background=getc(fp);
+ printf(".\n");
+
+/***检测存档信息***
+ fseek(fp,3452,0);
+ if()
+*/
+}
+
+//----------------------------------------------------------------
+void MsgBox(int string)
+{
+ int y;
+ char temp[300];
+ GetBlock(0,65,160,15,0x40,temp);
+ for(y=79;y>64;y--)
+ {
+  Line(1,y,159,y,0);
+  Delay(30);
+ }
+// Box(1,65,159,79,1,0);
+ Box(1,65,159,79,0,1);
+ TextOut(3,67,string,0x40);
+ getchar();
+ WriteBlock(0,65,160,15,0x40,temp);
+}
+//----------------------------------------------------------------
+int ConfirmBox(int string)
+{
+ int x,r;
+ char k;
+ char temp[1600];
+ GetBlock(0,0,160,80,0x40,temp);
+ Box(20,20,140,60,1,1);
+ Box(23,23,137,57,1,0);
+ TextOut(24,25,string,0x40);
+ TextOut(35,42,"Yes",0x40);
+ Box(30,40,55,55,0,1);
+ Box(100,40,125,55,0,1);
+ TextOut(105,42,"No",0x40);
+ x=100;
+ for(;;)
+ {
+  Box(x,40,x+25,55,1,2);
+  k=getchar();
+  Box(x,40,x+25,55,1,2);
+  if(k==LEFT_KEY||k==RIGHT_KEY)
+   x=-x+130;
+  if(k==121||(k==ENTER_KEY&&x==30))
+  { 
+   r=1;
+   break;
+  }
+  if(k==110||k==ESC_KEY||(k==ENTER_KEY&&x==100))
+  {  
+   r=0;
+   break;
+  }
+ }
+ WriteBlock(0,0,160,80,0x40,temp);
+ return r;
+}	
+//----------------------------------------------------------------
+void InputBox(int x,int y,int maxlen,int string)
+{
+	char c,t[26];		//允许输入的最大长度为26
+	int index,i;
+	index=0;
+	memset(t,0,26);
+	Box(x,y,x+maxlen*6+8,y+14,0,1);
+	for(;;)
+	{
+		Box(x+1,y+1,x+maxlen*6+7,y+13,1,0);
+		TextOut(x+1,y+2,t,0x40);
+		Box(x+2+index*6,y+2,x+6+index*6,y+12,1,2);
+		c=getchar();
+		Box(x+2+index*6,y+2,x+6+index*6,y+12,1,2);
+		if(c>='a'&&c<='z')
+		{
+			if(index<maxlen)
+			{
+				t[index]=c;
+				index++;
+			}
+			else	Beep();
+		}
+		else if(c==ESC_KEY)
+		{
+			if(strlen(t))
+			{
+				memset(t,0,maxlen);
+				index=0;
+			}
+			else break;
+		}
+		else if(c==F2_KEY)
+		{
+			t[index]=0;
+			for(i=0;i<maxlen-1;i++)
+				if(t[i]==0)
+				{
+					t[i]=t[i+1];
+					t[i+1]=0;
+				}
+		}
+		else if(c==LEFT_KEY)
+		{
+			if(index>0)		index--;
+			else Beep();
+		}
+		else if(c==RIGHT_KEY)
+		{
+			if(index<strlen(t))		index++;
+			else Beep();
+		}	
+		else if(c==ENTER_KEY)
+		{
+			memcpy(string,t,maxlen);
+			break;
+		}
+		else {
+			Beep();
+			continue;
+		}
+	}
+
+}
+//----------------------------------------------------------------
+int Max(int a,int b)
+{
+ if(a>b)	return a;
+ else 	return b;
+}
+//----------------------------------------------------------------
+int Min(int a,int b)
+{
+ if(a<b)	return a;
+ else		return b;
+}
+//----------------------------------------------------------------
+long pow(int a,int b)
+{
+ int r,loop;
+ if(b==0)	return 1;
+ r=1;
+ for(loop=0;loop<b;loop++)
+  r=r*a;
+ return r;
+}
+//----------------------------------------------------------------
+int Bit(int num,int b)
+{
+ return num>>b&1;
+}
+//----------------------------------------------------------------
+void DrawPiece(int x,int y,char pic_index)		//在棋盘的(x,y)处画图片
+{
+ if(!Bit(pic_index,7))		//如果棋子已经翻开
+ 	WriteBlock(16+x*16,16+y*16,
+			   15,15,0x40,pic[pic_index]);
+ else  	WriteBlock(16+x*16,16+y*16,
+			   15,15,0x40,pic[Piece_Background]);
+}
+//----------------------------------------------------------------
+void DrawCursor(int x,int y,int mode)		//在棋盘的(x,y)处画光标
+{
+ int x1,x2,y1,y2;
+ if(mode==0)
+ {
+  DrawPiece(x,y,board[x][y]);
+  return;
+ }
+ x1=16+x*16;
+ y1=16+y*16;
+ x2=x1+14;
+ y2=y1+14;
+ if(mode==1)				//此方案不适合用于棋盘	
+ {
+  Line(x1,y1,x1+2,y1,2);
+  Line(x1,y1,x1,y1+2,2);
+  Line(x1,y2,x1+2,y2,2);
+  Line(x1,y2,x1,y2+2,2);
+  Line(x2,y1,x2+2,y1,2);
+  Line(x2,y1,x2,y1+2,2);
+  Line(x2,y2,x2+2,y2,2);
+  Line(x2,y2,x2,y2+2,2);
+ }
+
+ if(mode==2)
+ {
+  Box(x1,y1,x2,y2,0,2);
+ }
+
+ if(mode==3)
+ {
+  Box(x1,y1,x2,y2,1,2);
+ }
+  
+}
+//----------------------------------------------------------------
+void TurnPiece(int x,int y)			//翻转棋子
+{
+ int r;
+ DrawPiece(x,y,17);
+ Delay(60);
+ DrawPiece(x,y,18);
+ Delay(60);
+ board[x][y]=board[x][y]-128;
+ DrawPiece(x,y,board[x][y]);
+ Delay(60);
+ 
+ if(board[x][y]==15)
+ {
+  board[x][y]=19+rand()%10;
+  for(r=0;r<7;r++)
+  {
+   Circle(23+x*16,23+y*16,r,0,0);
+   Delay(60);
+  }
+  DrawPiece(x,y,board[x][y]);
+ }
+} 
+//----------------------------------------------------------------
+void PieceMove(int x1,int y1,int x2,int y2)	//将棋子从(x1,y1)移动到(x2,y2)
+{
+ int b2;
+ b2=board[x2][y2];
+ board[x2][y2]=board[x1][y1];
+ DrawPiece(x2,y2,board[x1][y1]);
+ board[x1][y1]=0;
+ DrawPiece(x1,y1,0);
+ 
+ if(Bit(b2,7))	b2=b2-128;
+ DrawPiece(-1,0,b2);
+}
+//----------------------------------------------------------------
+int CanPaoKill(int x1,int y1,int x2,int y2)	//判断炮能否吃子,能则返回1,否则返回0
+{
+ int count;
+ int x,y,b2;
+ b2=board[x2][y2];
+
+ count=0;
+ if(x1==x2)
+ {
+  x=x1;
+  y=Min(y1,y2)+1;
+ 
+  while(y<Max(y1,y2))
+  {
+   if(board[x][y]>0)
+    count++;
+   y++;
+  }
+  if(count==1)
+  {
+   if(Bit(b2,7))										//如果被轰的棋子未翻开
+    return canPaoKillOff;
+   else if(b2>0&&b2<Piece_Background&&
+   		   Bit(piece[b2].property,7)==this_player)		//如果被轰的是同种棋子
+   {
+    if(this_player!=AI)
+     MsgBox(ErrMsg[aaa=4]);
+    return canKillPal;
+   }
+   else  if(b2>=19)							//如果被轰的是宝物
+   	return canPaoKillTool;
+   else if(b2==0)								//如果被轰的是空地
+    return 0;	
+   else		return 1;
+  }
+  else {
+   if(this_player!=AI)
+    MsgBox(ErrMsg[aaa=5]);
+   return 0;
+  }
+ }
+ else if(y1==y2)
+ {
+  y=y1;
+  x=Min(x1,x2)+1;
+  
+ 
+  while(x<Max(x1,x2))
+  {
+   if(board[x][y]>0)
+    count++;
+   x++;
+  }
+  if(count==1)
+  {
+   if(Bit(b2,7))										//如果被轰的棋子未翻开
+    return canPaoKillOff;
+   else if(b2>0&&b2<Piece_Background&&
+   		   Bit(piece[b2].property,7)==this_player)		//如果被轰的是同种棋子
+   {
+    if(this_player!=AI)
+     MsgBox(ErrMsg[aaa=4]);
+    return canKillPal;
+   }
+   else if(b2>=19)							//如果被轰的是宝物
+   	return canPaoKillTool;
+   else if(b2==0)								//如果被轰的是空地
+    return 0;	
+   else		return 1;
+  }
+
+  else {
+   if(this_player!=AI)
+    MsgBox(ErrMsg[aaa=5]);
+   return 0;
+  }
+ }
+ else {
+  if(this_player!=AI)
+   MsgBox(ErrMsg[aaa=1]);
+  return 0;
+ }
+}
+//----------------------------------------------------------------
+int CanMove(int x1,int y1,int x2,int y2)		//判断棋子能否移动到所选位置
+{
+ int b1,b2,o1,o2,p1,p2;
+ int i;
+ b1=board[x1][y1];
+ b2=board[x2][y2];
+ 
+ if(x1<0||y1<0||x2<0||y2<0)		return 0;			//检查x,y是否越界
+ if(x1>8||y1>3||x2>8||y2>3)	return 0;
+ 
+ if((x1-x2)*(y1-y2)!=0)			return 0;
+ 
+ if(b1==0)				//如果所选棋子为空子
+ {
+  if(this_player!=AI)
+   MsgBox(ErrMsg[aaa=0]);
+  return 0;
+ }
+ 
+ if(b1==b2)				//如果重复选择某棋子
+ 	//return canPassRound;	
+ 	return 0;
+
+ if(b2==29)					//如果移动到沼泽
+ {
+  if(this_player!=AI)
+   MsgBox(ErrMsg[aaa=11]);
+  return 0;
+ }
+ 
+ if(Bit(piece[b1].property,7)!=this_player)		//如果选择了对方的棋子
+ {
+  if(this_player!=AI)
+   MsgBox(ErrMsg[aaa=3]);
+  return 0;
+ }
+ 
+ if(Bit(b1,8))							//如果选定的棋子被锁住
+ {
+  if(round>tool_round+1)
+  {
+   board[x1][y1]=board[x1][y1]^pow(2,8);
+   b1=board[x1][y1];
+  }
+  else {
+   if(this_player!=AI)
+    MsgBox(ErrMsg[aaa=9]);
+   return 0;
+  }
+ }
+ 
+ if(Bit(b2,9))						//如果被吃的棋子被盾保护
+ {
+  if(round>tool_round+1)
+  {
+   board[x2][y2]=board[x2][y2]^pow(2,9);
+   b2=board[x2][y2];
+  }
+  else {
+   if(this_player!=AI)
+    MsgBox(ErrMsg[aaa=10]);
+   return 0;
+  }
+ }
+  
+ if(abs(x1-x2)>1||abs(y1-y2)>1)		//此句可以简化?***
+ {
+  if(b1==2||b1==9)
+   return CanPaoKill(x1,y1,x2,y2);
+  else {
+   if(this_player!=AI)
+    MsgBox(ErrMsg[aaa=1]);
+   return 0;
+  }
+ }
+ 
+ if(b1>14)		//
+ {
+  if(this_player!=AI)
+   MsgBox(ErrMsg[aaa=2]);
+  return 0;
+ }
+ 
+ if(b2>=19&&b2<29)		//获得宝物
+ {
+  for(i=0;i<4;i++)
+   if(player[this_player].tool[i]==0)
+   {
+    player[this_player].tool[i]=b2;
+    break;
+   }
+  if(this_player!=AI)
+  {
+   sprintf(str,"获得『%s』!",ToolName[b2-19]);
+   MsgBox(str);
+  }
+  return 1;
+ }
+ 
+ if(b2==0)		return 1;		//移动到空地
+//------------------------------
+ p1=piece[b1].property;
+ p2=piece[b2].property;
+ o1=piece[b1].offset;
+ o2=piece[b2].offset;
+ 
+ if(o1==1)							//如果1是炮
+ 	return 0;
+ 	
+ if(o1==o2)							//如果1和2同等级
+ {
+  board[x1][y1]=0;
+  return 1;
+ }
+ 
+ if(Bit(p1,piece[b2].offset))		//1能吃2
+ {
+  if(Bit(p2,7)==this_player)		//如果是同种棋子
+  {
+   if(this_player!=AI)
+    MsgBox(ErrMsg[aaa=4]);
+   return canKillPal;
+  }
+  else	{
+   for(i=0;i<36;i++)
+    if(player[this_player].killed[i]==0)
+    {
+     player[this_player].killed[i]=b2;
+     break;
+    }
+   return 1;
+  }
+ }
+}
+//----------------------------------------------------------------
+void DrawNet()				//画网格
+{
+ int x,y;
+ ClearScreen();
+ for(x=0;x<=144;x=x+16)
+  Line(15+x,15,15+x,79,0x41);
+ for(y=0;y<=64;y=y+16)
+  Line(15,15+y,159,15+y,0x41);
+ Line(1,13,159,13,0x41);
+ WriteBlock(1,60,14,20,1,XiangLu);	//画香炉
+ Refresh();
+}
+//----------------------------------------------------------------
+void ShowTitle()
+{
+ int y;
+ char frame[1600],title1[630],title2[135];
+ fseek(fp,30,0);
+ fread(frame,1,1600,fp);
+ fread(title1,1,630,fp);
+ fread(title2,1,144,fp);
+ printf(".");
+ 
+ ClearScreen();
+ for(y=-50;y<8;y++)
+ {
+  WriteBlock(1,0,159,80,1,frame);
+  WriteBlock(40,10,108,45,1,title1);
+  WriteBlock(17,y,24,48,1,title2);
+  Refresh();
+  Delay(15);
+ }
+// WriteBlock(1,0,159,80,1,frame);
+// Refresh();
+ 
+ for(;;)
+ {
+  TextOut(45,60,"Press Key...",0x40);
+  for(y=0;y<1200;y++)
+   if(CheckKey(0xff))
+    goto InputName;
+  Box(45,60,120,73,1,0);
+  for(y=0;y<960;y++)
+   if(CheckKey(0xff))
+    goto InputName;
+ }
+ 
+//输入玩家的姓名
+InputName:
+ getchar();
+ WriteBlock(1,0,159,80,1,frame);
+ Refresh();
+ TextOut(50,10,"请输入姓名:",0x40);
+ TextOut(20,30,"玩家一:",0x40);
+ InputBox(65,30,8,player[aaa=0].name);
+ if(strlen(player[aaa=0].name)==0)
+  sprintf(player[aaa=0].name,"tensun");
+ TextOut(20,50,"玩家二:",0x40);
+ InputBox(65,50,8,player[aaa=1].name);
+ if(strlen(player[aaa=1].name)==0)
+  sprintf(player[aaa=1].name,"lyy");
+}
+//----------------------------------------------------------------
+void InitBoard()			//随机初始化棋盘
+{
+ char temp[36];
+ int i,x,y;
+ int index;
+ TextOut(1,1,"正在画棋盘...",0x40); 
+ DrawNet();
+ TextOut(1,1,"正在布棋子...",0x40);
+//使OnBoard的后4个值为随机宝物
+// for(i=0;i<4;i++)
+//  OnBoard[aaa=32+i]=rand()%10+14;
+  
+ //memcpy(temp,OnBoard,36);
+ for(i=0;i<36;i++)
+ 	temp[i]=OnBoard[i]+128; 
+ 
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+   for(;;)
+   {
+    index=rand()%36;
+    if(temp[index])
+    {
+     board[x][y]=temp[index];
+     temp[index]=0;
+     DrawPiece(x,y,Piece_Background);
+     break;
+    }
+   }
+ Box(1,0,159,13,1,0);
+//清空玩家的各项属性
+ for(i=0;i<2;i++)
+ {
+  player[i].score=0;
+  memset(player[i].tool,0,8);
+  memset(player[i].killed,0,72);
+ }
+ round=0;
+ tool_round=0;
+ canGoOn=0; 
+}
+//----------------------------------------------------------------
+void ShowPlayer()
+{
+ char x,y,b;
+ int score;
+ score=0;
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+  {
+   b=board[x][y];
+   if(Bit(b,7))		continue;
+   if(Bit(piece[b].property,7)==this_player)
+    score=score+piece[b].score;
+  }
+ player[this_player].score=score;
+ 
+ Box(1,0,159,12,1,0);
+ TextOut(1,0,player[this_player].name,0x40);
+ sprintf(str,"第%d回合 分数:%d",round,score);
+ TextOut(56,0,str,0x40);
+}
+//----------------------------------------------------------------
+void help()
+{
+	char text[62][26];
+	char txt_line[26];
+	char symb,key;
+	char temp[1600];
+	int this_line,i,line;
+	GetBlock(0,0,160,80,0x40,temp);
+	fseek(fp,2404,0);
+	this_line=0;
+	
+//从SCC.dat中读出帮助文字	
+ 	for(line=0;line<62;line++)
+ 	{
+		i=0;
+ 		for(;;)
+ 		{
+ 			symb=getc(fp);
+ 			if(symb=='<')
+ 			{
+ 				text[line][i]=0;
+ 				i=0;
+ 				break;
+ 			}
+ 			else {
+ 				text[line][i]=symb;
+ 				i++;
+ 			}
+ 		}
+ 	}
+ 	
+	for(;;)
+	{
+		ClearScreen();
+		TextOut(24,1,"*** 热 线 帮 助 ***",1);
+		Block(1,0,159,13,2);
+		Rectangle(1,0,159,79,1);
+		for(i=0;i<5;i++)
+		{
+			if(this_line+i<62)
+			{
+				memcpy(txt_line,text+(this_line+i)*26,26);
+				TextOut(3,15+i*13,txt_line,1);
+			}
+			else	break;
+		}
+		Refresh();	
+		
+		key=getchar();
+		if(key==UP_KEY)		this_line--;
+		if(key==DOWN_KEY)	this_line++;
+		if(key==PGUP_KEY)	this_line=this_line-5;
+		if(key==PGDN_KEY)	this_line=this_line+5;
+		if(this_line<0)
+		{
+			this_line=0;
+			Beep();
+		}
+		if(this_line>62)
+		{
+			this_line=62;
+			Beep();
+		}
+		
+		if(key==ESC_KEY)	break;
+	}
+								
+	WriteBlock(0,0,160,80,0x40,temp);
+}
+//----------------------------------------------------------------
+void SaveConfig()				//保存设置
+{
+ fseek(fp,10,0);
+ putc(canPassRound,fp);
+ putc(canPaoKillOff,fp);
+ putc(canPaoKillTool,fp);
+ putc(isToolUsable,fp);
+ putc(canKillPal,fp);
+ putc(AI,fp);
+ putc(Piece_Background,fp);
+ MsgBox("设置已保存.");
+}
+//----------------------------------------------------------------
+int SaveGame(int n)				//存档,失败返回0
+{
+ int i;
+ fseek(fp,3452+n*300,0);
+ fwrite(player[aaa=0].name,1,8,fp);
+ fwrite(player[aaa=1].name,1,8,fp);
+ for(i=0;i<2;i++)
+ {
+  fwrite(player[i].tool,1,8,fp);
+  fwrite(player[i].killed,1,72,fp);
+ }
+ fwrite(&this_player,1,2,fp);
+ fwrite(&round,1,2,fp);
+ fwrite(&tool_round,1,2,fp);
+ fwrite(&canGoOn,1,2,fp);
+ fwrite(&AI,1,2,fp);
+ fwrite(board,1,72,fp);
+ return 1;
+}
+//----------------------------------------------------------------
+void LoadGame(int n)				//读档
+{
+ int i,x,y;
+ fseek(fp,3452+n*300,0);
+ fread(player[aaa=0].name,1,8,fp);
+ fread(player[aaa=1].name,1,8,fp);
+ for(i=0;i<2;i++)
+ {
+  fread(player[i].tool,1,8,fp);
+  fread(player[i].killed,1,72,fp);
+ }
+ fread(&this_player,1,2,fp);
+ fread(&round,1,2,fp);
+ fread(&tool_round,1,2,fp);
+ fread(&canGoOn,1,2,fp);
+ fread(&AI,1,2,fp);
+ fread(board,1,72,fp);
+ 
+ DrawNet();
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+	DrawPiece(x,y,board[x][y]);
+ ShowPlayer();
+}
+//----------------------------------------------------------------
+void ExitGame()
+{
+ ClearScreen();
+ Rectangle(10,10,150,70,1);
+ TextOut(30,13,"暗子象棋  v1.01",1);
+ TextOut(15,27,"Programming:tensun",1);
+ TextOut(15,40,"Art: lyy_mylove",1);
+ TextOut(40,56,"感谢您的支持!",1);
+ Block(11,11,149,26,2);
+ Refresh();
+ getchar();
+ exit(0);
+}
+//----------------------------------------------------------------
+int isGameOver()				//判断游戏是否结束
+{
+ int x,y,left[2];
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+   if(Bit(board[x][y],7))
+    return -1;
+    
+ if(player[aaa=0].score==0)			return 1;
+ else if(player[aaa=1].score==0)	return 0;	
+ else return -1;
+}
+//----------------------------------------------------------------
+void GameWin(int winner)		//胜利画面,winner=2时为和棋
+{
+ ClearScreen();
+ Rectangle(40,15,120,50,1);
+ TextOut(62,17,"WINNER",1);
+ TextOut(6,65,"按任意键继续，返回键退出",1);
+ Block(41,16,119,29,2);
+ if(winner==2)
+  TextOut(66,35,"平局!",1);
+ else
+  TextOut(50,35,player[winner].name,1);
+ Refresh();
+ 
+ if(getchar()==ESC_KEY)
+ 	ExitGame();
+ else	restart=1;
+}
+//----------------------------------------------------------------
+void EscMenu()
+{
+	int select,set,x,y,len[3];
+	char key,changed,name[2][9];
+	char temp[1600];
+    GetBlock(0,0,160,80,0x40,temp);
+	//Box(1,0,159,79,0,1);
+	for(y=-30;y<1;y++)
+	{
+		WriteBlock(0,0,160,80,0x40,temp);
+		WriteBlock(1,y,159,30,0x40,MenuBar);
+		Delay(20);
+	}
+	select=0;
+	set=0;
+	changed=0;
+	
+	for(;;)
+	{
+		WriteBlock(8+select*24,3,24,24,0x40,MenuIcon[select]);
+		key=getchar();
+		WriteBlock(1,0,159,30,0x40,MenuBar);
+		if(key==LEFT_KEY || key==A_KEY)		select--;
+		if(key==RIGHT_KEY|| key==D_KEY)		select++;
+		if(select<0)			select=5;
+		if(select>5)			select=0;
+		if(key==ESC_KEY)		break;
+		if(key==ENTER_KEY)
+		{
+			Box(1,30,159,79,1,0);
+			if(select==0)				//控制
+			{
+				TextOut(20,35,"重新开始新的一局",0x40);
+				TextOut(20,50,"和棋(经双方协商)",0x40);
+				TextOut(20,65,"投降(认输)",0x40);
+				for(;;)
+				{
+					WriteBlock(2,35+set*15,15,15,0x40,pic[aaa=35]);
+					key=getchar();
+					WriteBlock(2,35+set*15,15,15,0x40,pic[aaa=0]);
+					if(key==UP_KEY  || key==W_KEY)		set--;
+					if(key==DOWN_KEY|| key==S_KEY)		set++;
+					if(set<0)		set=2;
+					if(set>2)		set=0;
+					if(key==ENTER_KEY)
+					{
+						WriteBlock(0,0,160,80,0x40,temp);
+						if(set==0)
+						{
+//							if(canPassRound)
+//							{
+//								this_player=this_player^1;
+//								round++;
+//							}
+//							else	MsgBox(ErrMsg[aaa=8]);
+							restart=1;	
+						}
+						if(set==1)		GameWin(2);
+						if(set==2)		GameWin(1-this_player);
+						return;
+					}
+					if(key==ESC_KEY)	break;
+				}
+			}
+			
+ 			if(select==1)				//设置
+			{
+				TextOut(20,35,"允许使用宝物: 否  是",0x40);
+				TextOut(20,50,"人工智能: ",0x40);
+				TextOut(20,65,"背面图案:",0x40);
+				for(x=0;x<5;x++)
+					WriteBlock(75+x*16,64,15,15,0x40,pic[aaa=30+x]);
+				Box(103+isToolUsable*24,34,115+isToolUsable*24,47,1,2);
+				Box(75+(Piece_Background-30)*16,64,89+(Piece_Background-30)*16,78,1,2);
+				TextOut(80,50,AI_Name[AI],0x40);
+				set=0;
+				for(;;)
+				{
+					WriteBlock(2,35+set*15,15,15,0x40,pic[aaa=35]);
+					key=getchar();
+					WriteBlock(2,35+set*15,15,15,0x40,pic[aaa=0]);
+					if(key==UP_KEY  || key==W_KEY)		set--;
+					if(key==DOWN_KEY|| key==S_KEY)		set++;
+					if(set<0)		set=2;
+					if(set>2)		set=0;
+					
+					if(key==ENTER_KEY&&set==0)		
+					{
+						Box(103+isToolUsable*24,34,115+isToolUsable*24,47,1,2);
+						isToolUsable=isToolUsable^1;
+						Box(103+isToolUsable*24,34,115+isToolUsable*24,47,1,2);
+					}
+					if(key==ENTER_KEY&&set==1)
+					{
+						TextOut(80,50,AI_Name[AI],0x40);
+						AI--;
+						if(AI<0)	AI=2;
+						TextOut(80,50,AI_Name[AI],0x40);
+					}
+					if(key==ENTER_KEY&&set==2)			//改变棋子背面图案
+					{
+						Box(75+(Piece_Background-30)*16,64,89+(Piece_Background-30)*16,78,1,2);
+						Piece_Background++;
+						//if(Piece_Background<30)			Piece_Background=30+5-1;
+						if(Piece_Background>34)	Piece_Background=30;
+						Box(75+(Piece_Background-30)*16,64,89+(Piece_Background-30)*16,78,1,2);
+						restart=1;
+					}
+					
+					if(key==ENTER_KEY)		changed=1;
+					
+					if(key==ESC_KEY)
+					{
+						if(changed)
+							if(ConfirmBox("是否保存设置到文件?"))
+								SaveConfig();
+						break;
+					}
+				}
+			}
+					
+			if(select==2||select==3)		//读档,存档
+			{
+				for(x=0;x<3;x++)
+				{
+					fseek(fp,3452+x*300,0);
+					fread(name[aaa=0],1,8,fp);
+					fread(name[aaa=1],1,8,fp);
+					len[x]=strlen(name[aaa=0]);
+					if(len[x]==0)
+						sprintf(str,"(没有记录)");
+					else sprintf(str,"%s vs.%s",name[aaa=0],name[aaa=1]);
+					TextOut(20,35+x*15,str,0x40);
+				}
+				set=0;
+				for(;;)
+				{
+					WriteBlock(2,35+set*15,15,15,0x40,pic[aaa=35]);
+					key=getchar();
+					WriteBlock(2,35+set*15,15,15,0x40,pic[aaa=0]);
+					if(key==UP_KEY  || key==W_KEY)		set--;
+					if(key==DOWN_KEY|| key==S_KEY)		set++;
+					if(set<0)		set=2;
+					if(set>2)		set=0;
+					if(key==ENTER_KEY)
+					{
+						if(select==2)
+						{
+							if(ConfirmBox("确定覆盖此棋局?"))
+							{
+						 		if(SaveGame(set))	MsgBox("棋局保存成功.");
+								else	MsgBox("棋局保存失败.");
+							}
+							break;
+						}
+						
+						if(select==3&&len[set])
+						{
+							if(ConfirmBox("确定读取此棋局?"))
+							{
+								LoadGame(set);
+								return;
+							}
+						}
+						else MsgBox(ErrMsg[aaa=12]);
+					}
+					if(key==ESC_KEY)	break;				
+				}
+			}
+			
+			if(select==4)	help();
+			if(select==5)	ExitGame();
+		}
+	}
+	
+	for(y=0;y>-30;y--)
+	{
+		WriteBlock(1,y,159,30,0x40,MenuBar);
+		Delay(20);
+   		WriteBlock(0,0,160,80,0x40,temp);
+	}
+}
+//----------------------------------------------------------------
+int UseTool(int t,int x,int y)		//使用宝物
+{
+ int b,k;
+ b=board[x][y];
+ 
+ if(t==19)		//升级
+  if((b>=3&&b<=5)
+   ||(b>=10&&b<=12))
+   board[x][y]++;
+  else	return 0;
+ 
+ if(t==20)		//降级
+  if((b>=4&&b<=6)
+   ||(b>=11&&b<=13))
+   board[x][y]--;
+  else	return 0;
+ 
+ if(t==23)			//炸弹
+  if(b!=7 && b!=14)
+   board[x][y]=0;
+  else	return 0;
+   
+ if(t==22)			//眼睛
+  if(Bit(b,7))
+  {
+   TurnPiece(x,y);
+   getchar();
+   board[x][y]=board[x][y]+128;
+  }
+  else	return 0;
+  
+ if(t==21)			//骰子
+ {
+  for(;;)
+  {
+   x=rand()%9;
+   y=rand()%4;
+   if(board[x][y]==0)
+   {
+    board[x][y]=this_player*7+1;
+    break;
+   }
+  }
+ }
+
+ if(t==24)		//沼泽
+  if(b==0)
+ 	board[x][y]=29;
+  else	return 0;
+	
+ if(t==25) 			//复活
+ {
+  for(;;)
+  {
+   k=player[aaa=1-this_player].killed[rand()%36];
+   if(k>0)	break;
+  }
+  for(;;)
+  {
+   x=rand()%9;
+   y=rand()%4;
+   if(board[x][y]==0)
+   {
+    board[x][y]=k;
+    break;
+   }
+  }
+ }
+ 
+ if(t==26)			//锁
+ {
+  if(Bit(b,8)==0)
+  {
+   board[x][y]=board[x][y]^pow(2,8);
+   tool_round=round;
+  }
+  else	return 0;
+ }
+ 
+ if(t==27)			//盾
+ {
+  if(Bit(b,9)==0)
+  {
+   board[x][y]=board[x][y]^pow(2,9);
+   tool_round=round;
+  }
+  else	return 0;
+ }
+ 
+ if(t==28)			//靴子
+  if(canGoOn==0)
+   canGoOn=1;
+  else	return 0;
+ 
+ DrawPiece(x,y,board[x][y]);
+ return 1;
+}
+//----------------------------------------------------------------
+void AIUseTool(int t)
+{
+ int x,y;
+ char b;
+// char use,use_score[aaa=9*4],use_x[aaa=9],use_y[aaa=4];
+ int use_score,use_x,use_y;
+ use_score=0;
+ 
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+  {
+   b=board[x][y];
+   
+   if(t==19)		//升级
+    if((this_player==0&&b>=3&&b<=5)
+     ||(this_player==1&&b>=10&&b<=12))
+  	 if(piece[b].score>use_score)
+  	 {
+  	  use_score=piece[b].score;
+  	  use_x=x;
+  	  use_y=y;
+  	 }
+//  	{
+// 	 use_score[use]=piece[b].score;
+//  	 if(use<9*4)
+//  	  use++;
+//  	 else break;
+//      }
+  	
+   if(t==20)	//降级
+    if((this_player==0&&b>=11&&b<=13)
+    ||(this_player==1&&b>=4&&b<=6))
+  	 if(piece[b].score>use_score)
+  	 {
+  	  use_score=piece[b].score;
+  	  use_x=x;
+  	  use_y=y;
+  	 }
+ 
+   if(t==23)			//炸弹
+    if((this_player==0&&b>=8&&b<=13)
+    ||(this_player==1&&b>=1&&b<=6))
+  	 if(piece[b].score>use_score)
+  	 {
+  	  use_score=piece[b].score;
+  	  use_x=x;
+  	  use_y=y;
+  	 }
+   
+   if(t==22)			//眼睛
+   	return;
+  
+   if(t==21)			//骰子
+   {
+    if(round>36)		//暂定为36回合后使用
+     UseTool(t,0,0);
+    return;
+   }
+
+   if(t==24&&b==0)		//沼泽
+   {
+    do {
+     x=rand()%9;
+     y=rand()%4;
+    } while(board[x][y]!=0)
+    UseTool(t,x,y);
+    return;
+   }
+ 
+   if(t==25) 			//复活
+   {
+    if(round>54)		//暂定为54回合后使用
+     UseTool(t,0,0);
+    return;
+   }
+   
+   if(t==26)			//锁
+    if((this_player==0&&b>=14&&b<=14)
+      ||(this_player==1&&b>=1&&b<=7))
+  	 if(piece[b].score>use_score)
+  	 {
+  	  use_score=piece[b].score;
+  	  use_x=x;
+  	  use_y=y;
+  	 }
+ 
+   if(t==28)			//靴子
+   {
+    canGoOn=1;
+    return;
+   } 
+  }
+ 
+  UseTool(t,use_x,use_y);  
+} 
+//----------------------------------------------------------------
+void F1Menu()				//按【F1】后弹出的菜单
+{
+ char key;
+ int i,select,tool,cx,cy;
+ char temp[300];
+ if(!isToolUsable)		//如果宝物设置为不可用
+ {
+  MsgBox(ErrMsg[aaa=8]);
+  return;
+ }
+ GetBlock(0,0,160,15,0x40,temp);
+ for(i=0;i<15;i++)
+ {
+  Line(1,i,159,i,0);
+  Delay(30);
+ }
+ //TextOut(1,0,player[this_player].name,0x40);
+ 
+//DrawTool:					//循环起点 
+ for(i=0;i<4;i++)
+ {
+  tool=player[this_player].tool[i];
+  if(tool==0)	DrawPiece(2+i,-1,15);
+  else			DrawPiece(2+i,-1,tool);
+ }
+ 
+ select=0;
+ for(;;)
+ {
+  //tool=player[this_player].tool[select];
+  //TextOut(110,0,ToolName[tool-19],0x40);	//显示光标所在的宝物的名称
+  DrawCursor(2+select,-1,3);
+  key=getchar();
+  DrawCursor(2+select,-1,3);
+  if(key==LEFT_KEY||key==A_KEY)		select--;
+  if(key==RIGHT_KEY||key==D_KEY)	select++;
+  if(select<0)				select=3;
+  if(select>3)		select=0;
+  if(key==ENTER_KEY||key==Z_KEY)
+  {
+   tool=player[this_player].tool[select];
+   if(tool)			//选择了宝物
+   {
+    cx=4;
+    cy=2;
+    for(;;)
+    {
+ 	  DrawCursor(cx,cy,2);
+	  key=getchar();
+	  DrawCursor(cx,cy,2);
+	  if(key==UP_KEY   ||key==W_KEY)			cy--;
+	  if(key==DOWN_KEY ||key==S_KEY)			cy++;
+	  if(key==LEFT_KEY ||key==A_KEY)			cx--;
+	  if(key==RIGHT_KEY||key==D_KEY)			cx++;
+	  if(cy<0)			cy=3;
+	  if(cy>3)	cy=0;
+	  if(cx<0)			cx=8;
+	  if(cx>8)	cx=0;
+	  if(key==ENTER_KEY||key==Z_KEY)
+	  {
+	   if(player[this_player].isToolEnable)
+	   {
+	    	if(UseTool(tool,cx,cy))
+	    	{
+	    		player[this_player].tool[select]=0;
+	    		player[this_player].isToolEnable=0;
+	    	}
+	    	else
+	    		MsgBox("请正确使用宝物!");
+	   }
+	   else MsgBox(ErrMsg[aaa=6]);
+	   break;
+      }
+	  if(key==ESC_KEY)		break;
+	}
+   }
+   if(!player[this_player].isToolEnable)
+    break;
+  }
+  if(key==ESC_KEY||key==F1_KEY)		break; 
+ }
+ 
+ for(i=13;i>=0;i--)
+ {
+  Line(1,i,159,i,0);
+  Delay(30);
+ }
+ WriteBlock(0,0,160,15,0x40,temp);
+}
+//----------------------------------------------------------------
+
+void AIMove()				//2005.05.10
+{
+ char score[9][4][5];		//此数组用来储存每个单元格各个方向的情况
+ int high_score,high_x,high_y;
+ char except,except_x[36],except_y[36];
+ int loop_count,tool;					//用来记录随机循环中的循环次数,以免死循环
+ int from_x,from_y,to_x,to_y;
+ int pao,pao_x[2],pao_y[2];			//目前只记录己方两个炮***
+ int x,y,p,s,dir,i,max;
+ char b;	//board
+ from_x=0;from_y=0;to_x=0;to_y=0;
+ high_score=0;high_x=0;high_y=0;
+ pao=0;except=0;loop_count=0;
+ memset(score,0,180);
+ memset(except_x,9,36);
+ memset(except_y,4,36);
+ 
+// for(this_player=0;this_player<2;this_player++)
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+  {
+   b=board[x][y];
+   if(Bit(b,7))				//如果棋子未翻开
+    continue;	
+   if(b==0)						//如果为空地
+    continue;
+   if((this_player==0&&b==2)||	//如果为己方的炮
+      (this_player==1&&b==9))
+   {
+    pao_x[pao]=x;
+    pao_y[pao]=y;
+    pao++;
+   }
+   if(CanMove(x,y,x,y-1))
+   {
+    if(board[x][y-1]>0&&board[x][y-1]<15)
+     score[x][y][aaa=1]=piece[board[x][y-1]].score;
+    else if(board[x][y-1]>=19&&board[x][y-1]<29)
+     score[x][y][aaa=1]=4;			//宝物暂定为4分
+    else score[x][y][aaa=1]=0;		//空地为0分
+   }
+  
+   if(CanMove(x,y,x,y+1))
+   {
+    if(board[x][y+1]>0&&board[x][y+1]<15)
+     score[x][y][aaa=2]=piece[board[x][y+1]].score;
+    else if(board[x][y+1]>=19&&board[x][y+1]<29)
+     score[x][y][aaa=2]=4;
+    else score[x][y][aaa=2]=0;		//空地为0分
+   }
+   
+   if(CanMove(x,y,x-1,y))
+   {
+    if(board[x-1][y]>0&&board[x-1][y]<15)
+     score[x][y][aaa=3]=piece[board[x-1][y]].score;
+    else if(board[x-1][y]>=19&&board[x-1][y]<29)
+     score[x][y][aaa=3]=4;
+    else score[x][y][aaa=3]=0;		//空地为0分
+   }
+   
+   if(CanMove(x,y,x+1,y))
+   {
+    if(board[x+1][y]>0&&board[x+1][y]<15)
+     score[x][y][aaa=4]=piece[board[x+1][y]].score;
+    else if(board[x-1][y]>=19&&board[x+1][y]<29)
+     score[x][y][aaa=4]=4;
+    else score[x][y][aaa=4]=0;		//空地为0分
+   }
+   
+   score[x][y][aaa=0]=score[x][y][aaa=1]+score[x][y][aaa=2]+score[x][y][aaa=3]+score[x][y][aaa=4];
+  }
+  
+SearchLoop:			//搜寻最佳方案
+ for(x=0;x<9;x++)
+  for(y=0;y<4;y++)
+  {
+   if(x==except_x[except]&&y==except_y[except])
+   {
+    except++;
+    continue;
+   }
+   if(except>30)
+   {
+    printf("ex=%d",except);
+    exit(0);
+   }
+   if(score[x][y][aaa=0]>high_score)
+   {
+    high_score=score[x][y][aaa=0];
+    high_x=x;
+    high_y=y;
+   }
+  }
+
+ b=board[high_x][high_y];
+ 
+ /*在此处设置断点测试/
+ if(test)
+ {
+ 	printf("\n");
+ 	for(x=0;x<5;x++)
+ 		printf("%d,",*(score[high_x][high_y]+x));
+	printf("\nHigh:%d,(%d,%d)",high_score,high_x,high_y);
+	printf("\nBoard:%d",board[high_x][high_y]);
+ 	getchar();
+ 	exit(0);
+ }
+ //断点结束*/
+
+ if(b>0&&b<15)
+ 	p=piece[b].property;
+ else {
+  loop_count=0;
+  for(;;)
+  {
+   to_x=rand()%9;
+   to_y=rand()%4;
+   loop_count++;
+   if(loop_count>720)
+   {
+    for(tool=0;tool<4;tool++)
+     if(player[this_player].tool[tool])
+     {
+      MsgBox("正在使用宝物...");
+      AIUseTool(tool);
+      player[this_player].tool[tool]=0;
+      goto SearchLoop;
+     }
+    printf("\nEnd loop!");
+    exit(0);
+   }
+   if(Bit(board[to_x][to_y],7))
+   {
+    TurnPiece(to_x,to_y);
+    return;
+   }
+  }
+ }
+ 
+ if(Bit(p,7)==AI)
+ {
+  from_x=high_x;
+  from_y=high_y;
+  if(Difficulty==0)
+   dir=rand()%4+1;
+  else {
+   max=0;
+   for(i=1;i<5;i++)
+    if(score[high_x][high_y][i]>max)
+    {
+     max=score[high_x][high_y][i];
+     dir=i;
+    }
+  }
+  if(dir==1)	{	to_x=from_x;	to_y=from_y-1;	}
+  if(dir==2)	{	to_x=from_x;	to_y=from_y+1;	}
+  if(dir==3)	{	to_x=from_x-1;	to_y=from_y;	}
+  if(dir==4)	{	to_x=from_x+1;	to_y=from_y;	}
+ }
+ else {
+  max=0;
+  for(i=1;i<5;i++)
+   if(score[high_x][high_y][i]>max)
+   {
+    max=score[high_x][high_y][i];
+    dir=i;
+   }
+  if(dir==1)	{	from_x=high_x;		from_y=high_y-1;}
+  if(dir==2)	{	from_x=high_x;		from_y=high_y+1;}
+  if(dir==3)	{	from_x=high_x-1;	from_y=high_y;	}
+  if(dir==4)	{	from_x=high_x+1;	from_y=high_y;	}
+  
+  if(CanMove(from_x,from_y,from_x,from_y-1))
+  {
+   to_x=from_x;
+   to_y=from_y-1;
+  }
+  else if(CanMove(from_x,from_y,from_x,from_y+1))
+  {
+   to_x=from_x;
+   to_y=from_y+1;
+  }
+  else if(CanMove(from_x,from_y,from_x-1,from_y))
+  {
+   to_x=from_x-1;
+   to_y=from_y;
+  }
+  else if(CanMove(from_x,from_y,from_x+1,from_y))
+  {
+   to_x=from_x+1;
+   to_y=from_y;
+  }
+  else {
+   if(high_score)
+   {
+    except_x[except]=high_x;
+    except_y[except]=high_y;
+    goto SearchLoop;
+   }
+   else {
+    for(;;)
+    {
+     to_x=rand()%9;
+     to_y=rand()%4;
+     if(Bit(board[to_x][to_y],7))
+     {
+      TurnPiece(to_x,to_y);
+      return;
+     }
+    }
+   }
+  } 
+ }
+ 
+ if(CanMove(from_x,from_y,to_x,to_y))
+  PieceMove(from_x,from_y,to_x,to_y);  
+ else 
+ {
+  except_x[except]=high_x;
+  except_y[except]=high_y;
+  goto SearchLoop;
+ }
+}
+//----------------------------------------------------------------
+void Play()
+{
+ int cx,cy;			//光标的位置
+ int x1,y1,x2,y2;
+ char key;			//接收按键
+ int winner,select;
+ cx=4;
+ cy=2;
+ select=0;
+ this_player=0;
+ restart=0;
+
+ //TextOut(3,0,player[aaa=0].name,0x40);
+ //TextOut(157-strlen(player[aaa=1].name)*6,0,player[aaa=1].name,0x40);
+ Line(1,13,159,13,1);
+ ShowPlayer();
+ /*在此处设置断点测试/
+	printf("%d",strlen(player[aaa=1].name));
+ 	getchar();
+ 	exit(0);
+ //断点结束*/
+
+ for(;;)
+ {
+  Circle(7,45,6,1,0);
+  Circle(7,45,6,this_player,1);			//显示当前玩家
+  DrawCursor(cx,cy,2);
+  key=getchar();
+  DrawCursor(cx,cy,2);
+  if(key==UP_KEY   ||key==W_KEY)			cy--;
+  if(key==DOWN_KEY ||key==S_KEY)			cy++;
+  if(key==LEFT_KEY ||key==A_KEY)			cx--;
+  if(key==RIGHT_KEY||key==D_KEY)			cx++;
+  if(cy<0)			cy=3;
+  if(cy>3)	cy=0;
+  if(cx<0)			cx=8;
+  if(cx>8)	cx=0;
+
+  if(key==ENTER_KEY||key==Z_KEY)
+  {
+   if(select==0)					//第一次选择
+   {
+    if(Bit(board[cx][cy],7))
+    {
+     TurnPiece(cx,cy);
+     round++;
+     this_player=this_player^1;
+     player[this_player].isToolEnable=1;
+     select=0;
+     ShowPlayer();
+     //winner=isGameOver();
+     //if(winner==-1)		continue;
+     //else		GameWin(winner);
+     continue;
+    }
+    else {
+     x1=cx;
+     y1=cy;
+     DrawCursor(cx,cy,3);
+    }
+   }
+   else {							//第二次选择
+    x2=cx;
+    y2=cy;  
+    DrawCursor(x1,y1,0);
+    if(CanMove(x1,y1,x2,y2))
+    {
+     PieceMove(x1,y1,x2,y2);
+     round++;
+     if(canGoOn)		//如果有"靴子"
+     {
+      canGoOn=0;
+      continue;
+     }
+     this_player=this_player^1;
+     player[this_player].isToolEnable=1;
+     select=0;
+     ShowPlayer();
+     winner=isGameOver();
+     if(winner==-1)		continue;
+     else		GameWin(winner);
+    }
+   }
+   select=select^1;
+
+  }
+
+  if(AI==this_player)
+  {
+   AIMove();
+   this_player=this_player^1;
+   player[this_player].isToolEnable=1;
+   round++;
+   ShowPlayer();
+  }
+
+  if(key==ESC_KEY)
+  {
+   if(select==0)					EscMenu();
+   if(restart==1)			return;				//跳出Play()函数
+   else {
+    DrawCursor(x1,y1,0);
+    select=0;
+   }
+  }
+  
+  if(key==F1_KEY&&select==0)		F1Menu();
+  
+  if(key==HELP_KEY)			help();
+  
+//  if(key==DOT_KEY)			Console();
+ }
+}
+//----------------------------------------------------------------
+void main()
+{
+ SetScreen(1);
+ printf("Now Loading...");
+ fp=fopen("/LavaData/SCC.dat","r+");
+ if(fp==NULL)
+ {
+  printf("\nCan't open SCC.dat!");
+  getchar();
+  exit(0);
+ }
+ printf(".");
+ LoadData();
+ ShowTitle();
+ 
+GameLoop: 
+ ClearScreen();
+ Refresh();
+ InitBoard();
+ Play();
+goto GameLoop;
+
+}
+
+
+

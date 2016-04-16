@@ -1,0 +1,339 @@
+/*24点计算器源代码,悍颀制作 2005.3.5*/
+#define ENTER_KEY 13
+#define LT_KEY 23
+#define AC_KEY 27
+long aaa;
+long inputn(char start)
+{int i;
+ int n,sign;
+ char ch,row,col;
+ long value;
+ char numberc[11];
+ char string[12];
+ row=start/20;
+ col=start%20;
+ strcpy(numberc,"0bnmghjtyu");
+ memset(string,0,12);
+ sign=1;
+ n=0; 
+ value=0;
+ for(;;)
+  {n=strlen(string);
+   Locate(row,col);
+   memset(_TEXT+start,0,156-start);
+   printf("%s_",string);
+   ch=getchar();
+   for(i=0;i<10;i++)
+    {if(ch==numberc[i])
+     {ch=i+'0';
+      break;
+     }
+     else if(ch==20)
+     ch='-';
+    }
+   if(isdigit(ch)&&n<10)
+    string[n]=ch;
+   else if (ch=='-')
+    {if(sign==1)
+      {memmove(string+1,string,10);
+       string[aaa=0]=ch;
+       }
+      else if(sign==-1)
+       {memmove(string,string+1,10);
+        string[n-1]=0;
+       }
+      sign=-sign;
+    }
+   else if(ch==LT_KEY&&n)
+    string[n-1]=0;
+   else if (ch==ENTER_KEY&&n)
+    {string[n]=0;
+     memset(_TEXT+start+n,0,1);
+     break;
+    }
+  }
+ if(sign==1)
+  i=0;
+ else
+  i=1;
+ for(;i<n;i++)
+  {ch=string[i];
+   value=value*10+(ch&0xf);
+  }
+ return sign*value;
+ }
+
+void main()
+{int num[4],i,j,k,l,a,b,c,d;
+ char ch;
+ begin:
+ SetScreen(0);
+ printf("     24点计算器\n\n   按任意键开始..\n\n 悍颀的首个Lava程序");
+ ch=getchar();
+ if(ch==AC_KEY) exit(0);
+ SetScreen(0);
+ printf("请输入4个数字(1-13)");
+ for(num[aaa=0]=0;num[aaa=0]<1||num[aaa=0]>13;num[aaa=0]=inputn(20));
+ for(num[aaa=1]=0;num[aaa=1]<1||num[aaa=1]>13;num[aaa=1]=inputn(25));
+ for(num[aaa=2]=0;num[aaa=2]<1||num[aaa=2]>13;num[aaa=2]=inputn(30));
+ for(num[aaa=3]=0;num[aaa=3]<1||num[aaa=3]>13;num[aaa=3]=inputn(35));
+ printf("\n");
+ for(i=0;i<=3;i++)
+  {a=num[i];
+   for(j=0;j<=3;j++)
+    {if(j==i) continue;
+     b=num[j];
+     for(k=0;k<=3;k++)
+      {if(k==i||k==j) continue;
+       c=num[k];
+       for(l=0;l<=3;l++)
+        {if(l==i||l==j||l==k) continue;
+         d=num[l];
+/*以下是45种算法*/
+ if(a+b+c+d==24)
+  {printf("%d+%d+%d+%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a+b+c-d==24)
+  {printf("%d+%d+%d-%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b+c+d==24)
+  {printf("%d*%d+%d+%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b+c-d==24)
+  {printf("%d*%d+%d-%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b-c-d==24)
+  {printf("%d*%d-%d-%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b*c+d==24)
+  {printf("%d*%d*%d+%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b*c-d==24)
+  {printf("%d*%d*%d-%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b*c*d==24)
+  {printf("%d*%d*%d*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b+c*d==24)
+  {printf("%d*%d+%d*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a*b-c*d==24)
+  {printf("%d*%d-%d*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(a%b==0)
+  if(a/b+c+d==24)
+   {printf("%d/%d+%d+%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if(c%d==0)
+  if(a+b-c/d==24)
+   {printf("%d+%d-%d/%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if((a*b)%c==0)
+  {if(a*b/c+d==24)
+    {printf("%d*%d/%d+%d=24\n",a,b,c,d);
+     getchar();
+     goto begin;
+    }
+   if(a*b/c-d==24)
+    {printf("%d*%d/%d-%d=24\n",a,b,c,d);
+     getchar();
+     goto begin;
+    }
+   if((a*b/c)%d==0)
+    if(a*b/c/d==24)
+     {printf("%d*%d/%d/%d=24\n",a,b,c,d);
+      getchar();
+      goto begin;
+     }
+  }
+ if((a*b*c)%d==0)
+  if(a*b*c/d==24)
+   {printf("%d*%d*%d/%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if(c%d==0)
+  {if(a*b+c/d==24)
+    {printf("%d*%d+%d/%d=24\n",a,b,c,d);
+     getchar();
+     goto begin;
+    }
+   if(a*b-c/d==24)
+    {printf("%d*%d-%d/%d=24\n",a,b,c,d);
+     getchar();
+     goto begin;
+    }
+  }
+ if((a+b)*c+d==24)
+  {printf("(%d+%d)*%d+%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a+b)*c-d==24)
+  {printf("(%d+%d)*%d-%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b)*c+d==24)
+  {printf("(%d-%d)*%d+%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b)*c-d==24)
+  {printf("(%d-%d)*%d-%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a+b)*c*d==24)
+  {printf("(%d+%d)*%d*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b)*c*d==24)
+  {printf("(%d-%d)*%d*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a+b)*(c+d)==24)  {printf("(%d+%d)*(%d+%d)=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b)*(c-d)==24)
+  {printf("(%d-%d)*(%d-%d)=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b)*(c+d)==24)
+  {printf("(%d-%d)*(%d+%d)=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a+b+c)*d==24)
+  {printf("(%d+%d+%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a+b-c)*d==24)
+  {printf("(%d+%d-%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b-c)*d==24)
+  {printf("(%d-%d-%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a*b+c)*d==24)
+  {printf("(%d*%d+%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a*b-c)*d==24)
+  {printf("(%d*%d-%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a-b*c)*d==24)
+  {printf("(%d-%d*%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a*b-c)%d==0)
+  if((a*b-c)/d==24)
+   {printf("(%d*%d-%d)/%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if((a*b+c)%d==0)
+  if((a*b+c)/d==24)
+   {printf("(%d*%d+%d)/%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if((a*b)%(c+d)==0)
+  if(a*b/(c+d)==24)
+   {printf("%d*%d/(%d+%d)=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if((a+b)%c==0)
+  if((a+b)/c+d==24)
+   {printf("(%d+%d)/%d+%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if(((a+b)*c)%d==0)
+  if((a+b)*c/d==24)
+   {printf("(%d+%d)*%d/%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if(((a-b)*c)%d==0)
+  if((a-b)*c/d==24)
+   {printf("(%d-%d)*%d/%d=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if(c-d!=0&&(a*b)%(c-d)==0)
+  if(a*b/(c-d)==24)
+   {printf("%d*%d/(%d-%d)=24\n",a,b,c,d);
+    getchar();
+    goto begin;
+   }
+ if(((a*10000)/(b*1000-(c*1000)/d)-1)/10==23&&((a*10000)/(b*1000-(c*1000)/d)+1)/10==24)
+  {printf("%d/(%d-%d/%d)=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((a*10000)/((c*1000)/d-b*1000-1)/10==23&&(a*10000)/((c*1000)/d-b*1000+1)/10==24)
+  {printf("%d/(%d/%d-%d)=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if(((a*1000-(b*1000)/c)*d/100-1)/10==23&&((a*1000-(b*1000)/c)*d/100+1)/10==24)
+  {printf("(%d-%d/%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((((a*1000)/b+c*1000)*d/100-1)/10==23&&(((a*1000)/b+c*1000)*d/100+1)/10==24)
+  {printf("(%d/%d+%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+ if((((a*1000)/b-c*1000)*d/100-1)/10==23&&(((a*1000)/b-c*1000)*d/100+1)/10==24)
+  {printf("(%d/%d-%d)*%d=24\n",a,b,c,d);
+   getchar();
+   goto begin;
+  }
+           }
+      }
+    }
+  }
+ printf("无解\n");
+ getchar();
+ goto begin;
+}         

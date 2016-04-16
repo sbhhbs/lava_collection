@@ -1,0 +1,23 @@
+原型:int putc(char ch,char fp);
+功能:写一个字符到文件
+说明:把一个字符ch输出到句柄为fp的文件中
+     返回输出的字符ch.若出错,返回-1
+举例:
+void main()
+{
+ char fp;
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!");
+ }
+ else
+ {
+  printf("创建文件成功!");
+  putc('A', fp);
+  rewind(fp);
+  printf("\n%c", getc(fp));
+  fclose(fp);
+ }
+ getchar();
+}

@@ -1,0 +1,16 @@
+原型:void strcpy(int str1, int str2);
+功能:把str2所指由NULL结束的字符串复制到str1所指的数组中
+说明:str2和str1所指内存区域不可以重叠且str1必须有足够的空间来容纳str2字符串.
+     返回指向str1的指针
+举例:
+char s[] = "Golden Global View";
+
+void main()
+{
+ char d[20];
+
+ SetScreen(0);
+ strcpy(d, s);
+ printf("%s", d);
+ getchar();
+}

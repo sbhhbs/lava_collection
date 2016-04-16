@@ -1,0 +1,108 @@
+int _s;//hash base
+int _l;//hash len
+int _c;//hash cur len
+int _t;//hash top
+int _ks;//key size
+int _es;//elemet size
+
+int SwitchHash(int s)
+{
+	int l;
+	int c;
+	int t;
+	int ks;
+	int es;
+
+	l = _l;
+	c = _c;
+	t = _t;
+	ks = _ks;
+	es = _es;
+	memcpy(_s - 10, &l, 10);//保存当前变量
+	if (!s) return(1);
+	memcpy(&l, s, 10);
+	if (l <= 0 || c > l || c < 0 || t <= s + 10 || es <= 0 || ks <= 0) return(1);
+	_s = s + 10;
+	_l = l;
+	_c = c;
+	_t = t;
+	_ks = ks;
+	_es = es;
+}
+
+int InitHash(int s, int len, int ks, int es)
+{
+	if (!es) return(-1);
+	memset(s, 0, len);
+	_s = s + 10;
+	_c = _l = (len - 10) / es;
+	_t = s + len - es;
+	_ks = ks;
+	_es = es;
+	if (SwitchHash(s)) return(-1);
+	return _l;
+}
+/* 0:没找到不可插入 负数:没找到可以插入 正数:找到*/
+int Hash(int key)
+{
+	int _key;
+	long p;
+	int q;
+
+	_key = key;
+	p = 0;
+	while (*key)
+	{
+		p = (*key++) - p * 1664117991;
+	}
+	q = p = (abs(p) % _l) * _es + _s;
+	for (;;)
+	{
+		if (!*p) return -p;
+		if (!strcmp(p, _key)) return p;
+		if ((p = p + _es) > _t) p = _s;
+		if (q == p) return 0;
+	}
+}
+
+int SearchHash(char &key[], int e)
+{
+	int p;
+
+	p = Hash(key);
+	if (p > 0)
+	{
+		memcpy(e, p + _ks, _es - _ks);
+		return 1;
+	}
+}
+
+int InsertHash(char &key[], int e)
+{
+	int p;
+
+	if (!_c) return 0;
+	p = Hash(key);
+	if (p >= 0) return 0;
+	memcpy(-p, key, _ks);
+	memcpy(-p + _ks, e, _es - _ks);
+	_c--;
+	return 1;
+}
+
+int DeleteHash(char &key[])
+{
+	int p;
+
+	p = Hash(key);
+	if (p > 0)
+	{
+		memset(p, 0, _es);
+		_c++;
+		return 1;
+	}
+}
+
+void main()
+{
+}

@@ -1,0 +1,329 @@
+#define AC 0x1b
+#define CR 0x0d
+#define BLANK 0x20
+#define LEFT 0x17
+#define UP 0x14
+#define DOUW 0x15
+#define PUP 0x13
+#define PDN 0x0E
+#define F1 0x1c
+#define F2 0x1d
+#define F3 0x1e
+#define F4 0x1f
+long aaa;
+char w[]="/LAVA/>";
+char cmd[]="";
+char c1[]="";
+char c2[]="";
+char j,a,b,d,f,r,x;
+void start()
+{ClearScreen();TextOut(24,20,"文曲星 DIY-DOS",129);
+TextOut(60,60,"---yanggynb制作",1);Refresh();Delay(900);return;}
+void openw(int u)
+{
+ char in,out,t1[512],q;
+ int i;
+ t1[aaa=0]=0;q=0;i=0;
+ if((out=fopen(c1,"r"))==0)
+     {
+      printf("\nFILE OPEN ERROR!");r=r+1;
+      return;
+     }
+ if(u==2){strcpy(t1,c1);
+          while(c1[b-1]!='/'&&b>0){b--;c1[b]=0;}
+          strcat(c1,c2);strcpy(c2,t1);strcpy(t1,c1);
+         }
+ else{if(c2[d-1]!='/'){c2[d++]='/';c2[d]=0;}
+      do{b--;}while(c1[b]!='/'&&b>0)
+      if(c1[b]=='/')b++;
+      memmove(c2+d,c1+b,strlen(c1)-b);
+      strcpy(t1,c2);
+      if(!(strcmp(c1,t1))){printf("\nERROR!");fclose(out);r=r+1;return;}
+     }
+ if((in=fopen(t1,"r"))!=0)
+     {printf("\nFILE EXIST,COVER?y/n");
+      if(getchar()=='n'){printf(" n");r=r+2;fclose(in);return;}
+      printf(" y");fclose(in);q=1;
+      DeleteFile(t1);}
+ if((in=fopen(t1,"w"))==0)
+     {
+      printf("\nFILE OPEN ERROR!");if(q)r=r+3;else r=r+1;
+      return;
+     }
+ do{memset(t1,0,512);i=fread(t1,1,512,out);fwrite(t1,1,i,in);}while(!feof(out))
+ fclose(in);fclose(out);if(u==2)DeleteFile(c2);
+ if(u==3)DeleteFile(c1);printf("\nOK！");
+ if(q)r=r+3;else r=r+1;
+ return;
+}
+void readw(int u)
+{
+ char fp,e,n[3];
+ int k;
+ long i;
+ e=0;
+ if((fp=fopen(c1,"r+"))==0)
+     {printf("\nFILE OPEN ERROR!");r=r+1;return;}
+ else 
+     {
+      SetScreen(0);
+      do{for(;e<30&&!feof(fp);){if(c2[aaa=0])printf("%d ",getc(fp));else printf("%c",getc(fp));e++;}
+         k=getchar();e=0;
+         SetScreen(0);
+         Locate(0,0);
+         if(u==2){if(k==F4){printf("INPUT NUMBER:");memset(n,0,3);
+                            do{k=GetWord(1);
+                               if(k!=CR){n[aaa=0]=n[aaa=1];n[aaa=1]=n[aaa=2];n[aaa=2]=k-48;printf("%d",k-48);}
+                              }while(k!=CR)
+                            i=ftell(fp);fseek(fp,n[aaa=0]*100+n[aaa=1]*10+n[aaa=2]-31,1);
+                            printf("\nINPUT MESSAGE:");memset(n,0,3);
+                            do{k=GetWord(1);
+                               if(k!=CR){n[aaa=0]=n[aaa=1];n[aaa=1]=n[aaa=2];n[aaa=2]=k-48;printf("%d",k-48);}
+                              }while(k!=CR)
+                            putc(n[aaa=0]*100+n[aaa=1]*10+n[aaa=2],fp);
+                            fseek(fp,i,0);}
+                  else if(k==UP)fseek(fp,-10,1); 
+                  else if(k==DOUW)fseek(fp,10,1);
+                  else if(k==PUP)fseek(fp,-30,1);
+                  else if(k==PDN)fseek(fp,30,1);
+                  SetScreen(0);fseek(fp,-30,1);}
+        }while(k!=AC)
+      fclose(fp);SetScreen(0);r=0;return;
+     }
+}
+void check()
+{
+ char fp,q,n[3];
+ int key;
+ q=0;memset(n,NULL,3);
+ if(c1[aaa=0])
+     {
+      if(!(strcmp(cmd,"cd")))
+         {
+          if(!(ChDir(c1))){printf("\nLIST NOT EXIST!");r=r+1;return;}
+          strcpy(w,c1);j=b;
+          w[j++]='>';
+          w[j]=0;x=j;
+          return;
+         }
+      else if(!(strcmp(cmd,"dir")))
+         {
+          if(ChDir(c1)){FileList(c2);SetScreen(0);r=0;w[x-1]=0;ChDir(w);w[x-1]='>';return;}
+          else{printf("\nLIST NOT EXIST!");r=r+1;return;}
+         }
+      else if(!(strcmp(cmd,"type"))) 
+         { 
+          if(strchr(c1,'.')){readw(1);return;}
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}
+         }
+      else if(!(strcmp(cmd,"edit"))) 
+         { 
+          if(strchr(c1,'.')){readw(2);return;}
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}
+         }
+      else if(!(strcmp(cmd,"del")))
+         {
+          if(!(strcmp(c2,"p")))
+              {
+               printf("\nDELETE FILE?y/n ");
+               key=getchar();putchar(key);q=1;
+               if(key=='n'){r=r+1;return;}
+               }
+          if(c2[aaa=0]&&strcmp(c2,"p")){printf("\nSYNTAX ERROR!");r=r+1;return;}     
+          if(strchr(c1,'.'))
+              {
+               if(DeleteFile(c1))
+                   {printf("\nOK!");if(q)r=r+2; else r=r+1;return;}
+               else
+                   {printf("\nDELETE FILE ERROR!");if(q)r=r+2; else r=r+1;return;}
+               }
+          printf("\nSYNTAX ERROR!");if(q)r=r+2; else r=r+1;return;
+         }       
+      else if(!(strcmp(cmd,"md")))
+         {
+          if(!(strchr(c1,'.')))
+             {if(ChDir(c1))
+                  {printf("\nEXIST!");r=r+1;return;}
+              else if (MakeDir(c1))
+                  {printf("\nOK!");r=r+1;return;}
+              else
+                  {printf("\nERROR!");r=r+1;return;}
+             }
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}       
+         }
+      else if(!(strcmp(cmd,"new")))
+         {
+          if(strchr(c1,'.'))
+             {
+              if((fp=fopen(c1,"r"))!=0)
+                 {printf("\nFILE EXIST!COVER?y/n");
+                  key=getchar();putchar(key);fclose(fp);
+                  if(key=='n'){r=r+1;return;}
+                 } 
+              if((fp=fopen(c1,"w+"))==0)
+                 {printf("\nFILE OPEN ERROR!");r=r+1;return;}
+              else
+                 {SetScreen(0);printf("INPUT MESSAGE:");
+                  if(c2[aaa=0]){do{key=GetWord(3);
+                               if((key&0xff00)==0&&isprint(key)){putchar(key);putc(key,fp);}
+                               else if(key<0){putchar(key);putchar(key>>8);putc(key,fp);putc(key>>8,fp);}
+                               else if(key==CR){printf("\n");putc(key,fp);}
+                              }while(key!=AC)
+                           }  
+                  else do{do{key=GetWord(1);
+                             if(!iscntrl(key)){n[aaa=0]=n[aaa=1];n[aaa=1]=n[aaa=2];n[aaa=2]=key-48;printf("%d",key-48);}
+                             else if(key==LEFT||key==F2){n[aaa=2]=n[aaa=1];n[aaa=1]=n[aaa=0];n[aaa=0]=0;}
+                            }while(key!=CR&&key!=AC)
+                          if(key!=AC){putc(n[aaa=0]*100+n[aaa=1]*10+n[aaa=2],fp);printf("-");}
+                          memset(n,NULL,3);
+                         }while(key!=AC) 
+                  fclose(fp);printf("\nOK!");Delay(400);
+                  SetScreen(0);r=0;return;
+                 }
+             }
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}     
+         }       
+      else if(!(strcmp(cmd,"copy")))
+         {
+          if(strchr(c1,'.')&&c2[aaa=0]&&!(strchr(c2,'.')))
+             {openw(1);return;}
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}  
+         }
+      else if(!(strcmp(cmd,"ren")))
+         {
+          if(strchr(c1,'.')&&strchr(c2,'.'))
+             {openw(2);return;}
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}  
+         } 
+      else if(!(strcmp(cmd,"move")))
+         {
+          if(strchr(c1,'.')&&c2[aaa=0]&&!(strchr(c2,'.')))
+             {openw(3);return;}
+          else{printf("\nSYNTAX ERROR!");r=r+1;return;}  
+         }
+     }
+   if(!(strcmp(cmd,"help")))
+      {
+       printf("\nADD COMMAND:new");r=r+3;
+       return;
+      }
+   if(!(strcmp(cmd,"time")))
+      {
+       printf("\nNOW TIME:%d:%d:%d",*1063,*1064,(*1065)/2);r=r+1;
+       return;
+      }
+   if(!(strcmp(cmd,"date")))
+      {
+       printf("\nNOW DTAE:%dy%dm%dd",*1066+1881,*1067+1,*1068+1);r=r+1;
+       return;
+      }
+  if(!(strcmp(cmd,"cd")))
+      {
+       printf("\nSYNTAX:cd path");r=r+1;
+       return;
+      }
+  if(!(strcmp(cmd,"copy")))
+      {
+       printf("\nSYNTAX:copy pathfilename path");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"del")))
+      {
+       printf("\nSYNTAX:del pathfilename [p]");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"edit")))
+      {
+       printf("\nSYNTAX:edit pathfilename");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"md")))
+      {
+       printf("\nSYNTAX:md path");r=r+1;
+       return;
+      }
+  if(!(strcmp(cmd,"type")))
+      {
+       printf("\nSYNTAX:type pathfilename");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"move")))
+      {
+       printf("\nSYNTAX:move pathfilename path");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"ren")))
+      {
+       printf("\nSYNTAX:ren pathfilename filname");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"new")))
+      {
+       printf("\nSYNTAX:new pathfilename");r=r+2;
+       return;
+      }
+  if(!(strcmp(cmd,"cd..")))
+      {
+       if(ChDir(".."))
+           if(j>6)
+              {
+               for(j=j-7;w[j]!='/';)j--;
+               j++;w[j++]='>';w[j]=0;
+               x=j;
+              }
+       return;   
+      } 
+   if(!(strcmp(cmd,"ver"))){printf("\n该DOS版本号是-Y3.0");r=r+1;return;}
+   if(!(strcmp(cmd,"dir"))){FileList(c2);SetScreen(0);r=0;return;}
+   if(!(strcmp(cmd,"cls"))){r=0;SetScreen(0);return;}
+   if(!(strcmp(cmd,"exit")))exit(0);
+   if(cmd[aaa=0]){printf("\nNOT DOS COMMAND!");r=r+1;return;}
+   else r=r-1;
+   return;
+ }
+void judge()
+{
+ if(j<20){r=r+1;return;}
+ else if(j<40){r=r+2;return;}
+ else if(j<60){r=r+3;return;}
+ else if(j<60){r=r+4;return;}
+} 
+void main()
+{
+ int k;
+ char h;
+ start();
+ SetScreen(0);x=7;j=7;
+ r=0;
+ for(;;)
+  {
+   a=0;b=0;
+   d=0;f=0;
+   cmd[aaa=0]=0;
+   c1[aaa=0]=0;
+   c2[aaa=0]=0;
+   do
+     {Locate(r,0);printf("%s_",w);
+      if(r>4)r=4;
+      if(r==4&&j>17&&j<37){r=3;memset(_TEXT+80,' ',20);}
+      if(r==3&&j>36){r=2;memset(_TEXT+80,' ',20);}
+      k=GetWord(3);
+      if((k==LEFT||k==F2)&&j>x){j--;
+                                if(isprint(w[j]))w[j]=0;
+                                else {w[j--]=0;w[j]=0;}
+                                memset(_TEXT+r*20+j+1,' ',2);}
+      else if ((k&0xff00)==0&&isprint(k)){w[j++]=k;w[j]=0;}
+      else if(k<0){w[j++]=k;w[j++]=k>>8;w[j]=0;memset(_TEXT+80,' ',20);}
+     }while(k!=CR)
+   h=x;memset(_TEXT+r*20+j,' ',1);
+   while(w[h]==BLANK)h++;
+   for(;w[h]!=BLANK&&a<4&&h<j;h++){cmd[a++]=tolower(w[h]);cmd[a]=0;}
+   while(w[h]==BLANK)h++;
+   for(;w[h]!=BLANK&&b<19&&h<j;h++){c1[b++]=w[h];c1[b]=0;}
+   while(w[h]==BLANK)h++;
+   for(;w[h]!=BLANK&&d<13&&h<j;h++){c2[d++]=w[h];c2[d]=0;}
+   judge();
+   check();
+   j=x;w[x]=0;
+  }
+}

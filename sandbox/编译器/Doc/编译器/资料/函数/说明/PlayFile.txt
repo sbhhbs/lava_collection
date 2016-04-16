@@ -1,0 +1,7 @@
+原型:char PlayFile(char fp, long ps, long pe, int time);
+功能:播放音频文件，TC808中支持A1600文件
+输入:fp:文件句柄
+     ps:要发声的内容起点
+     pe:要发声的内容终点
+     time:显示的时间
+输出:如果=255，则为失败。0为成功

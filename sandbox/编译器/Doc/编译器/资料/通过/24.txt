@@ -1,0 +1,421 @@
+
+#define KEY_UP 20 
+#define KEY_DW 21 
+#define KEY_RT 22 
+#define KEY_LF 23 
+#define KEY_PGUP 19 
+#define KEY_PGDW 14 
+#define KEY_ENTER 13 
+#define KEY_SPACE 32
+#define KEY_HELP 25
+#define KEY_ESC 27 
+long aaa;
+//全局变量
+char s[]=
+{
+    0,3,6,8 
+}
+;
+
+int x,y,sx,sy,mx,my,st ;
+
+int ManPicA[][16]=
+{
+    //背面立 0
+    0xdc27,0xf82f,0xfc1f,0xfe3f,0xfa3f,0xfc3f,0xfc3f,0xf42f,0xf81f,0xf00f,0xd81b,0x1428,0x9429,0x781e,0x9009,0x6006,
+    //背面右 1
+    0x0000,0xdc27,0xf82f,0xfc1f,0xfe3f,0xfa3f,0xfc3f,0xfc3f,0xf42f,0xf81f,0xf00f,0xd81b,0x2428,0x242e,0xf811,0x001e,
+    //背面左 2
+    0x0000,0xdc27,0xf82f,0xfc1f,0xfe3f,0xfa3f,0xfc3f,0xfc3f,0xf42f,0xf81f,0xf00f,0xd81b,0x1424,0x7424,0x881f,0x7800,
+    //正面立 3
+    0xe43b,0xf41f,0xf83f,0xfc7f,0xbc5d,0xfc3e,0x9429,0x9429,0x781e,0x300c,0xd81b,0x9429,0x1428,0x781e,0x9009,0x6006,
+    //正面右 4
+    0x0000,0xe43b,0xf41f,0xf83f,0xfc7f,0xbc5d,0xfc3e,0x9429,0x9429,0x781e,0x300c,0xd81b,0xa429,0x243e,0xf811,0x000f,
+    //正面左 5
+    0x0000,0xe43b,0xf41f,0xf83f,0xfc7f,0xbc5d,0xfc3e,0x9429,0x9429,0x781e,0x300c,0xd81b,0x9425,0x7c24,0x881f,0xf000,
+    //右侧立 6
+    0xdc27,0xf82f,0xfc1f,0xfe3f,0xaa3f,0xf83f,0x583d,0x583d,0x281c,0x100e,0xe005,0x3009,0x3009,0xf00f,0x2006,0xe003,
+    //右侧走 7
+    0x0000,0xdc27,0xf82f,0xfc1f,0xfe3f,0xaa3f,0xf83f,0x583d,0x583d,0x281c,0x100e,0xe007,0x5e0e,0x5216,0xe413,0x380e,
+    //左侧立 8
+    0xe43b,0xf41f,0xf83f,0xfc7f,0xfc55,0xfc1f,0xbc1a,0xbc1a,0x3814,0x7008,0xa007,0x900c,0x900c,0xf00f,0x6004,0xc007,
+    //左侧走 9
+    0x0000,0xe43b,0xf41f,0xf83f,0xfc7f,0xfc55,0xfc1f,0xbc1a,0xbc1a,0x3814,0x7008,0xe007,0x707a,0x684a,0xc827,0x701c 
+    
+}
+;
+
+int ManPicB[][16]=
+{
+    //掩模图01
+    0xdfe7,0xffef,0xffff,0xffff,0xfbff,0xffff,0xffff,0xf7ef,0xffff,0xffff,0xdffb,0x17e8,0x97e9,0x7ffe,0x9ff9,0x7ffe,
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xfbff,0xffff,0xffff,0xf7ef,0xffff,0xffff,0xdffb,0x27e8,0x27ee,0xfff1,0xffff,
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xfbff,0xffff,0xffff,0xf7ef,0xffff,0xffff,0xdffb,0x17e4,0x77e4,0x8fff,0xffff,
+    0xe7fb,0xf7ff,0xffff,0xffff,0xbfdd,0xfffe,0x97e9,0x97e9,0x7ffe,0x3ffc,0xdffb,0x97e9,0x17e8,0x7ffe,0x9ff9,0x7ffe,
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xbfdd,0xfffe,0x97e9,0x97e9,0x7ffe,0x3ffc,0xdffb,0xa7e9,0x27fe,0xfff1,0xffff,
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xbfdd,0xfffe,0x97e9,0x97e9,0x7ffe,0x3ffc,0xdffb,0x97e5,0x7fe4,0x8fff,0xffff,
+    0xdfe7,0xffef,0xffff,0xffff,0xafff,0xffff,0x5ffd,0x5ffd,0x2ffc,0x1ffe,0xfffd,0x3ff9,0x3ff9,0xffff,0x3ffe,0xffff,
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xafff,0xffff,0x5ffd,0x5ffd,0x2ffc,0x1ffe,0xffff,0x5ffe,0x53f6,0xe7f3,0x3ffe,
+    0xe7fb,0xf7ff,0xffff,0xffff,0xfff5,0xffff,0xbffa,0xbffa,0x3ff4,0x7ff8,0xbfff,0x9ffc,0x9ffc,0xffff,0x7ffc,0xffff,
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xfff5,0xffff,0xbffa,0xbffa,0x3ff4,0x7ff8,0xffff,0x7ffa,0x6fca,0xcfe7,0x7ffc 
+    //掩模图02
+    
+}
+;
+
+int MapPic[][16]=
+{
+    //空白 00
+    0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,
+    //全黑 01
+    0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,
+    //地板 02
+    0xa2a2,0x5555,0xa2a2,0x5555,0x0000,0x5555,0xa2a2,0x5555,0xa2a2,0x5555,0xa2a2,0x5555,0x0000,0x5555,0xa2a2,0x5555,
+    //路牌1 03
+    0xfcf7,0xaaa8,0xaa97,0xc694,0xec94,0xa8b7,0x68b8,0x9077,0xd817,0x1410,0xf23f,0x8142,0xe23e,0x3418,0xf81f,0x0000,
+    //路牌2 04
+    0xff7f,0xa9cd,0x8bba,0xa9a8,0xabaa,0xa9ca,0xff7f,0x1010,0xd817,0x1410,0xf23f,0x8142,0xe22e,0x3418,0xf81f,0x0000,
+    //路牌3 05
+    0x800f,0x5810,0x3c2a,0x1a2a,0xa20,0x221,0x6419,0xf80f,0xe80b,0x808,0xf80f,0x4001,0x7007,0x180c,0xf80f,0x0000,
+    //路牌4 06
+    0x2462,0x5495,0x5485,0x74b5,0x5495,0x7772,0x2800,0xf47f,0x1a40,0xfd7f,0xfe7f,0xfc7f,0xb807,0xb006,0x8006,0x8007,
+    //椅子 07
+    0xe00,0x1a00,0x1a00,0x1a00,0xfa07,0x1a08,0x1a18,0x1e18,0x1c18,0x1c18,0x1c18,0xfc1f,0xf81f,0xc0c,0xf40b,0x1c0e,
+    //桌子 08
+    0xffff,0xabaa,0x55d5,0xabaa,0x55d5,0xabaa,0x55d5,0xffff,0x0180,0xffff,0x2a54,0x3a5c,0x0a50,0x0a50,0x0a50,0x0e70 
+    
+    //树木
+}
+;
+
+int mapdat[][5][10]=
+{
+    // 3 * 3
+    //map0
+    1,1,1,1,1,1,1,1,1,1,
+    1,6,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,
+    1,6,0,0,0,2,2,2,2,2,
+    1,0,0,0,0,2,2,2,2,2,
+    //map1
+    1,1,1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,
+    2,0,0,0,0,0,0,0,0,2,
+    2,0,0,0,0,0,0,0,0,2,
+    //map2
+    1,1,1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0,0,1,
+    0,0,0,3,0,0,0,0,0,1,
+    2,2,2,2,2,0,0,0,0,1,
+    2,2,2,2,2,0,0,0,4,1,
+    //map3
+    1,0,0,0,0,2,2,2,2,2,
+    1,0,0,0,0,2,2,2,2,2,
+    1,0,0,7,0,0,0,0,0,0,
+    1,0,0,0,0,2,2,2,2,2,
+    1,0,0,0,0,2,2,2,2,2,
+    //map4
+    2,0,0,0,0,0,0,0,0,2,
+    2,0,0,0,0,0,0,0,0,2,
+    0,0,0,0,8,7,0,0,0,0,
+    2,0,0,0,0,0,0,0,0,2,
+    2,0,0,0,0,0,0,0,0,2,
+    //map5
+    2,2,2,2,2,0,0,0,0,1,
+    2,2,2,2,2,0,0,0,0,1,
+    0,0,0,0,0,0,0,0,0,1,
+    2,2,2,2,2,0,0,0,0,1,
+    2,2,2,2,2,0,0,0,0,1,
+    //map6
+    1,0,0,0,0,2,2,2,2,2,
+    1,0,0,0,0,2,2,2,2,2,
+    1,0,0,0,7,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,0,5,
+    1,1,1,1,1,1,1,1,1,1,
+    //map7
+    2,0,0,0,0,0,0,0,0,2,
+    2,0,0,0,0,0,0,0,0,2,
+    0,0,0,0,8,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,5,
+    1,1,1,1,1,1,1,1,1,1,
+    //map8
+    2,2,2,2,2,0,0,0,0,0,
+    2,2,2,2,2,0,0,0,4,1,
+    0,0,0,0,0,0,0,0,0,1,
+    0,5,0,0,0,8,0,0,0,1,
+    0,1,1,1,1,1,1,1,1,1 
+    
+}
+;
+
+int PressHold()
+{
+    if(CheckKey(KEY_UP))return KEY_UP ;
+    if(CheckKey(KEY_DW))return KEY_DW ;
+    if(CheckKey(KEY_RT))return KEY_RT ;
+    if(CheckKey(KEY_LF))return KEY_LF ;
+    return 0 ;
+}
+
+int GetMap(int lcdx,int lcdy,int tmp)
+{
+    *tmp=(lcdy/5)*3+(lcdx/10);
+    *(tmp+1)=lcdx%10 ;
+    *(tmp+2)=lcdy%5 ;
+    return mapdat[*tmp][*(tmp+2)][*(tmp+1)];
+}
+
+void DrawMap(int xx,int yy,char id)
+{
+    WriteBlock(xx*16,yy*16,16,16,1,MapPic+id*32);
+}
+
+void DrawMan(int x2,int y2,char manid,char n)
+{
+    char tmp[3];
+    DrawMap(sx,sy,GetMap(x,y,tmp));
+    WriteBlock(x2*8,y2*8,16,16,3,ManPicA+(manid*10+n)*32);
+    WriteBlock(x2*8,y2*8,16,16,4,ManPicB+(manid*10+n)*32);
+    Refresh();
+}
+
+void MoveScreen(char k,int dev)
+{
+    int inc ;
+    char xx,yy,i,j,mapid,tmp[3];
+    if(k<KEY_UP||k>KEY_LF)return ;
+    //屏幕下移
+    else if(k==KEY_UP)
+    {
+        dev=-dev*160 ;
+        i=0 ;
+        j=0 ;
+    }
+    //屏幕上移
+    else if(k==KEY_DW)
+    {
+        dev=dev*160 ;
+        i=0 ;
+        j=4 ;
+    }
+    //屏幕左移
+    else if(k==KEY_RT)
+    {
+        dev=dev ;
+        i=9 ;
+        j=0 ;
+    }
+    //屏幕右移
+    else if(k==KEY_LF)
+    {
+        dev=-dev ;
+        i=0 ;
+        j=0 ;
+    }
+    WriteBlock(0,0,160,80,1,_GRAPH+dev);
+    GetMap(x-sx+i,y-sy+j,tmp);
+    mapid=tmp[aaa=0];
+    xx=tmp[aaa=1];
+    yy=tmp[aaa=2];
+    if(k<=KEY_DW)
+    {
+        for(i=xx;i<10;i++)
+        DrawMap(i-xx,j,mapdat[mapid][yy][i]);
+        for(i=0;i<xx;i++)
+        DrawMap(10+i-xx,j,mapdat[mapid+1][yy][i]);
+    }
+    else 
+    {
+        for(j=yy;j<5;j++)
+        DrawMap(i,j-yy,mapdat[mapid][j][xx]);
+        for(j=0;j<yy;j++)
+        DrawMap(i,5+j-yy,mapdat[mapid+3][j][xx]);
+        //修正文曲星屏幕自身BUG
+        if(i==0)
+        {
+            GetMap(x-sx+1,y-sy,tmp);
+            mapid=tmp[aaa=0];
+            xx=tmp[aaa=1];
+            for(j=yy;j<5;j++)
+            DrawMap(1,j-yy,mapdat[mapid][j][xx]);
+            for(j=0;j<yy;j++)
+            DrawMap(1,5+j-yy,mapdat[mapid+3][j][xx]);
+        }
+    }
+    
+    
+}
+
+void ShowMap(int lcdx,int lcdy,char mode)
+{
+    char i,j,xx,yy,mapid ;
+    char tmp[3];
+    if(mode==1)return ;
+    GetMap(lcdx,lcdy,tmp);
+    mapid=tmp[aaa=0];
+    xx=tmp[aaa=1];
+    yy=tmp[aaa=2];
+    for(j=yy;j<5;j++)
+    {
+        for(i=xx;i<10;i++)
+        DrawMap(i-xx,j-yy,mapdat[mapid][j][i]);
+        for(i=0;i<xx;i++)
+        DrawMap(10-xx+i,j-yy,mapdat[mapid+1][j][i]);
+    }
+    for(j=0;j<yy;j++)
+    {
+        for(i=xx;i<10;i++)
+        DrawMap(i-xx,5-yy+j,mapdat[mapid+3][j][i]);
+        for(i=0;i<xx;i++)
+        DrawMap(10-xx+i,5-yy+j,mapdat[mapid+4][j][i]);
+    }
+}
+
+void MoveMan(char k)
+{
+    int rx,ry,dx,dy ;
+    char px,py,mode,tmp[3];
+    char oldmap,newmap ;
+    dx=0 ;
+    dy=0 ;
+    rx=x ;
+    ry=y ;
+    px=sx ;
+    py=sy ;
+    if(k==KEY_UP)dy=-1 ;
+    else 
+    if(k==KEY_DW)dy=1 ;
+    else 
+    if(k==KEY_LF)dx=-1 ;
+    else 
+    if(k==KEY_RT)dx=1 ;
+    oldmap=GetMap(x,y,tmp);
+    x=x+dx ;
+    y=y+dy ;
+    if(x<0||x>=30||y<0||y>=15)newmap=1 ;
+    else newmap=GetMap(x,y,tmp);
+    if(newmap==0||newmap==2)
+    {
+        if((dy==0&&x>4&&x<26&&rx>4&&rx<26)||(dx==0&&y>1&&y<13&&ry>1&&ry<13))
+        {
+            mode=0 ;
+            MoveScreen(k,2);
+            px=sx-dx ;
+            py=sy-dy ;
+            //ShowMap(x-sx,y-sy,0);
+            Delay(125);
+            
+        }
+        else 
+        {
+            mode=1 ;
+            sx=sx+dx ;
+            sy=sy+dy ;
+            Delay(125);
+        }
+        
+    }
+    else 
+    {
+        mode=0 ;
+        x=rx ;
+        y=ry ;
+        Delay(150);
+    }
+    
+    if(dx==0)st=(st==1)+1 ;
+    DrawMap(px,py,oldmap);
+    DrawMan(sx*2-dx*mode,sy*2-dy*mode,0,s[k-KEY_UP]+1+st);
+    Delay(180);
+    DrawMan(sx*2,sy*2,0,s[k-KEY_UP]);
+    if(mode==1)DrawMap(px,py,oldmap);
+    Refresh();
+}
+
+void Incident()
+{
+}
+
+void WorldMap()
+{
+}
+
+void MoveMode()
+{
+}
+
+char ShowMenu()
+{
+}
+
+void ShowHelp()
+{
+}
+
+void main()
+{
+    char ch,ch_old,i,j,k,mode ;
+    int mapid,manid ;
+    sx=5 ;
+    sy=2 ;
+    x=sx ;
+    y=sy ;
+    mode=0 ;
+    manid=0 ;
+    ch=KEY_RT ;
+    ch_old=ch ;
+    
+    ShowMap(x-sx,y-sy,mode);
+    DrawMan(sx*2,sy*2,manid,s[ch-KEY_UP]);
+    Refresh();
+    
+    while(ch!=KEY_ESC)
+    {
+        ch=getchar();
+        if(ch>=KEY_UP&&ch<=KEY_LF)
+        {
+            st=0 ;
+            if(ch!=ch_old)
+            {
+                DrawMan(sx*2,sy*2,manid,s[ch-KEY_UP]);
+                Delay(200);
+                ch_old=ch ;
+            }
+            for(;;)
+            {
+                k=PressHold();
+                if(!k)break;
+                else if(k!=ch_old) st=(k<=KEY_DW);
+                MoveMan(k);
+                ch_old=k ;
+            }
+            
+        }
+        else if(ch==KEY_ENTER)
+        {
+            Incident();
+        }
+        else if(ch==KEY_SPACE)
+        {
+            WorldMap();
+        }
+        else if(ch==KEY_PGUP)
+        {
+            MoveMode();
+        }
+        else if(ch==KEY_PGDW)
+        {
+            ShowMenu();
+        }
+        else if(ch==KEY_HELP)
+        {
+            ShowHelp();
+        }
+    }
+    
+    exit(1);
+    
+}
+
+

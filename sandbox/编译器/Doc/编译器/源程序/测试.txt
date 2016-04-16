@@ -1,0 +1,433 @@
+void INT(long str,long n)
+{SetScreen(1);
+ if(str)printf(">%s\n",str);
+ printf(">%d %c\n",n,n);getchar();
+}
+//=======================================================溢出显示=======================================================//
+int Msg(char &s[],long a,long b,int x)
+{char str[50];
+ strcpy(str,s);if(a>b)sprintf(str+strlen(str),"%dB",a-b);else strcat(str," 无");TextOut(1,x*13+1,str,1);
+ Rectangle(62,x*13+1,158,x*13+12,1);Block(62,x*13+1,62+(72*a/b),x*13+12,1);
+ return(a-b);
+}
+void Debug()
+{long size,lnk,con,hlp,chk,ycl,edit,n;
+ size=out-0x2000;
+ lnk=sizeof(struct LIB);
+ con=sizeof(struct CONTABLE1);
+ hlp=HPFUN_TABLE+sizeof(struct HPFUNTABLE)-HELP_TXT;
+ chk=sizeof(struct DOCTABLE)+sizeof(struct MACTABLE)+sizeof(struct MACSHI);
+ ycl=FY_C_SIZE+sizeof(struct MACTABLE);
+ edit=SKFUN_TABLE+sizeof(struct SKFUNTABLE)-TXT_CUSH;
+ ClearScreen();Line(134,1,134,79,65);n=0;
+ if(Msg("链接:",lnk,size,0)>0)n=1;
+ if(Msg("设置:",con,size,1)>0)n=1;
+ if(Msg("帮助:",hlp,size,2)>0)n=1;
+ if(Msg("查看:",chk,size,3)>0)n=1;
+ if(Msg("预处:",ycl,size,4)>0)n=1;
+ if(Msg("编辑:",edit,size,5)>0)n=1;
+ Refresh();getchar();if(n)exit(0);
+}
+//========================================================宏显示========================================================//
+void ShowMAC(struct MACTABLE &mac)
+{char key;
+ char i;
+ char cur;
+ char str[100];
+ for(cur=0;;)
+  {ClearScreen();sprintf(str,"name=MACRO size=%d",mac.size);TextOut(1,0,str,1);
+   for(i=0;i<5;i++)
+    {if(i+cur>=mac.size)break;
+     sprintf(str,"%d:%d %s %s",i+cur,mac.dat[i+cur].id,mac.dat[i+cur].name,mac.dat[i+cur].value);
+     TextOut(1,i*13+13,str,1);
+    }
+   Refresh();key=getchar();
+   if(key==UP_KEY&&cur)cur--;
+   else if(key==DOWN_KEY&&cur+1<mac.size)cur++;
+   else if(key==UU_KEY){if(cur<5)cur=0;else cur=cur-5;}
+   else if(key==DD_KEY&&cur+5<mac.size)cur=cur+5;
+   else if(key==ESC_KEY)return;
+  }
+}
+//======================================================文件夹显示======================================================//
+void ShowDOC(struct DOCTABLE &doc)
+{char key;
+ char i;
+ char cur;
+ char str[100];
+ for(cur=0;;)
+  {ClearScreen();sprintf(str,"name=DOC size=%d",doc.size);TextOut(1,0,str,1);
+   for(i=0;i<5;i++)
+    {if(i+cur>=doc.size)break;
+     sprintf(str,"%d:%s %d",i+cur,doc.dat[i+cur].name,doc.dat[i+cur].id);
+     TextOut(1,i*13+13,str,1);
+    }
+   Refresh();key=getchar();
+   if(key==UP_KEY&&cur)cur--;
+   else if(key==DOWN_KEY&&cur+1<doc.size)cur++;
+   else if(key==UU_KEY){if(cur<5)cur=0;else cur=cur-5;}
+   else if(key==DD_KEY&&cur+5<doc.size)cur=cur+5;
+   else if(key==ESC_KEY)return;
+  }
+}
+//=======================================================缓冲显示=======================================================//
+void ShowCush(char &buf[])
+{char key;
+ int cur;
+ char str[100];
+ for(cur=0;;)
+  {ClearScreen();
+   sprintf(str,"name=CUSH");TextOut(1,0,str,1);
+   sprintf(str,"in:size=%d cur=%d",strlen(in.p),cur);TextOut(1,13,str,1);
+   sprintf(str,"%s",in.p+cur);TextOut(1,26,str,1);
+   sprintf(str,"out:size=%d cur=%d",strlen(buf),cur);TextOut(1,39,str,1);
+   sprintf(str,"%s",buf+cur);TextOut(1,52,str,1);
+   Refresh();key=getchar();
+   if(CheckKey('q'))ReleaseKey(128);
+   if((key==UP_KEY||key==LEFT_KEY)&&cur>0)cur--;
+   else if(key==DOWN_KEY||key==RIGHT_KEY)cur++;
+   else if(key==UU_KEY&&cur>0)cur=cur-20;
+   else if(key==DD_KEY)cur=cur+20;
+   else if(key==ESC_KEY)return;
+  }
+}
+//=======================================================变量显示=======================================================//
+#define VAR_GLOBOLE 253
+#define VAR_PART    254
+#define VAR_STU     235
+#define VAR_UNI     243
+#define VAR_ARR     95
+#define VAR_VAR     63
+#define VAR_ALL     2047
+#define VAR_FUN     512
+#define VAR_SUB     1024
+#define VAR_LAB     256
+/*
+ 00:全局
+ 01:局部
+ 02:普通
+ 03:结构体
+ 04:共用体
+ 05:普通
+ 06:数组
+ 07:结构引用
+ 08:标号
+ 09:函数
+ 10:子程序
+*/
+void ToStr(char &s[],int n)
+{char i,ch;
+ if(!n)strcpy(s,"0");
+ while(n){i=n%16;n=n/16;if(i>=0&&i<=9)ch=i|0x30;if(i>9&&i<36)ch=i+55;memmove(s+1,s,strlen(s)+1);*s=ch;}
+}
+void ShowVar(int type)
+{struct COM_VAR e;
+ char key;
+ int cur,i,k,ptr;
+ char str[100];
+ char shi[200],n;//映射表
+ int a,b,c;
+ for(i=n=0;i<var.pt;i++)
+  {ptr=*(var.ptr[i]+strlen(var.ptr[i])+1);
+   if((type&256)&&ptr==LVM_LABEL)shi[n++]=i;//标号
+   if((type&512)&&ptr==LVM_FUN)shi[n++]=i;//函数
+   if((type&1024)&&ptr==LVM_SUB)shi[n++]=i;//子程序
+   if((type&1)&&(ptr%2==0))//外
+    {if((type&4)&&ptr<G_STU_V)//基本
+      {if((type&32)&&(ptr<G_STU_A&&ptr!=GLOB_ARR&&ptr!=PART_ARR))shi[n++]=i;//变量
+       if((type&64)&&((ptr>=G_STU_A&&ptr<=P_UNI_A)||ptr==GLOB_ARR||ptr==PART_ARR))shi[n++]=i;//数组
+       if((type&128)&&(ptr>=G_STU_Q&&ptr<=P_UNI_Q))shi[n++]=i;//引用
+      }
+     if((type&8)&&(ptr==6||ptr==7||ptr==10||ptr==11||ptr==14||ptr==15))//结构体
+      {if((type&32)&&(ptr<G_STU_A&&ptr!=GLOB_ARR&&ptr!=PART_ARR))shi[n++]=i;//变量
+       if((type&64)&&((ptr>=G_STU_A&&ptr<=P_UNI_A)||ptr==GLOB_ARR||ptr==PART_ARR))shi[n++]=i;//数组
+       if((type&128)&&(ptr>=G_STU_Q&&ptr<=P_UNI_Q))shi[n++]=i;//引用
+      }
+     if((type&16)&&(ptr==8||ptr==9||ptr==12||ptr==13||ptr==16||ptr==17))//共用体
+      {if((type&32)&&(ptr<G_STU_A&&ptr!=GLOB_ARR&&ptr!=PART_ARR))shi[n++]=i;//变量
+       if((type&64)&&((ptr>=G_STU_A&&ptr<=P_UNI_A)||ptr==GLOB_ARR||ptr==PART_ARR))shi[n++]=i;//数组
+       if((type&128)&&(ptr>=G_STU_Q&&ptr<=P_UNI_Q))shi[n++]=i;//引用
+      }
+    }
+   if((type&2)&&(ptr%2))//内
+    {if((type&4)&&ptr<G_STU_V)//基本
+      {if((type&32)&&(ptr<G_STU_A&&ptr!=GLOB_ARR&&ptr!=PART_ARR))shi[n++]=i;//变量
+       if((type&64)&&((ptr>=G_STU_A&&ptr<=P_UNI_A)||ptr==GLOB_ARR||ptr==PART_ARR))shi[n++]=i;//数组
+       if((type&128)&&(ptr>=G_STU_Q&&ptr<=P_UNI_Q))shi[n++]=i;//引用
+      }
+     if((type&8)&&(ptr==6||ptr==7||ptr==10||ptr==11||ptr==14||ptr==15))//结构体
+      {if((type&32)&&(ptr<G_STU_A&&ptr!=GLOB_ARR&&ptr!=PART_ARR))shi[n++]=i;//变量
+       if((type&64)&&((ptr>=G_STU_A&&ptr<=P_UNI_A)||ptr==GLOB_ARR||ptr==PART_ARR))shi[n++]=i;//数组
+       if((type&128)&&(ptr>=G_STU_Q&&ptr<=P_UNI_Q))shi[n++]=i;//引用
+      }
+     if((type&16)&&(ptr==8||ptr==9||ptr==12||ptr==13||ptr==16||ptr==17))//共用体
+      {if((type&32)&&(ptr<G_STU_A&&ptr!=GLOB_ARR&&ptr!=PART_ARR))shi[n++]=i;//变量
+       if((type&64)&&((ptr>=G_STU_A&&ptr<=P_UNI_A)||ptr==GLOB_ARR||ptr==PART_ARR))shi[n++]=i;//数组
+       if((type&128)&&(ptr>=G_STU_Q&&ptr<=P_UNI_Q))shi[n++]=i;//引用
+      }
+    }
+  }
+ for(cur=0;;)
+  {ClearScreen();sprintf(str,"name=VAR size=%d",n);TextOut(1,0,str,1);
+   for(i=0;i<5;i++)
+    {if(i+cur>=n)break;memset(e,0,sizeof(struct COM_VAR));a=b=0;memset(str,0,100);
+     ptr=var.ptr[shi[i+cur]]+strlen(var.ptr[shi[i+cur]])+1;e.t=*ptr++;
+     if(e.t<G_STU_V){e.b=*ptr++;e.v=(*ptr++)|((*ptr++)<<8);if(e.t>=GLOB_ARR)memcpy(e.d,ptr,DIM_MAX*2);}//基本变量
+     else if(e.t==LVM_FUN){e.b=*ptr++;e.v=*ptr++;e.d[0]=*ptr++;}//函数
+     else if(e.t==LVM_SUB)memcpy(&e.b,ptr,10);//子程序
+     else if(e.t==LVM_LABEL)memcpy(&e.v,ptr,6);//标号
+     else if(e.t<G_STU_Q){memcpy(&e.b,ptr,6);a=e.v>>16;b=e.v&0xffff;if(e.t>=G_STU_A)memcpy(e.d,ptr+6,DIM_MAX*2);}//结构
+     else if(e.t<LVM_LABEL)memcpy(&e.b,ptr,4);//引用
+     sprintf(str,"%d:%d %s %d ",i+cur,e.t,var.ptr[shi[i+cur]],e.b);
+     if((e.t<=PART_ARR||e.t>=LVM_LABEL)&&e.t!=LVM_FUN)ToStr(str+strlen(str),e.v);
+     if(a||b)sprintf(str+strlen(str)," %d %d",a,b);
+     for(k=0;k<DIM_MAX;k++){if(e.d[k])sprintf(str+strlen(str)," %d",e.d[k]);}TextOut(1,i*13+13,str,1);
+    }
+   Refresh();key=getchar();
+   if(key==UP_KEY&&cur)cur--;
+   else if(key==DOWN_KEY&&cur+1<n)cur++;
+   else if(key==UU_KEY){if(cur<5)cur=0;else cur=cur-5;}
+   else if(key==DD_KEY&&cur+5<n)cur=cur+5;
+   else if(key==ESC_KEY)return;
+  }
+}
+//=======================================================跳转显示=======================================================//
+void ShowJmp()
+{char key;
+ char i;
+ char cur;
+ char str[30],t[10];
+ for(cur=0;;)
+  {ClearScreen();sprintf(str,"name=JMP size=%d",jp.size);TextOut(1,0,str,1);
+   for(i=0;i<5;i++)
+    {if(i+cur>=jp.size)break;key=(jp.d[i+cur].t>>(16-JP_TYP))&7;
+     if(key==JP_LABEL)strcpy(t,"标号");else if(key==JP_SUB)strcpy(t,"函数");else if(key==JP_IF)strcpy(t,"if");
+     else if(key==JP_DO)strcpy(t,"do");else if(key==JP_WHILE)strcpy(t,"while");else if(key==JP_FOR)strcpy(t,"for");
+     else if(key==JP_BRK)strcpy(t,"brk");else if(key==JP_CONT)strcpy(t,"cont");else strcpy(t,"错误");
+     sprintf(str,"%d:%d:%s %d 地址:%d",i+cur,jp.d[i+cur].t,t,0x1fff&jp.d[i+cur].t,jp.d[i+cur].a);
+     TextOut(1,i*13+13,str,1);
+    }
+   Refresh();key=getchar();
+   if(key==UP_KEY&&cur)cur--;
+   else if(key==DOWN_KEY&&cur+1<jp.size)cur++;
+   else if(key==UU_KEY){if(cur<5)cur=0;else cur=cur-5;}
+   else if(key==DD_KEY&&cur+5<jp.size)cur=cur+5;
+   else if(key==ESC_KEY)return;
+  }
+}
+//=======================================================C V 显示=======================================================//
+void ShowCV()
+{char str[100];
+ ClearScreen();
+ sprintf(str,"name:%s",cv.n);TextOut(1,0,str,1);
+ sprintf(str,"type:%d",cv.t);TextOut(1,13,str,1);
+ sprintf(str,"byte:%d",cv.b);TextOut(1,26,str,1);
+ sprintf(str,"value:%d",cv.v);TextOut(1,39,str,1);
+ sprintf(str,"dim0:%d",cv.d[0]);TextOut(1,52,str,1);
+ sprintf(str,"dim1:%d",cv.d[1]);TextOut(1,65,str,1);
+ Refresh();getchar();
+}
+//=======================================================内存快照=======================================================//
+void Type(char &t[],char te)
+{if(te==GLOB_VAR)strcpy(t,"外变量");else if(te==PART_VAR)strcpy(t,"内变量");else if(te==GLOB_ARR)strcpy(t,"外数组");
+ else if(te==PART_ARR)strcpy(t,"内数组");else if(te==G_STU_V)strcpy(t,"外结构体变量");
+ else if(te==P_STU_V)strcpy(t,"内结构体变量");else if(te==G_UNI_V)strcpy(t,"外共用体变量");
+ else if(te==P_UNI_V)strcpy(t,"内共用体变量");else if(te==G_STU_A)strcpy(t,"外结构体数组");
+ else if(te==P_STU_A)strcpy(t,"内结构体数组");else if(te==G_UNI_A)strcpy(t,"外共用体数组");
+ else if(te==P_UNI_A)strcpy(t,"内共用体数组");else if(te==G_STU_Q)strcpy(t,"外结构体引用");
+ else if(te==P_STU_Q)strcpy(t,"内结构体引用");else if(te==G_UNI_Q)strcpy(t,"外共用体引用");
+ else if(te==P_UNI_Q)strcpy(t,"内共用体引用");else if(te==LVM_LABEL)strcpy(t,"标号");else if(te==LVM_FUN)strcpy(t,"函数");
+ else if(te==LVM_SUB)strcpy(t,"子程序");else if(te==NUMBER)strcpy(t,"数字");else if(te==STRING)strcpy(t,"字符串");
+ else if(te==LVM_SEMI)strcpy(t,";");else if(te==STIR_NUM)strcpy(t,",");else if(te==R_S_BRAC)strcpy(t,")");
+ else if(te==R_M_BRAC)strcpy(t,"]");else if(te==L_S_BRAC)strcpy(t,"(");else if(te==L_M_BRAC)strcpy(t,"[");
+ else if(te==POINT)strcpy(t,".");else if(te==LVM_SIGN)strcpy(t,"运算符");
+ else if(te>P_UNI_Q&te<=31)strcpy(t,"引用");else sprintf(t,"其它:%d",te);
+}
+void itoa(char &str[],char num)//integer to string
+{char i,ch,n;
+ memset(str,0,5);n=num;
+ if(num==0)strcpy(str,"0");
+ while(num)
+  {i=num%16;num=(num>>4);
+   if(i<10)ch=i|'0';else ch=i+'7';
+   memmove(str+1,str,strlen(str));str[0]=ch;
+  }
+ if(n<16){memmove(str+1,str,strlen(str));str[0]='0';}strcat(str," ");
+}
+void RamSave()
+{char fp;
+ char s[100],t[20],r[5],i;
+ if(!(fp=fopen("/文本文件/缓冲.txt","w"))){SetScreen(0);printf("RamSave:无法创建文件\n缓冲.bin");getchar();exit(0);}
+ fwrite(FB_CUSH+FB_C_REL,1,CB_L_SIZE,fp);fclose(fp);
+ if(!(fp=fopen("/文本文件/变量.bin","w"))){SetScreen(0);printf("RamSave:无法创建文件\n变量.bin");getchar();exit(0);}
+ fwrite(VAR_TABLE,1,var-VAR_TABLE,fp);fclose(fp);
+ if(!(fp=fopen("/文本文件/链表.bin","w"))){SetScreen(0);printf("RamSave:无法创建文件\n链表.bin");getchar();exit(0);}
+ fwrite(var,1,sizeof(struct VAR_LINK),fp);fclose(fp);
+ if(!(fp=fopen("/文本文件/跳转.bin","w"))){SetScreen(0);printf("RamSave:无法创建文件\n跳转.bin");getchar();exit(0);}
+ fwrite(jp,1,sizeof(struct JUMP_LINK),fp);fclose(fp);
+ if(!(fp=fopen("/文本文件/其它.txt","w"))){SetScreen(0);printf("RamSave:无法创建文件\n其它.txt");getchar();exit(0);}
+ memset(s,0,100);
+ sprintf(s,"输出:名称:%s 路径:%s 指针:%d",out.name,out.path,out.p);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"输入:大小:%d 指针:%d",in.size,in.p);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"已处理:%d字节 缓冲区有:%d字节",ftell(in.fp)+in.p-FB_CUSH-FB_C_REL,strlen(in.p));
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"已生成:%d字节 缓冲区有:%d字节",cp.offset,out.p);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"变量空间已用:%d字节 剩余:%d字节",var.bt-VAR_TABLE,var-var.bt);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"变量链表已用:%d个 剩余:%d个",var.pt,VAR_SIZE-var.pt);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);Type(t,cv.t);
+ sprintf(s,"当前接口:类型:%s 名称:%s 长度:%d字节 值:%d 其它:%d %d %d",t,cv.n,cv.b,cv.v,cv.d[0],cv.d[1],cv.d[2]);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"首地址栈已用:%d 剩余:%d",jp.i,N_A_MAX-jp.i);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"跳转表已用:%d 剩余:%d",jp.size,JP_SIZE-jp.size);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"全局变量已用:%d字节 局部变量已用:%d字节",cp.add[VGLOBOLE],cp.add[VPART]);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ if(cp.i==VGLOBOLE)strcpy(t,"函数外部");else strcpy(t,"函数内部");sprintf(s,"当前处于:%s",t);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"当前变量栈指针:%d",cp.hp);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ if(cp.o.c=='+'+'+')strcpy(t,"++");else if(cp.o.c=='-'+'-')strcpy(t,"--");else if(cp.o.c=='='+'=')strcpy(t,"==");
+ else if(cp.o.c=='!'+'=')strcpy(t,"!=");else if(cp.o.c=='<'+'=')strcpy(t,"<=");else if(cp.o.c=='>'+'=')strcpy(t,">=");
+ else if(cp.o.c=='>'+'>')strcpy(t,">>");else if(cp.o.c=='<'+'<')strcpy(t,"<<");else if(cp.o.c=='|'+'|')strcpy(t,"||");
+ else if(cp.o.c=='&'+'&')strcpy(t,"&&");else{t[0]=cp.o.c;t[1]=0;}
+ sprintf(s,"当前运算符:类型:%s 等级:%d",t,cp.o.g);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"子程序个数:%d",cp.fn);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"标号个数:%d",cp.ln);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"结构体,共用体个数:%d",cp.sn);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"是否是main:%d",cp.ma);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"是否有返回值:%d",cp.sub);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"是否有#loadall:%d",cp.la);
+ s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ sprintf(s,"缓冲区里的伪代码:");s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);memset(s,0,100);
+ for(i=0;i<out.p;i++){itoa(r,*(FB_CUSH+i));strcat(s,r);if(strlen(s)>96){fwrite(s,1,strlen(s),fp);memset(s,0,100);}}
+ s[strlen(s)]=13;s[strlen(s)]=10;s[strlen(s)]=13;s[strlen(s)]=10;fwrite(s,1,strlen(s),fp);
+ memset(s,0,100);sprintf(s,"当前处理的文本:");fwrite(s,1,strlen(s),fp);
+ if(in.p>FB_CUSH+FB_C_REL+40)fwrite(in.p-40,1,strlen(in.p-40)&0x3f,fp);else fwrite(in.p,1,strlen(in.p)&0x3f,fp);
+ fclose(fp);if(in.fp)fclose(in.fp);if(out.fp){fclose(out.fp);DeleteFile(out.name);}exit(0);//关闭句柄,删除错误文件
+}
+//=======================================================监视断点=======================================================//
+void Look(char sv,char so,int p,char c,int cmd)
+{int i;
+ char t[20],w[26];
+ ClearScreen();sprintf(w,"hp:%d sv:%d cv.b:%d jp.i:%d",cp.hp,sv,cv.b,jp.i);TextOut(1,0,w,1);
+ Type(t,c);if(c>=NUMBER){cv.n[0]=0;if(c!=NUMBER)cv.v=0;}sprintf(w,"类型:%s 值:%d",t,cv.v);TextOut(1,13,w,1);
+ sprintf(w,"字串:%s",cv.n);TextOut(1,26,w,1);
+ sprintf(w,"堆栈:so=%d|%d,%d,%d,%d,%d,%d",so,*p,*(p+1),*(p+2),*(p+3),*(p+4),*(p+5),*(p+6),*(p+7));
+ TextOut(1,39,w,1);TextOut(1,52,"代码:",1);
+ if(out.p>6)
+  {memset(w,0,26);for(i=7;i>0;i--){memset(t,0,20);itoa(t,*(out.p+FB_CUSH-i));strcat(w,t);}
+   TextOut(30,52,w,1);//打印伪代码
+  }
+ i=*(in.p+26);*(in.p+26)=0;TextOut(1,65,in.p,1);*(in.p+26)=i;Refresh();
+ if(!cmd){i=getchar();if(i==' ')ShowJmp();else if(i=='y')ShowVar(256);else if(i=='q')ReleaseKey(128);}else Delay(cmd*10);
+}
+//========================================================批处理========================================================//
+
+void ChName(char &num[])
+{char i,c,len;
+ len=strlen(num);i=len-1;
+ while(num[i]=='9'){num[i]='0';if(i)i--;else{memmove(num+1,num,len);num[0]='0';}}
+ num[i]++;
+}
+void Chdir(char &path[],char &s[]){strcpy(path,s);ChDir(s);strcpy(out.path,s);}
+void MoveFile(char &name[],char d)
+{char fp,tp;
+ if(d)ChDir("/文本文件");else ChDir("/通过");
+ if(!(fp=fopen(name,"r"))){if(!d)return;SetScreen(0);printf("MoveFile:无法打开\n%s",name);exit(0);}
+ if(d)ChDir("/通过");else ChDir("/文本文件");
+ if(!(tp=fopen(name,"w"))){fclose(fp);SetScreen(0);printf("MoveFile:无法创建\n%s",name);exit(0);}
+ while(!feof(fp))putc(getc(fp),tp);fclose(fp);fclose(tp);
+ if(d)ChDir("/文本文件");else ChDir("/通过");DeleteFile(name);
+}
+int Compare(char &num[])
+{char name[10],fp,tp;
+ long offset;
+ strcpy(name,num);strcat(name,".lav");
+ ChDir("/LAVA2");if(!(fp=fopen(name,"r")))
+  {strcpy(name,num);strcat(name,".txt");MoveFile(name,0);SetScreen(0);printf("Compare:无法打开\n%s",name);exit(0);}
+ ChDir("/通过");if(!(tp=fopen(name,"r")))
+  {fclose(fp);strcpy(name,num);strcat(name,".txt");MoveFile(name,0);
+   SetScreen(0);printf("Compare:无法打开\n%s",name);exit(0);
+  }
+ while(!feof(fp)&&!feof(tp)){if(getc(fp)!=getc(tp)){END:offset=ftell(fp);fclose(fp);fclose(tp);return(offset-1);}}//比较
+ fclose(fp);fclose(tp);return(-1);
+}
+void Compile();
+void MAC_Prt(char &buf[],struct DOCTABLE &doc,struct MACTABLE &mac);
+void Batch()
+{char name[10],num[5],path[16];
+ char fp,i;
+ long offset;
+ memset(num,0,5);strcpy(num,"0");i=0;
+ for(;;)
+  {ChName(num);strcpy(name,num);strcat(name,".txt");strcpy(out.name,name);Chdir(path,"/通过");//生成目录和文件名
+   if(!(fp=fopen(name,"r")))
+    {Chdir(path,"/文本文件");if(!(fp=fopen(name,"r"))){SetScreen(0);printf("%d",i);exit(0);}}fclose(fp);//测试是否存在
+   if(!strcmp(path,"/文本文件"))MAC_Prt(FY_CUSH,DOCUM_LOAD,MACRO_LOAD);
+   else
+    {strcpy(out.name,num);strcat(out.name,".h");ChDir("/FunData");//切换目录和文件名
+     if(!(in.fp=fopen(out.name,"r")))
+      {MoveFile(name,0);SetScreen(0);printf("Batch:无法打开\n%s",out.name);exit(0);}//打开文件
+     fseek(in.fp,0,2);in.size=ftell(in.fp);rewind(in.fp);//长度
+    }
+   Compile();//编译
+   offset=Compare(num);
+   if(offset>=0){MoveFile(name,0);SetScreen(0);printf("文件不相同\n%s\n地址:%d",name,offset);exit(0);}//比较
+   if(!strcmp(path,"/文本文件"))MoveFile(name,1);i++;//移动
+  }
+}
+//=====================================================文本链表显示=====================================================//
+void ShowTxtLink(struct TXT_BLOCK &tb)
+{char key;
+ char i;
+ char cur;
+ long start;
+ int size;
+ for(cur=start=0;;)
+  {SetScreen(1);printf("Txt:%d %d %d %d %d\n",tb.size,tb.head,tb.h,tb.n,tb.fp);
+   for(i=0;i<5;i++)
+    {if(i+cur>=tb.size)break;memcpy(&start,tb.p[i+cur].start,3);memcpy(&size,tb.p[i+cur].size,2);
+     printf("%d:%d %d %d %d %d",i+cur,tb.p[i+cur].head,tb.p[i+cur].next,start,size,tb.p[i+cur].fp);
+     if(i<4)printf("\n");
+    }
+   key=getchar();
+   if(key==UP_KEY&&cur)cur--;
+   else if(key==DOWN_KEY&&cur+1<tb.size)cur++;
+   else if(key==UU_KEY){if(cur<5)cur=0;else cur=cur-5;}
+   else if(key==DD_KEY&&cur+5<tb.size)cur=cur+5;
+   else if(key==ESC_KEY)return;
+  }
+}
+void SaveTxtLink(struct TXT_BLOCK &tb,char &buf[])
+{char fp;
+ char s[100],name[20],bf[5000];
+ char i,j;
+ long start;
+ int size;
+ j=start=0;
+ ChDir("/txt");strcpy(name,"head.txt");fp=fopen(name,"w");if(!fp){printf("head.txt Create Error\n");getchar();exit(0);}
+ memset(s,0,100);sprintf(s,"head:%d h:%d h:%d size:%d fp:%d",tb.head,tb.h,tb.n,tb.size,tb.fp);
+ s[strlen(s)]=13;s[strlen(s)]=10;s[strlen(s)]=13;s[strlen(s)]=10;s[strlen(s)]=13;s[strlen(s)]=10;
+ fwrite(s,1,strlen(s),fp);fwrite(buf,1,strlen(buf),fp);fclose(fp);
+ for(i=tb.head;i!=255;i=tb.p[i].next)
+ {sprintf(name,"%d",j++);strcat(name,".txt");
+  fp=fopen(name,"w");if(!fp){printf("%s Create Error\n",name);getchar();exit(0);}
+  memset(s,0,100);memcpy(&start,tb.p[i].start,3);memcpy(&size,tb.p[i].size,2);
+  sprintf(s,"head:%d next:%d start:%d size:%d fp:%d",tb.p[i].head,tb.p[i].next,start,size,tb.p[i].fp);
+  s[strlen(s)]=13;s[strlen(s)]=10;s[strlen(s)]=13;s[strlen(s)]=10;s[strlen(s)]=13;s[strlen(s)]=10;
+  fwrite(s,1,strlen(s),fp);
+  fseek(tb.p[i].fp,start,0);fread(bf,1,size,tb.p[i].fp);fwrite(bf,1,size,fp);
+  fclose(fp);
+ }
+}

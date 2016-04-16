@@ -1,0 +1,86 @@
+/* 该代码只能由yan的编译器编译，且不能优化 */
+
+#include <fptr.y>
+
+void _qsort(int plow, int phigh, int es, int &cmp[][2])
+{
+	int _plow, _phigh;
+
+	if (plow < phigh)
+	{
+		_plow = plow;
+		_phigh = phigh;
+		while (_plow < _phigh)
+		{
+			while (fptr(_phigh, _plow, cmp) >= 0)
+			{
+				_phigh = _phigh - es;
+				if (_plow >= _phigh) goto END;
+			}
+			//memcpy(&_phigh + 2, _plow, es);
+			#code{0x19,0x19,0x00,0x0f,0x15,0x00,0x0f,0x0d,0x00,0xad};
+			memcpy(_plow, _phigh, es);
+			//memcpy(_phigh, &_phigh + 2, es);
+			#code{0x0f,0x17,0x00,0x19,0x19,0x00,0x0f,0x0d,0x00,0xad};
+			while (fptr(_plow, _phigh, cmp) <= 0)
+			{
+				_plow = _plow + es;
+				if (_plow >= _phigh) break;
+			}
+			//memcpy(&_phigh + 2, _plow, es);
+			#code{0x19,0x19,0x00,0x0f,0x15,0x00,0x0f,0x0d,0x00,0xad};
+			memcpy(_plow, _phigh, es);
+			//memcpy(_phigh, &_phigh + 2, es);
+			#code{0x0f,0x17,0x00,0x19,0x19,0x00,0x0f,0x0d,0x00,0xad};
+		}
+END:
+		_qsort(plow, _plow - es, es, cmp);
+		_qsort(_plow + es, phigh, es, cmp);
+	}
+}
+
+void qsort(int base, int n, int es, int &cmp[][2])
+{
+	_qsort(base, base + (n - 1) * es, es, cmp);
+}
+
+int bsearch(int key, int base, int n, int es, int &cmp[][2])
+{
+	int low, high, mid, t;
+
+	high = (low = base) + (n - 1) * es;
+	while (low <= high)
+	{
+		t = fptr(key, mid = (low + high) >> 1, cmp);
+		if (t < 0)
+		{
+			high = mid - es;
+		}
+		else if (t > 0)
+		{
+			low = mid + es;
+		}
+		else
+		{
+			return(mid);
+		}
+	}
+}
+
+int lfind(int key, int base, int n, int es, int &cmp[][2])
+{
+	int i, end;
+
+	end = base + n * es;
+	i = base;
+	while (i < end)
+	{
+		if (!fptr(key, i, cmp)) return i;
+		i = i + es;
+	}
+}
+
+void main()
+{
+	
+}

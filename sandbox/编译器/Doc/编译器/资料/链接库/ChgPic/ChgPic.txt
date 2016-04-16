@@ -1,0 +1,178 @@
+int Chg2to4(int &pic4[], char &pic2[], int len, char bcolor, char fcolor)
+{
+	char j;
+	int i, n, t;
+	int chgdata[256];
+
+	if (len <= 0) return(0);
+	bcolor = bcolor&3;
+	fcolor = fcolor&3;
+	i = 0;
+	do {
+		n = i;
+		j = t = 0;
+		do {
+			if (n&1)
+			{
+				t = t|(fcolor << j);
+			}
+			else
+			{
+				t = t|(bcolor << j);
+			}
+			n = n >> 1;
+		} while ((j = j + 2) < 16);
+		chgdata[i] = ((t >> 8)&0xff)|(t << 8);
+	} while (++i < 256);
+	i = 0;
+	do {
+		pic4[i] = chgdata[pic2[i]];
+	} while (++i < len);
+	return (len << 1);
+}
+
+int Chg4to2(char &pic2[], char &pic4[], int len)
+{
+	int i;
+	char j, n;
+	char chgdata[170];
+
+	if (len <= 0) return(0);
+	i = 0;
+	do {
+		j = n = 0;
+		do {
+			if (i&(1 << j)) n = n|(2 << (j << 1));
+		} while (++j < 4);
+		chgdata[n] = i;
+	} while (++i < 16);
+	i = 0;
+	do {
+		pic2[i >> 1] = (chgdata[pic4[i++]&0xaa] << 4)|chgdata[pic4[i++]&0xaa];
+	} while (i < len);
+	return(len >> 1);
+}
+
+int Chg2to16(long &pic16[], char &pic2[], int len, char bcolor, char fcolor)
+{
+	char j;
+	int i;
+	long n, t;
+	long chgdata[256];
+
+	if (len <= 0) return(0);
+	bcolor = bcolor&0xf;
+	fcolor = fcolor&0xf;
+	i = 0;
+	do{
+		n = i;
+		j = t = 0;
+		do {
+			if (n&1)
+			{
+				t = t|(fcolor << j);
+			}
+			else
+			{
+				t = t|(bcolor << j);
+			}
+			n = n >> 1;
+		} while ((j = j + 4) < 32);
+		chgdata[i] = (t << 24)|((t << 8)&0xff0000)|((t >> 8)&0xff00)|((t >> 24)&0xff);
+	} while (++i < 256);
+	i = 0;
+	do {
+		pic16[i] = chgdata[pic2[i]];
+	} while (++i < len);
+	return(len << 2);
+}
+
+int Chg16to2(char &pic2[],char &pic16[],int len)
+{
+	int i;
+	char j, n;
+
+	if (len <= 0) return(0);
+	i = 0;
+	do {
+		j = n = 0;
+		do {
+			n = n|(((pic16[i]&0x80)|((pic16[i++]&0x08) << 3)) >> j);
+		} while((j = j + 2) < 8);
+		pic2[(i >> 2) - 1] = n;
+	} while (i < len);
+	return(len>>2);
+}
+
+int Chg4to16(int &pic16[], char &pic4[], int len, char &color[])
+{
+	char j;
+	int i, n, t;
+	int chgdata[256];
+
+	if (len <= 0) return(0);
+	i = 0;
+	do {
+		n = i;
+		j = t = 0;
+		do {
+			t = t|(*(color + (n&3)) << j);
+			n = n >> 2;
+		} while ((j = j + 4) < 16)
+		chgdata[i] = ((t >> 8)&0xff)|(t << 8);
+	} while(++i < 256);
+	i = 0;
+	do {
+		pic16[i] = chgdata[pic4[i]];
+	} while (++i < len);
+	return(len << 1);
+}
+
+int Chg16to4(char &pic4[], char &pic16[], int len)
+{
+	char a, b;
+	int i;
+
+	if (len <= 0) return(0);
+	i = 0;
+	do {
+		pic4[i >> 1] = ((((a = pic16[i++]&0xcc) << 2)|a)&0xf0)|((((b = (pic16[i++]&0xcc) >> 2) >> 2)|b)&0x0f);
+	} while (i < len);
+	return(len >> 1);
+}
+void main()
+{int len;
+ /*
+ SetGraphMode(2);
+ Chg2to4(pic,logo,1600,0,3);
+ WriteBlock(0,0,160,80,0x41,pic);
+ getchar();
+ 
+ SetGraphMode(1);
+ Chg4to2(logo,pic,3200);
+ WriteBlock(0,0,160,80,0x41,logo);
+ getchar();
+ 
+ SetGraphMode(4);
+ memset(_pic4,0,3200);
+ len=Chg2to4(_pic4,_pic2,1600,0,2);
+ memset(_pic16,0,6400);
+ len=Chg4to16(_pic16,_pic4,len,_color);
+ memset(_pic2,0,1600);
+ len=Chg16to2(_pic2,_pic16,len);
+ memset(_pic16,0,6400);
+ len=Chg2to16(_pic16,_pic2,len,0,15);
+ memset(_pic4,0,3200);
+ len=Chg16to4(_pic4,_pic16,len);
+ memset(_pic2,0,1600);
+ len=Chg4to2(_pic2,_pic4,len);
+ memset(_pic16,0,6400);
+ len=Chg2to16(_pic16,_pic2,len,0,15);
+ WriteBlock(0,0,160,80,0x41,_pic16);
+ getchar();
+ 
+ SetGraphMode(1);
+ Chg16to2(_pic2,_pic16,6400);
+ WriteBlock(0,0,160,80,0x41,_pic2);
+ getchar();*/
+}

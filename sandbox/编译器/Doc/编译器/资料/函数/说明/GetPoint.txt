@@ -1,0 +1,26 @@
+原型:int GetPoint(int x,int y);
+功能:返回屏幕上指定点的状态
+说明:(x,y)为屏幕上点的坐标,如果点为清除状态返回零,否则返回非零值
+举例:
+void main()
+{
+ int i, j;
+
+ SetScreen(0);
+ printf("V");
+ for (i = 0; i < 8; i++)
+ {
+  for (j = 0; j < 16; j++)
+  {
+   if (GetPoint(i, j))
+   {
+    Point(10 + i,10 + j, 1);
+   }
+   else
+   {
+    Point(10 + i,10 + j, 0);
+   }
+  }
+ }
+ getchar();
+}

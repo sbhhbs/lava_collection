@@ -1,0 +1,37 @@
+原型:int CheckKey(char key);
+功能:检测按键
+说明:检测指定的按键是否处于按下状态,按下返回非0,否则返回0
+注意:当key >= 128时,检测所有按键,有键按下返回按键值,否则返回0
+举例:
+#define UP_KEY 0x14
+#define DOWN_KEY 0x15
+#define LEFT_KEY 0x17
+#define RIGHT_KEY 0x16
+
+void main()
+{
+ int x,y;
+ char c;
+
+ x = 80;
+ y = 40;
+ ClearScreen();
+ Block(x, y, x + 7,y + 7, 1);
+ Refresh();
+ for (;;)
+ {
+  c = CheckKey(128);
+  if (c == UP_KEY && y > 0) y--;
+  else if (c == DOWN_KEY && y < 72) y++;
+  else if (c == LEFT_KEY && x > 0) x--;
+  else if (c == RIGHT_KEY && x < 152) x++;
+  if(c)
+  {
+   ClearScreen();
+   Block(x, y, x + 7, y + 7, 1);
+   Refresh();
+   Delay(10);
+  }
+ }
+ getchar();
+}

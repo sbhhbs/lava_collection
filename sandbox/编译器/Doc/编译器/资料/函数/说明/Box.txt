@@ -1,0 +1,19 @@
+原型:void Box(int x0, int y0, int x1, int y1, int fill, int type);
+功能:在屏幕上画一矩形
+说明:(x0,y0)指定左上角坐标,(x1,y1)指定右下角坐标
+     type决定画图方式,其值含义如下:
+     0:清除方式
+     1:正常方式
+     2:反相方式
+     fill=0:不填充矩形
+     fill=1:填充矩形
+举例:
+void main()
+{
+ Box(1, 0, 111, 47, 1, 1);
+ getchar();
+ Box(20, 10, 100, 30, 0, 0);
+ getchar();
+ Box(40, 0, 80, 47,1, 2);
+ getchar();
+}

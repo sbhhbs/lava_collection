@@ -1,0 +1,99 @@
+int _s;//queue base
+int _p;//queue base pointer
+int _q;//queue top pointer
+int _t;//queue top
+int _es;//elemet size
+long _fullE;//full error funtion address
+long _nullE;//null error funtion address
+
+#include <fptr.y>
+
+int SwitchQueue(int s)
+{
+	int p;
+	int q;
+	int t;
+	int es;
+	long fullE;
+	long nullE;
+
+	p = _p;
+	q = _q;
+	t = _t;
+	es = _es;
+	fullE = _fullE;
+	nullE = _nullE;
+	memcpy(_s - 16, &p, 16);//保存当前变量
+	if (!s) return(1);
+	memcpy(&p, s, 16);
+	if (p < s + 16 || p > t || q < s + 16 || q > t || t <= s + 16 || es <= 0 || !fullE || !nullE) return(1);
+	_s = s + 16;
+	_p = p;
+	_q = q;
+	_t = t;
+	_es = es;
+	_fullE = fullE;
+	_nullE = nullE;
+}
+
+int InitQueue(int s, int len, int es, long fullE, long nullE)
+{
+	_p = _q = _s = s + 16;
+	_t = s + len - es;
+	_es = es;
+	_fullE = fullE;
+	_nullE = nullE;
+	if (SwitchQueue(s)) return(-1);
+	return (len - 16) / es;
+}
+
+int QueueFull()
+{
+	int q;
+
+	q = _q + _es;
+	if (q > _t) q = _s;
+	return q == _p;
+}
+
+int QueueEmpty()
+{
+	return _p == _q;
+}
+
+int QueueDepth()
+{
+	int size;
+
+	if (!_es) return (0);
+	return ((_q - _p) / _es + (size = (_t - _s) / _es)) % size;
+}
+
+void GetHead(int e)
+{
+	if (_p == _q) fptr(#attr(_nullE, 0, 0));
+	memcpy(e, _p, _es);
+}
+
+void EnQueue(int e)
+{
+	int q;
+
+	q = _q + _es;
+	if (q > _t) q = _s;
+	if (q == _p) fptr(#attr(_fullE, 0, 0));
+	memcpy(_q, e, _es);
+	_q = q;
+}
+
+void DeQueue(int e)
+{
+	if (_p == _q) fptr(#attr(_nullE, 0, 0));
+	memcpy(e, _p, _es);
+	_p = _p + _es;
+	if (_p > _t) _p = _s;
+}
+
+void main()
+{
+}

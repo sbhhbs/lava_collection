@@ -1,0 +1,33 @@
+#include "公用.txt"
+//-----------------------------
+#include "NC3000/资源.txt"
+#include "NC2600/资源.txt"
+#include "TC1000/资源.txt"
+#include "TC808/资源.txt"
+#include "TC1000S/资源.txt"
+//-----------------------------
+#include "资源连接.txt"
+//-----------------------------
+#include "NC3000/NC3000.txt"
+#include "NC2600/NC2600.txt"
+#include "TC1000/TC1000.txt"
+#include "TC808/TC808.txt"
+#include "TC1000S/TC1000S.txt"
+//-----------------------------
+void main()
+{long add_bak;
+ if(!(fp=fopen("/LibData/Gray.dll","w"))){SetScreen(0);printf("无法创建文件！");getchar();return;}
+ putc(JX_MAX,fp);fwrite(chk_add,1,sizeof(chk_add),fp);
+ add_bak=ftell(fp);fwrite(gray,1,JX_MAX*sizeof(struct _GRAY),fp);
+ LoadSrc();
+//-----------------------------
+ LoadNC3000();
+ LoadNC2600();
+ LoadTC1000();
+ LoadTC808();
+ LoadTC1000S();
+ //可以在这添加其他机型
+ fseek(fp,add_bak,0);fwrite(gray,1,JX_MAX*sizeof(struct _GRAY),fp);
+ fclose(fp);
+ SetScreen(0);printf("dll生成完成！");getchar();
+}

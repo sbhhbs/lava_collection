@@ -1,0 +1,16 @@
+原型:void Point(int x, int y, int type);
+功能:在屏幕的指定位置上画点
+说明:(x,y)为屏幕上点的坐标,type值含义如下:
+     type=0:清除(x，y)处的点
+     1:在(x,y)处画点
+     2:将(x,y)处的点的状态取反
+     type的bit6=1时向图形缓冲区作图,否则直接在屏幕作图
+举例:
+void main()
+{
+ for (;;)
+ {
+  Point(rand() % 160, rand() % 80, 2);
+  if (Inkey() == 27) break;
+ }
+}

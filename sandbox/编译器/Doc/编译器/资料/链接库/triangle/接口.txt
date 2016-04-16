@@ -1,0 +1,6 @@
+1 sin 1
+1 asin 1
+1 cos 1
+1 acos 1
+1 tan 1
+1 atan 1

@@ -1,0 +1,8 @@
+1	pow	1
+1	tan	1
+1	sqrt	1
+1	cub	1
+1	isleap	1
+1	isprime	1
+1	hcf	1
+1	lcd	1

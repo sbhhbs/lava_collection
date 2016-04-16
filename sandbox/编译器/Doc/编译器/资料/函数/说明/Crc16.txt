@@ -1,0 +1,14 @@
+原型:long Crc16(int mem, int len);
+功能:求内存地址mem开始的len个字节的CRC16校验值
+说明:该函数可以用来校验存档数据。
+举例:
+char s[] = "Golden Global View";
+
+void main()
+{
+ SetScreen(0); 
+ printf("%d", Crc16(s, strlen(s)));
+ s[0] = 'g';
+ printf("\n%d", Crc16(s, strlen(s)));
+ getchar();
+}

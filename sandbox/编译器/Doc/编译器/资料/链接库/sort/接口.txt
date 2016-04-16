@@ -1,0 +1,5 @@
+0	fptr		0
+0	_qsort		0
+1	qsort		0
+1	bsearch		1
+1	lfind		1

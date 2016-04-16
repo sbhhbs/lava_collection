@@ -1,0 +1,11 @@
+原型:void UpdateLCD(char mode);
+功能:以指定模式刷新屏幕
+说明:mode的每一个bit,从高到低控制屏幕的每一行,0表示该行更新,1表示该行不更新
+举例:
+void main()
+{
+ SetScreen(1);
+ strcpy(_TEXT, "I am Lee.");//常量_TEXT表示屏幕文本缓冲区的地址
+ UpdateLCD(0);
+ getchar();
+}

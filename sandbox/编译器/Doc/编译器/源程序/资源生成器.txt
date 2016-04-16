@@ -1,0 +1,727 @@
+//*********************************************************定义*********************************************************//
+#define NAME_MAX	15													//最大文件名长度
+
+#include "目录/定义.txt"
+#include "设置/定义.txt"
+#include "帮助/定义.txt"
+#include "查看/定义.txt"
+#include "错误/定义.txt"
+#include "编辑/定义.txt"
+//********************************************************存储区********************************************************//
+char PubBuf[5500];														//公共缓冲区
+struct INFILE															//输入结构
+{
+	char fp;															//句柄
+	long size;															//大小
+	int p;																//指针
+};
+struct INFILE in;														//文件输入
+struct OUTFILE															//输出结构
+{
+	char fp;															//句柄
+	char name[16];														//名称
+	char path[16];														//路径
+};
+struct OUTFILE out;														//文件输出
+char datfp;																//数据文件句柄
+long k, jmp[JUMP_SIZE];													//跳转表[JUMP_SIZE在目录/定义.txt中]
+//=======================================================设置系统=======================================================//
+struct CONTABLE0 cfset;
+//=======================================================查看系统=======================================================//
+#define INIT_MAC_NUM    7												//初始化宏个数[变]
+char mac_init[INIT_MAC_NUM * 2][18]=
+{
+	"EOF",		"-1",
+	"NULL",		"0",
+	"FALSE",	"0",
+	"TRUE",		"-1",
+	"SEEK_SET",	"0",
+	"SEEK_CUR",	"1",
+	"SEEK_END",	"2"
+};
+//=========================================================字库=========================================================//
+char pys[PY_MAX][7]=
+{"a","ai","an","ang","ao",
+ "ba","bai","ban","bang","bao","bei","ben","beng","bi","bian","biao","bie","bin","bing","bo","bu",
+ "ca","cai","can","cang","cao","ce","cen","ceng","cha","chai","chan","chang","chao","che","chen","cheng","chi","chong","chou","chu","chua","chuai","chuan","chuang","chui","chun","chuo","ci","cong","cou","cu","cuan","cui","cun","cuo",
+ "da","dai","dan","dang","dao","de","dei","den","deng","di","dia","dian","diao","die","ding","diu","dong","dou","du","duan","dui","dun","duo",
+ "e","en","eng","er",
+ "fa","fan","fang","fei","fen","feng","fiao","fo","fou","fu",
+ "ga","gai","gan","gang","gao","ge","gei","gen","geng","gong","gou","gu","gua","guai","guan","guang","gui","gun","guo",
+ "ha","hai","han","hang","hao","he","hei","hen","heng","hm","hng","hong","hou","hu","hua","huai","huan","huang","hui","hun","huo",
+ "ji","jia","jian","jiang","jiao","jie","jin","jing","jiong","jiu","ju","juan","jue","jun",
+ "ka","kai","kan","kang","kao","ke","kei","ken","keng","kong","kou","ku","kua","kuai","kuan","kuang","kui","kun","kuo",
+ "la","lai","lan","lang","lao","le","lei","leng","li","lia","lian","liang","liao","lie","lin","ling","liu","lo","long","lou","lu","luan","lun","luo","lv","lve",
+ "m","ma","mai","man","mang","mao","me","mei","men","meng","mi","mian","miao","mie","min","ming","miu","mo","mou","mu",
+ "n","na","nai","nan","nang","nao","ne","nei","nen","neng","ng","ni","nian","niang","niao","nie","nin","ning","niu","nong","nou","nu","nuan","nun","nuo","nv","nve",
+ "o","ou",
+ "pa","pai","pan","pang","pao","pei","pen","peng","pi","pian","piao","pie","pin","ping","po","pou","pu",
+ "qi","qia","qian","qiang","qiao","qie","qin","qing","qiong","qiu","qu","quan","que","qun",
+ "ran","rang","rao","re","ren","reng","ri","rong","rou","ru","ruan","rui","run","ruo",
+ "sa","sai","san","sang","sao","se","sen","seng","sha","shai","shan","shang","shao","she","shei","shen","sheng","shi","shou","shu","shua","shuai","shuan","shuang","shui","shun","shuo","si","song","sou","su","suan","sui","sun","suo",
+ "ta","tai","tan","tang","tao","te","tei","teng","ti","tian","tiao","tie","ting","tong","tou","tu","tuan","tui","tun","tuo",
+ "wa","wai","wan","wang","wei","wen","weng","wo","wu",
+ "xi","xia","xian","xiang","xiao","xie","xin","xing","xiong","xiu","xu","xuan","xue","xun",
+ "ya","yan","yang","yao","ye","yi","yin","ying","yo","yong","you","yu","yuan","yue","yun",
+ "za","zai","zan","zang","zao","ze","zei","zen","zeng","zha","zhai","zhan","zhang","zhao","zhe","zhei","zhen","zheng","zhi","zhong","zhou","zhu","zhua","zhuai","zhuan","zhuang","zhui","zhun","zhuo","zi","zong","zou","zu","zuan","zui","zun","zuo"
+};
+struct PY
+{
+	struct PY_UNIT dat[PY_MAX];
+};
+struct PY py;
+//=========================================================图库=========================================================//
+char pic[][2] = {0};//问号
+//********************************************************程序区********************************************************//
+void msg(char &s[])
+{
+	printf(">%s",s);
+	getchar();
+}
+//=======================================================设置系统=======================================================//
+void CON_Init(struct CATTABLE &c, struct CONTABLE1 &d)
+{
+	memset(c, 0, sizeof(struct CATTABLE));
+
+	strcpy(c.dat[0].name,"菜  单系统");
+	strcpy(c.dat[0].msg[0],"菜单界面的模式");
+	strcpy(c.dat[0].msg[1],"及操作方面的参");
+	strcpy(c.dat[0].msg[2],"数设置。");
+
+	strcpy(c.dat[1].name,"编  译系统");
+	strcpy(c.dat[1].msg[0],"编译时的参量，");
+	strcpy(c.dat[1].msg[1],"编译模式及查看");
+	strcpy(c.dat[1].msg[2],"的设置。");
+
+	strcpy(c.dat[2].name,"管  理系统");
+	strcpy(c.dat[2].msg[0],"宏管理、资源管");
+	strcpy(c.dat[2].msg[1],"理和检索编辑系");
+	strcpy(c.dat[2].msg[2],"统的参数设置。");
+
+	strcpy(c.dat[3].name,"  其  它  ");
+	strcpy(c.dat[3].msg[0],"其他系统的参数");
+	strcpy(c.dat[3].msg[1],"设置（如输入系");
+	strcpy(c.dat[3].msg[2],"统,编辑系统）.");
+
+	jmp[k++] = ftell(datfp);
+	fwrite(c, 1, sizeof(struct CATTABLE), datfp);
+//-----------------------------------------------------------------------
+	memset(d, 0, sizeof(struct CONTABLE1));
+	strcpy(cfset.fun, "common.fun");
+	strcpy(cfset.lav, "/LAVA");
+	strcpy(cfset.src, "/文本文件");
+
+	strcpy(d.dat[0].tem[0].name, "退出程序时确认？");		cfset.dat[0].tem[0].value = 1;	d.dat[0].size++;
+	strcpy(d.dat[0].tem[1].name, "关闭标题移动？");			cfset.dat[0].tem[1].value = 0;	d.dat[0].size++;
+	strcpy(d.dat[0].tem[2].name, "关闭声音提醒？"); 		cfset.dat[0].tem[2].value = 0;	d.dat[0].size++;
+	strcpy(d.dat[0].tem[3].name, "结束后删除临时文件?"); 	cfset.dat[0].tem[3].value = 1;	d.dat[0].size++;
+	strcpy(d.dat[0].tem[4].name, "忽略编辑文件覆盖？"); 	cfset.dat[0].tem[4].value = 0;	d.dat[0].size++;
+
+	strcpy(d.dat[1].tem[0].name, "代码编译为*.h文件？");	cfset.dat[1].tem[0].value = 0;	d.dat[1].size++;
+	strcpy(d.dat[1].tem[1].name, "编译后删除*.h文件？");	cfset.dat[1].tem[1].value = 0;	d.dat[1].size++;
+	strcpy(d.dat[1].tem[2].name, "选择加载的函数文件:");	cfset.dat[1].tem[2].value = 2;	d.dat[1].size++;
+	strcpy(d.dat[1].tem[3].name, "编译结束后自动退出?");	cfset.dat[1].tem[3].value = 1;	d.dat[1].size++;
+	strcpy(d.dat[1].tem[4].name, "忽略超长变量名提示?");	cfset.dat[1].tem[4].value = 0;	d.dat[1].size++;
+
+	strcpy(d.dat[2].tem[0].name, "删除文件夹时确认？");		cfset.dat[2].tem[0].value = 1;	d.dat[2].size++;
+	strcpy(d.dat[2].tem[1].name, "删除宏定义时确认？");		cfset.dat[2].tem[1].value = 1;	d.dat[2].size++;
+	strcpy(d.dat[2].tem[2].name, "保存设置时确认？");		cfset.dat[2].tem[2].value = 1;	d.dat[2].size++;
+	strcpy(d.dat[2].tem[3].name, "关闭修改提示？");			cfset.dat[2].tem[3].value = 0;	d.dat[2].size++;
+	strcpy(d.dat[2].tem[4].name, "选择源程序目录:");		cfset.dat[2].tem[4].value = 2;	d.dat[2].size++;
+
+	strcpy(d.dat[3].tem[0].name, "按键暂停时间设置: ");		cfset.dat[3].tem[0].value = 60;	d.dat[3].size++;
+	strcpy(d.dat[3].tem[1].name, "光标闪动速度调整: ");		cfset.dat[3].tem[1].value = 12;	d.dat[3].size++;
+	strcpy(d.dat[3].tem[2].name, "关闭每日提示？");			cfset.dat[3].tem[2].value = 0;	d.dat[3].size++;
+	strcpy(d.dat[3].tem[3].name, "关闭函数检索？");			cfset.dat[3].tem[3].value = 0;	d.dat[3].size++;
+	strcpy(d.dat[3].tem[4].name, "选择程序存放的目录:");	cfset.dat[3].tem[4].value = 2;	d.dat[3].size++;
+
+	jmp[k++] = ftell(datfp);
+	fwrite(d, 1, sizeof(struct CONTABLE1), datfp);
+}
+//=======================================================帮助系统=======================================================//
+void Readfile(char &name[])
+{
+	char tp;
+	int len, size;
+	char help[1024];
+
+	if (!(tp = fopen(name,"r")))
+	{
+		msg("无法打开文件！");
+		exit(0);
+	}
+	len = fseek(tp, 0, 2);
+	rewind(tp);
+	fwrite(&len, 1, 2, datfp);
+	while(len)
+	{
+		if (len > 1024)
+		{
+			size = 1024;
+		}
+		else
+		{
+			size = len;
+		}
+		len = len - size;
+		fread(help, 1, size, tp);
+		fwrite(help, 1, size, datfp);
+	}
+	fclose(tp);
+	putc(0, datfp);
+}
+
+void ChFile(char &name[])
+{
+	char tp, i, c;
+	int size;
+	long addrs;
+	char str[17];
+
+	if (!(tp = fopen(name, "r")))
+	{
+		msg("无法打开文件！");
+		exit(0);
+	}
+	addrs = ftell(datfp);
+	fwrite(&size, 1, 2, datfp);
+	for (size = 0; !feof(tp);)
+	{
+START:
+		memset(str, 0, 17);
+		for(i = 0; i < 16;)
+		{
+			if (feof(tp)) break;
+			if ((c = getc(tp)) < 128)
+			{
+				if (c == 13)
+				{
+					getc(tp);
+					if (!strlen(str)) goto START;
+					break;
+				}
+				else
+				{
+					str[i++] = c;
+				}
+			}
+			else if (i < 15)
+			{
+				str[i++] = c;
+				str[i++] = getc(tp);
+			}
+			else
+			{
+				fseek(tp, -1, 1);
+				break;
+			}
+		}
+		fwrite(str, 1, 17, datfp);
+		size++;
+	}
+END:
+	fclose(tp);
+	fseek(datfp, addrs, 0);
+	fwrite(&size, 1, 2, datfp);
+	fseek(datfp, 0, 2);
+}
+
+void HLP_Init(struct CATTABLE &c)
+{
+	memset(c, 0, sizeof(struct CATTABLE));
+
+	strcpy(c.dat[0].name,	"  关  于  ");
+	strcpy(c.dat[0].msg[0],	"软件的版权说明");
+	strcpy(c.dat[0].msg[1],	"，制作过程及更");
+	strcpy(c.dat[0].msg[2],	"新日志。");
+
+	strcpy(c.dat[1].name,	"  简  介  ");
+	strcpy(c.dat[1].msg[0],	"阐述编译器的各");
+	strcpy(c.dat[1].msg[1],	"个系统，操作方");
+	strcpy(c.dat[1].msg[2],	"法和注意事项。");
+
+	strcpy(c.dat[2].name,	"  语  法  ");
+	strcpy(c.dat[2].msg[0],	"介绍该编译器支");
+	strcpy(c.dat[2].msg[1],	"持的语法及其比");
+	strcpy(c.dat[2].msg[2],	"较不同之处。");
+
+	strcpy(c.dat[3].name,	"  索  引  ");
+	strcpy(c.dat[3].msg[0],	"说明各种内置函");
+	strcpy(c.dat[3].msg[1],	"数的语法，用法");
+	strcpy(c.dat[3].msg[2],	"和简单例子说明");
+
+	jmp[k++] = ftell(datfp);
+	fwrite(c, 1, sizeof(struct CATTABLE), datfp);
+//-----------------------------------------------------------------------
+	memset(c, 0, sizeof(struct CATTABLE));
+
+	strcpy(c.dat[0].name,	"编  译系统");
+	strcpy(c.dat[0].msg[0],	"编译系统包括编");
+	strcpy(c.dat[0].msg[1],	"译部分、优化部");
+	strcpy(c.dat[0].msg[2],	"分和批处理部分");
+
+	strcpy(c.dat[1].name,	"管  理系统");
+	strcpy(c.dat[1].msg[0],	"本软件的特色，");
+	strcpy(c.dat[1].msg[1],	"包括宏管理系统");
+	strcpy(c.dat[1].msg[2],	"和资源管理系统");
+
+	strcpy(c.dat[2].name,	"连接库系统");
+	strcpy(c.dat[2].msg[0],	"使用连接库可以");
+	strcpy(c.dat[2].msg[1],	"简化程序代码，");
+	strcpy(c.dat[2].msg[2],	"加快编译速度。");
+
+	strcpy(c.dat[3].name,	"编  辑系统");
+	strcpy(c.dat[3].msg[0],	"新建或编辑源程");
+	strcpy(c.dat[3].msg[1],	"序文件，提供实");
+	strcpy(c.dat[3].msg[2],	"用的编辑环境。");
+
+	jmp[k++] = ftell(datfp);
+	fwrite(c, 1, sizeof(struct CATTABLE), datfp);
+//-----------------------------------------------------------------------
+	memset(c,0,sizeof(struct CATTABLE));
+
+	strcpy(c.dat[0].name,	"数据的类型");
+	strcpy(c.dat[0].msg[0],	"介绍如何定义变");
+	strcpy(c.dat[0].msg[1],	"量，常量和各种");
+	strcpy(c.dat[0].msg[2],	"运算符优先级。");
+
+	strcpy(c.dat[1].name,	"  语  句  ");
+	strcpy(c.dat[1].msg[0],	"各种语句，表达");
+	strcpy(c.dat[1].msg[1],	"式的说明和简单");
+	strcpy(c.dat[1].msg[2],	"的程序设计。");
+
+	strcpy(c.dat[2].name,	"  函  数  ");
+	strcpy(c.dat[2].msg[0],	"函数的定义，调");
+	strcpy(c.dat[2].msg[1],	"用及参数传递的");
+	strcpy(c.dat[2].msg[2],	"用法介绍。");
+
+	strcpy(c.dat[3].name,	"  命  令  ");
+	strcpy(c.dat[3].msg[0],	"介绍各种预处理");
+	strcpy(c.dat[3].msg[1],	"命令和编译命令");
+	strcpy(c.dat[3].msg[2],	"的不同用法。");
+
+	jmp[k++] = ftell(datfp);
+	fwrite(c, 1, sizeof(struct CATTABLE), datfp);
+//-----------------------------------------------------------------------
+	jmp[k++] = ftell(datfp);	Readfile("/Help/关于.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/编译系统.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/管理系统.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/连接库系统.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/编辑系统.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/数据类型.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/语句.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/函数.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/命令.txt");
+	jmp[k++] = ftell(datfp);	ChFile("/Help/每日提示.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/简单程序.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/hello程序.txt");
+	jmp[k++] = ftell(datfp);	Readfile("/Help/复杂程序.txt");
+}
+//=======================================================查看系统=======================================================//
+int MAC_Op(struct MACTABLE &mac, struct MACUNIT &e, int cmd)/*宏表操作*/
+{
+	int low, mid, high;
+	int value;
+
+	if (cmd == TABLE_INS || cmd == TABLE_SEK)
+	{
+		low = 0;
+		high = mac.size - 1;
+		while (low <= high)
+		{
+			mid = (low + high) >> 1;
+			value = strcmp(mac.dat[mid].name, e.name);
+			if (!value)
+			{
+				if (cmd == TABLE_SEK)
+				{
+					strcpy(e.value, mac.dat[mid].value);
+					return(mid);
+				}
+				return(-1);
+			}
+			else if (value > 0)
+			{
+				high = mid - 1;
+			}
+			else
+			{
+				low = mid + 1;
+			}
+		}
+		if (cmd == TABLE_SEK) return(-1);
+		if (strcmp(mac.dat[mid].name,e.name) < 0 && mac.size) mid++;
+		memmove(mac.dat[mid + 1], mac.dat[mid], ((mac.size++) - mid) * sizeof(struct MACUNIT));
+		memcpy(mac.dat[mid], e, sizeof(struct MACUNIT));
+		return(0);
+	}
+	else if (cmd == TABLE_DEL)
+	{
+		memmove(mac.dat[e.id], mac.dat[e.id + 1], ((--mac.size) - e.id) * sizeof(struct MACUNIT));
+		memset(mac.dat[mac.size], 0, sizeof(struct MACUNIT));
+	}
+	else if (cmd == TABLE_CLR)
+	{
+		memset(mac, 0, sizeof(struct MACTABLE));
+	}
+}
+
+void MAC_Init(struct MACTABLE &mac)
+{
+	struct MACUNIT e;
+	int i;
+
+	memset(mac, 0, sizeof(struct MACTABLE));
+	for (i = 0; i < INIT_MAC_NUM * 2; i = i + 2)
+	{
+		e.id = 1;
+		strcpy(e.name, mac_init[i]);
+		strcpy(e.value,mac_init[i + 1]);
+		if (MAC_Op(mac, e, TABLE_INS) < 0)
+		{
+			msg("宏初始化错误！");
+			exit(0);
+		}
+	}
+	jmp[k++] = ftell(datfp);
+	fwrite(mac, 1, sizeof(struct MACUNIT) * INIT_MAC_NUM + 1, datfp);
+}
+//=======================================================错误系统=======================================================//
+void Err_Init(struct ERR_UNIT &e)
+{
+	jmp[k++]=ftell(datfp);
+	memset(e,0,sizeof(struct ERR_UNIT));//0
+	strcpy(e.m,"无法打开文件");
+	strcpy(e.s,"该文件名:");
+	strcpy(e.a,"请修理后再试！");
+	fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+	memset(e,0,sizeof(struct ERR_UNIT));//1
+	strcpy(e.m,"无法进入目录");
+	strcpy(e.s,"该目录:");
+	strcpy(e.a,"请修理后再试！");
+	fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//2
+ strcpy(e.m,"无法创建文件");strcpy(e.s,"该文件名: ");strcpy(e.a,"请修理后再试！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//3
+ strcpy(e.m,"断点读取错误");strcpy(e.s,"可能是字符串太长,无法处理");strcpy(e.a,"请分割成多个字符串");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//4
+ strcpy(e.m,"文件写入错误");strcpy(e.s,"该文件名: ");strcpy(e.a,"电量不足,请换新电池");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//5
+ strcpy(e.m,"判断,循环太多");strcpy(e.s,"跳转个数太多，内存不够。");strcpy(e.a,"请优化源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//6
+ strcpy(e.m,"文件偏移错误");strcpy(e.s,"该文件名: ");strcpy(e.a,"请将信息发送给作者!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//7
+ strcpy(e.m,"不支持该符号");strcpy(e.s,"该符号: ");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//8
+ strcpy(e.m,"数组数据超长");strcpy(e.s,"该数组名: ");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//9
+ strcpy(e.m,"数组维数太大");strcpy(e.s,"该数组名: ");strcpy(e.a,"请重新设计程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//10
+ strcpy(e.m,"变量无法赋值");strcpy(e.s,"该变量名: ");strcpy(e.a,"局部变量不能赋初值!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//11
+ strcpy(e.m,"无法确定大小");strcpy(e.s,"该数组名: ");strcpy(e.a,"检查是否漏写下标！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//12
+ strcpy(e.m,"变量重复定义");strcpy(e.s,"该变量名: ");strcpy(e.a,"请重新定义变量！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//13
+ strcpy(e.m,"引用重复定义");strcpy(e.s,"该引用名: ");strcpy(e.a,"请重新定义引用！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//14
+ strcpy(e.m,"函数重复定义");strcpy(e.s,"该函数名: ");strcpy(e.a,"请重新定义函数！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//15
+ strcpy(e.m,"函数定义错误");strcpy(e.s,"该函数名: ");strcpy(e.a,"声明,定义类型要一致");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//16
+ strcpy(e.m,"构造体未定义");strcpy(e.s,"该构造名: ");strcpy(e.a,"在使用前定义该变量!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//17
+ strcpy(e.m,"标号重复定义");strcpy(e.s,"该标号名: ");strcpy(e.a,"请重新定义标号！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//18
+ strcpy(e.m,"变量未定义");strcpy(e.s,"该变量名: ");strcpy(e.a,"在使用前定义该变量!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//19
+ strcpy(e.m,"数组超出维数");strcpy(e.s,"该数组名: ");strcpy(e.a,"数组是否使用错误?");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//20
+ strcpy(e.m,"成员不存在");strcpy(e.s,"该成员名: ");strcpy(e.a,"检查成员是否写错？");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//21
+ strcpy(e.m,"函数参数错误");strcpy(e.s,"该函数名: ");strcpy(e.a,"请核对函数参数个数");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//22
+ strcpy(e.m,"堆栈错误");strcpy(e.s,"表达式中不能出现void函数");strcpy(e.a,"请核对函数返回类型");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//23
+ strcpy(e.m,"跳转错误");strcpy(e.s,"break不在循环体中");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//24
+ strcpy(e.m,"跳转错误");strcpy(e.s,"continue不在循环体中");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//25
+ strcpy(e.m,"函数返回错误");strcpy(e.s,"当前函数必须有返回值");strcpy(e.a,"请核对函数返回类型");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//26
+ strcpy(e.m,"函数返回错误");strcpy(e.s,"void函数不能有返回值");strcpy(e.a,"请核对函数返回类型");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//27
+ strcpy(e.m,"跳转错误");strcpy(e.s,"还有跳转未写入: ");strcpy(e.a,"请将信息发送给作者!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//28
+ strcpy(e.m,"变量空间不足");strcpy(e.s,"变量区空间溢出: ");strcpy(e.a,"尽量用数组替代变量");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//29
+ strcpy(e.m,"无法载入内存");strcpy(e.s,"程序无法全部载入内存");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//30
+ strcpy(e.m,"宏定义不存在");strcpy(e.s,"该宏名: ");strcpy(e.a,"请在使用前定义该宏!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//31
+ strcpy(e.m,"文件长度为零");strcpy(e.s,"该文件名: ");strcpy(e.a,"没有字符可编译！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//32
+ strcpy(e.m,"空字符");strcpy(e.s,"''里必须含有一个字符。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//33
+ strcpy(e.m,"长字符");strcpy(e.s,"''里只能含有一个字符。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//34
+ strcpy(e.m,"重复定义宏");strcpy(e.s,"该宏名: ");strcpy(e.a,"请重新定义宏！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//35
+ strcpy(e.m,"链接库太多");strcpy(e.s,"链接库个数太多,内存不够。");strcpy(e.a,"请减少链接库个数！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//36
+ strcpy(e.m,"非法字符串");strcpy(e.s,"该字符串: ");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//37
+ strcpy(e.m,"接口错误");strcpy(e.s,"该文件名: 接口.txt");strcpy(e.a,"请参考：帮助→简介");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//38
+ strcpy(e.m,"宏定义太多");strcpy(e.s,"宏定义个数太多,内存不够。");strcpy(e.a,"请减少宏定义个数！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//39
+ strcpy(e.m,"变量太多");strcpy(e.s,"变量个数太多，内存不够。");strcpy(e.a,"请减少变量个数！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//40
+ strcpy(e.m,"缺少main函数");strcpy(e.s,"源程序必须有main函数！");strcpy(e.a,"请添加main函数！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//41
+ strcpy(e.m,"括号无法配对");strcpy(e.s,"(),[],{}必须成对出现！");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//42
+ strcpy(e.m,"跳转错误");strcpy(e.s,"可能跳转到不存在的标号。");strcpy(e.a,"请检查标号是否写错!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+
+ memset(e,0,sizeof(struct ERR_UNIT));//43
+ strcpy(e.m,"接口格式错误");strcpy(e.s,"接口.txt没有按照格式写。");strcpy(e.a,"请参考：帮助→简介");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//44
+ strcpy(e.m,"未定义的类型");strcpy(e.s,"该类型为: ");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//45
+ strcpy(e.m,"错误的符号");strcpy(e.s,"该符号为: ");strcpy(e.a,"符号不能出现在这里!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//46
+ strcpy(e.m,"错误的语句");strcpy(e.s,"该语句为: ");strcpy(e.a,"前面是否漏掉分号？");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//47
+ strcpy(e.m,"未定义的内码");strcpy(e.s,"该内码为: ");strcpy(e.a,"请将信息发送给作者!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//48
+ strcpy(e.m,"类型转换错误");strcpy(e.s,"不支持这种类型的转换。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//49
+ strcpy(e.m,"文本解析错误");strcpy(e.s,"源程序出现非正常解析。");strcpy(e.a,"前面是否漏掉分号？");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//50
+ strcpy(e.m,"缺少参数");strcpy(e.s,"该语句需要参数。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//51
+ strcpy(e.m,"语法错误");strcpy(e.s,"该语句没有遵守语法。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//52
+ strcpy(e.m,"错误的常数");strcpy(e.s,"只支持8,10,16进制常数。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//53
+ strcpy(e.m,"接口对应错误");strcpy(e.s,"函数与接口无法一一对应。");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//54
+ strcpy(e.m,"字符串缺少\"号");strcpy(e.s,"字符串必须在\"\"里面");strcpy(e.a,"前面是否漏掉引号？");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//55
+ strcpy(e.m,"文件类型错误");strcpy(e.s,"包含文件只能是*.h,*.y格式");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//56
+ strcpy(e.m,"不支持该命令");strcpy(e.s,"不支持该预处理命令: ");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//57
+ strcpy(e.m,"注释符不完整");strcpy(e.s,"注释符缺少: */");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//58
+ strcpy(e.m,"预命令不完整");strcpy(e.s,"预处理命令缺少#else,#endif");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//59
+ strcpy(e.m,"错误的常量式");strcpy(e.s,"常量表达式发生错误！");strcpy(e.a,"请参考：帮助→语法");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//60
+ strcpy(e.m,"未知的定义码");strcpy(e.s,"错误符号定义码为: ");strcpy(e.a,"请将信息发送给作者!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//61
+ strcpy(e.m,"宏展开太长");strcpy(e.s,"该宏定义为: ");strcpy(e.a,"请将该宏定义展开！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//62
+ strcpy(e.m,"变量长度太长");strcpy(e.s,"该变量为: ");strcpy(e.a,"变量长度请看配置！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//63
+ strcpy(e.m,"树节点溢出");strcpy(e.s,"系统内存太小！");strcpy(e.a,"请使用大内存版本");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//64
+ strcpy(e.m,"堆栈错误");strcpy(e.s,"文件错误地址: ");strcpy(e.a,"请将信息发送给作者!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//65
+ strcpy(e.m,"堆栈溢出");strcpy(e.s,"系统内存太小！");strcpy(e.a,"请使用大内存版本");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//66
+ strcpy(e.m,"除0出错！");strcpy(e.s,"除数不能为0");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//67
+ strcpy(e.m,"信息表溢出");strcpy(e.s,"系统内存太小！");strcpy(e.a,"请使用大内存版本");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//68
+ strcpy(e.m,"错误的指令");strcpy(e.s,"不支持该指令: ");strcpy(e.a,"请参考：帮助→简介");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//69
+ strcpy(e.m,"函数地址错误");strcpy(e.s,"该函数地址为: ");strcpy(e.a,"请检查源程序！");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+ memset(e,0,sizeof(struct ERR_UNIT));//70
+ strcpy(e.m,"跳转地址错误");strcpy(e.s,"该跳转地址为: ");strcpy(e.a,"请将信息发送给作者!");
+ fwrite(e,1,sizeof(struct ERR_UNIT),datfp);
+ 
+}
+
+long PY2GB_Init()
+{int i,j,n;
+ long add,tmp;
+ char gb[40],str[40];
+ for(i=0;i<PY_MAX;i++)
+ {strcpy(py.dat[i].str,pys[i]);
+  if(i)
+  {
+   if(strcmp(py.dat[i-1].str,pys[i])>0){printf("%s %s:Error!\n",py.dat[i-1].str,pys[i]);getchar();}
+  }
+  n=System.PY2GB(0,pys[i],str)>>16;
+  py.dat[i].size=n;
+  tmp=ftell(datfp)+14740-PY_ADD;
+  if(tmp>65535){printf("Error!\n");getchar();}
+  py.dat[i].add=tmp;
+  if(n<0)
+   {if(!strcmp(pys[i],"chua"))fwrite("歘",1,2,datfp);
+    else if(!strcmp(pys[i],"den"))fwrite("扽",1,2,datfp);
+    else if(!strcmp(pys[i],"eng"))fwrite("鞥",1,2,datfp);
+    else if(!strcmp(pys[i],"fiao"))fwrite("覅",1,2,datfp);
+    else if(!strcmp(pys[i],"hm"))fwrite("噷",1,2,datfp);
+    else if(!strcmp(pys[i],"kei"))fwrite("剋",1,2,datfp);
+    else if(!strcmp(pys[i],"nun"))fwrite("黁",1,2,datfp);
+    else if(!strcmp(pys[i],"zhei"))fwrite("这",1,2,datfp);
+    else{printf("~Error!\n");getchar();}
+   }
+  else for(j=0;j<n;j++){System.PY2GB(j,pys[i],gb);fwrite(gb,1,2,datfp);}
+ }
+ add=ftell(datfp);
+ fwrite(py,1,sizeof(struct PY),datfp);
+ return(add);
+}
+int ChPath(char &path[]){if(!ChDir(path)){MakeDir(path);if(!ChDir(path))return(-1);}}/*改变目录*/
+void main()
+{long add;
+ SetScreen(1);ChPath("/CplData");if((datfp=fopen("compile.dat","w"))==0){msg("无法创建文件！");return;}
+ printf(">正在生成compile.dat...\n");fwrite(jmp,1,JUMP_SIZE*4,datfp);k=0;
+ MAC_Init(0x2000);//0
+ CON_Init(0x2000,0x2000);//1,2
+ HLP_Init(0x2000);//3,4,5,6,7,8,9~16
+ Err_Init(0x2000);
+ add=PY2GB_Init();
+ printf(">修改以下参数:\n>目录/定义:JUMP_SIZE:%d\n>编辑/定义:PY_ADD:%d\n>然后重新编译运行一遍！\n",k,add);
+ rewind(datfp);fwrite(jmp,1,JUMP_SIZE*4,datfp);fclose(datfp);msg("生成成功！");
+}

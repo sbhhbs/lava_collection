@@ -1,0 +1,11 @@
+1	ChPath		1
+1	ChExt		0
+1	CheckExt	1
+1	fnmerge		0
+1	fnsplit		0
+1	PopDir		0
+1	PushDir		0
+1	findfile   	1
+1	getfilenum 	1
+1	rename     	1
+1	deletefile 	1

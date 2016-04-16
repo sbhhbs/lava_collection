@@ -1,0 +1,22 @@
+原型:int MakeDir(int path);
+功能:创建子目录
+说明:成功返回非0值,失败返回0
+举例:
+char s[] = "/移动硬盘";
+
+void main()
+{
+ if (ChDir(s))
+ {
+  printf("目录已经存在!");
+ }
+ else if (MakeDir(s))
+ {
+  printf("创建目录成功!");
+ }
+ else
+ {
+  printf("创建目录失败!");
+ }
+ getchar();
+}

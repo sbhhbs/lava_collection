@@ -1,0 +1,43 @@
+//注意 1.单显只显示 na ,但nb要有参数，可为任意值
+//     2.int nw,int nh  为nb坐标的微调值
+// Write By  Hex Lee 07,01,26
+
+void ShowNum(char nx, char ny, long na, long nb, char mode, int nw, int nh)
+{			//坐标X      Y      项目1    项目2    模式      偏移量x轴  Y轴
+	char n;								//模式2 单行  0 双纵显 1 双横显
+	long ten;
+	char nmbuf[30];
+
+	sprintf(nmbuf, "%d", na);
+	TextOut(nx, ny, nmbuf, 1);
+	Refresh();
+	if (!mode)
+	{
+		sprintf(nmbuf, "%d", nb);
+		TextOut(nx + nw, ny + nh + 9, nmbuf, 1);
+		Refresh();
+		return;
+	}
+	if (mode == 1)
+	{
+		ten = 10;
+		n = 1;
+		while (na > ten)//横双显
+		{
+			n++;
+			ten = ten * 10;
+		}
+		sprintf(nmbuf, "%d", nb);
+		TextOut(nx + (n << 3) + nw - n + 2, ny + nh, nmbuf, 1);
+		Refresh();
+	}
+}
+
+void main()
+{
+	long a, b;
+
+	a = 10;
+	b = 10000;
+	ShowNum(11, 50, a, b, 2, 0, 1);
+}

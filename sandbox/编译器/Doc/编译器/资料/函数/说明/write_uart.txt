@@ -1,0 +1,15 @@
+原型:void write_uart(byte wbyte)
+功能:写入一个Byte数据到Uart
+说明:该函数没有超时设置，如果Uart发送忙，则函数会卡住引起5秒死机。
+举例:
+void main()
+{
+ int recv_data;
+ char byte;
+
+ open_uart(BaudRate9600);
+ write_uart(0xaa);
+ recv_data = read_uart();
+ if (recv_data > 0xff) byte = recv_data&0xFF;
+ close_uart();
+}

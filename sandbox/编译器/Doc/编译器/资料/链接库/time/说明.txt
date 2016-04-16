@@ -1,0 +1,42 @@
+原型:void gettime(char &str[]);
+功能:获取系统时间。
+说明:时间保存在字符串str中，格式为hh:mm:ss。
+
+原型:void getdate(char &str[]);
+功能:获取系统日期。
+说明:日期保存在字符串str中，格式为yy:mm:dd。
+
+原型:long difftime(struct TIME &t1, struct TIME &t2);
+功能:计算两个时刻之间的时间差。
+
+举例:
+#include <time.y>
+struct TIME
+{
+ int year;
+ char month;
+ char day;
+ char hour;
+ char minute;
+ char second;
+ char week;
+};
+
+void main()
+{
+ struct TIME t1,t2;
+ char str[30];
+ int d;
+
+ SetScreen(1);
+ getdate(str);
+ printf("日期：%s\n", str);
+ gettime(str);
+ printf("时间：%s\n", str);
+ GetTime(t1);
+ Delay(5 * 1000);
+ GetTime(t2);
+ d = difftime(t1, t2);
+ printf("时间差为：%d\n", d);
+ getchar();
+}

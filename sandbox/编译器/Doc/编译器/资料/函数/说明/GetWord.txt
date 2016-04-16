@@ -1,0 +1,34 @@
+原型:char GetWord(int mode);
+功能:读键
+说明:等待用户输入一个宽字符.
+     与getchar不同,该函数可以输入汉字和符号.如果是汉字,返回的是GB编码.
+     mode=0:默认输入为英文
+     mode=1:默认输入为数字
+     mode=2:默认输入为汉字
+     mode=3:保持以前的默认输入状态
+举例:
+void main()
+{
+ int c;
+ char han[3];
+
+ SetScreen(0);
+ printf("Press key...");
+ c = GetWord(2);
+ for (;;)
+ {
+  if ((c&0xff00) == 0 && isprint(c))
+  {
+   printf("%c", c);
+  }
+  else if (c < 0)
+  {
+   memset(_TEXT + 4 * 20, ' ', 20); //清除提示行
+   han[0] = c;
+   han[1] = c >> 8;
+   han[2] = 0;
+   printf("%s", han);
+  }
+  c = GetWord(3);
+ }
+}

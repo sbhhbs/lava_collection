@@ -1,0 +1,24 @@
+原型:int iscntrl(char c);
+功能:判断字符c是否为控制字符
+说明:当c在0x00-0x1F之间或等于0x7F(DEL)时,返回非零值,否则返回零
+举例:
+void cntrl(char c)
+{
+ if (iscntrl(c))
+ {
+  printf("%d:是控制字符\n", c);
+ }
+ else
+ {
+  printf("%d:不是控制字符\n", c);
+ }
+}
+
+void main()
+{
+ SetScreen(0);
+ cntrl('a');
+ cntrl(0x0d);
+ cntrl(0x7f);
+ getchar();
+}

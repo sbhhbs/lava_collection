@@ -1,0 +1,16 @@
+原型:char getchar();
+功能:读键
+说明:从键盘上读取一个键,并返回该键的键值
+举例:
+void main()
+{
+ char c;
+
+ SetScreen(0);
+ printf("Press key...");
+ while ((c = getchar()) != 'q')
+ {
+  SetScreen(0);
+  printf("key: %c\nvalue: %d", c, c);
+ }
+}

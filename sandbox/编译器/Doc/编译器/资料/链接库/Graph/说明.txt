@@ -1,0 +1,152 @@
+作者:编程爱好者
+原型:void settype(int type);
+功能:设置绘图模型。
+说明:只对以下三个绘图函数有效！0:画实线，非0:画虚线。
+原型:void line(int x0,int y0,int x1,int y1,int type);
+功能:画直线。
+说明:(x0,y0)和(x1,y1)指定直线的两个端点坐标。
+     type决定画图方式，其值含义如下：
+     type=0:2色模式下画白线，16色和256色模式下用背景色画线
+          1:2色模式下画黑线，16色和256色模式下用前景色画线
+          2:线的所有点取反
+     type的bit6=1时向图形缓冲区作图，否则直接在屏幕作图
+举例:
+#include <Graph.y>
+void main()
+{
+ ClearScreen();
+ Refresh();
+ settype(1);
+ line(1,0,159,79,1);
+ getchar();
+}
+原型:void circle(int x, int y, int r, int fill, int type);
+功能:画圆。
+说明:(x,y)指定圆心，r指定半径。
+     type决定画图方式，其值含义如下：
+     type=0:2色模式下画白圆，16色和256色模式下用背景色画圆
+          1:2色模式下画黑圆，16色和256色模式下用前景色画圆
+          2:圆的所有点取反
+     type的bit6=1时向图形缓冲区作图，否则直接在屏幕作图
+     fill=0:不填充
+          1:填充
+举例:
+#include <Graph.y>
+void main()
+{
+ ClearScreen();
+ Refresh();
+ settype(1);
+ circle(80, 40, 39, 0, 1);
+ getchar();
+}
+原型:void ellispe(int x, int y, int a, int b, int fill, int type);
+功能:画椭圆。
+说明:(x,y)指定圆心，a为横半轴长度，b为纵半轴长度。
+     type决定画图方式，其值含义如下：
+     type=0:2色模式下画白椭圆，16色和256色模式下用背景色画椭圆
+          1:2色模式下画黑椭圆，16色和256色模式下用前景色画椭圆
+          2:椭圆的所有点取反
+     type的bit6=1时向图形缓冲区作图，否则直接在屏幕作图
+     fill=0:不填充
+          1:填充
+举例:
+#include <Graph.y>
+void main()
+{
+ ClearScreen();
+ Refresh();
+ settype(1);
+ ellipse(80, 40, 40, 30, 0, 1);
+ getchar();
+}
+原型:void drawpoly(int numpoint, int &points[][2], int type);
+功能:画多边形。
+说明:numpoint:多边形点数
+     points:多边形顶点坐标的数组（x1,y1,x2,y2顺序）
+     type决定画图方式，其值含义如下：
+     type=0:2色模式下画白多边形，16色和256色模式下用背景色画多边形
+          1:2色模式下画黑多边形，16色和256色模式下用前景色画多边形
+          2:多边形的所有点取反
+     type的bit6=1时向图形缓冲区作图，否则直接在屏幕作图
+举例:
+#include <Graph.y>
+int points[][2] = {0,0,10,20,150,70};
+void main()
+{
+ ClearScreen();
+ Refresh();
+ settype(1);
+ drawpoly(3, points, 1);
+ getchar();
+}
+原型:void MoveDown(int type);
+功能:图形全体下移一个点。
+说明:type=0:缓冲区图形全体下移一个点，type=0x40:屏幕图形全体下移一个点。bit2-0: 1:copy 2:not 3:or 4:and 5:xor
+举例:
+#include <Graph.y>
+void main()
+{
+ int i;
+ TextOut(77, 5, "←", 0x81);
+ for (i = 0; i < 75; i++)
+ {
+  MoveDown(0);
+  Refresh();
+  Delay(10);
+ }
+ getchar();
+}
+原型:void MoveUp(int type);
+功能:图形全体上移一个点。
+说明:type=0:缓冲区图形全体上移一个点，type=0x40:屏幕图形全体上移一个点。bit2-0: 1:copy 2:not 3:or 4:and 5:xor
+举例:
+#include <Graph.y>
+void main()
+{
+ int i;
+
+ TextOut(77, 5, "←", 0x81);
+ for (i = 0; i < 75; i++)
+ {
+  MoveUp(0);
+  Refresh();
+  Delay(10);
+ }
+ getchar();
+}
+原型:void Shutter(char &buf[]);
+功能:图形以百页窗的形式显示到屏幕上。
+说明:buf为图形数据地址，图形大小为160*80。
+举例:
+#include <Graph.y>
+char logo[] = {......};//省略
+char pic[] = {};//省略
+void main()
+{
+ WriteBlock(0, 0, 160, 80, 1, logo);
+ Refresh();
+ Delay(400);
+ Shutter(pic);
+ getchar();
+}
+原型:void DrawPoint(int x, int y, int weith, int height, char d, int type, char &buf[]);
+功能:将图形放大显示。
+说明:buf为图形数据地址，type:1 缓冲区作图 0x41 屏幕作图 0x43 画镂空图。d:放大倍数。
+举例:
+#include <Graph.y>
+char pic[] = {0,0,0,0,1,64,3,224,7,208,6,176,69,112,66,32,33,236,19,84,13,108,1,212,1,232,1,80,1,64,3,96};
+void main()
+{
+ char d;
+
+ while (getchar() != 27)
+ {
+  Refresh();
+  ClearScreen();
+  if (d > 4) d = 0;
+  DrawPoint(1, 1, 16, 16, d, 1, pic);
+  DrawPoint(85, 1, 16, 16, 4 - d, 1, pic);
+  d++;
+ }
+}

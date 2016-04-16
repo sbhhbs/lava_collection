@@ -1,0 +1,225 @@
+char &TXT[];
+int &LIP[];
+int N_LINE, LEN, X0, Y0, X1 = 159, Y1 = 79, width = 26, heigh = 6;
+char TYPE = 0x41, LBREAK = 10, LEN_LB = 1;
+
+void TextOut2(int x, int y, char &str[], int type)
+{
+	char font;
+
+	font = (type&0x30) >> 4;
+	type = type&0xcf;
+	if (font == 1)
+	{
+		TextOut(x, y, str, type|0x01);
+		TextOut(x + 1, y, str, type|0x03);
+		return;
+	}
+	if (font == 2)
+	{
+		TextOut(x,		y + 2,	str, type|0x03);
+		TextOut(x,		y,		str, type|0x03);
+		TextOut(x,		y + 1,	str, type|0x03);
+		TextOut(x + 1,	y + 2,	str, type|0x03);
+		TextOut(x + 1,	y,		str, type|0x03);
+		TextOut(x + 2,	y + 2,	str, type|0x03);
+		TextOut(x + 2,	y,		str, type|0x03);
+		TextOut(x + 2,	y + 1,	str, type|0x03);
+		TextOut(x + 1,	y + 1,	str, type&0xfc|0x0c);
+		return;
+	}
+	if (!font)
+	{
+		TextOut(x, y, str, type|0x01);
+		return;
+	}
+	TextOut(x,		y + 2,	str, type|0x03);
+	TextOut(x,		y,		str, type|0x03);
+	TextOut(x,		y + 1,	str, type|0x03);
+	TextOut(x + 1,	y + 2,	str, type|0x03);
+	TextOut(x + 1,	y,		str, type|0x03);
+	TextOut(x + 2,	y + 2,	str, type|0x03);
+	TextOut(x + 2,	y,		str, type|0x03);
+	TextOut(x + 3,	y + 2,	str, type|0x03);
+	TextOut(x + 3,	y,		str, type|0x03);
+	TextOut(x + 3,	y + 1,	str, type|0x03);
+	TextOut(x + 1,	y + 1,	str, type&0xfc|0x0c);
+	TextOut(x + 2,	y + 1,	str, type&0xfc|0x0c);
+}
+
+void msg(char &msgbuf[], char type)
+{
+	int i, k, m, x0, y0;
+	char len, a, j;
+	char tmp[6][27], type1;
+	char buf[2];//可以被释放
+
+	strcpy(buf, msgbuf);
+	j = k = m = 0;
+	if (type&0x40)
+	{
+		type1 = 1;
+	}
+	else
+	{
+		type1 = 0x41;
+	}
+	a = ((type&0x80) >> 6) + 6;
+	len = strlen(buf);
+	i = buf;
+	j = 0;
+	for (;;)
+	{
+		if (k = strchr(i, '\n')) 
+		{
+			memcpy(tmp[j], i, k - i);
+			tmp[j][k - i] = 0;
+			if (k - i > m) m = k - i;
+			i = k + 1;
+			continue;
+		}
+		else
+		{
+			memcpy(tmp[j], i, buf + len - i);
+			tmp[j][buf + len - i] = 0;
+			if (buf + len - i > m) m = buf + len - i;
+			break;
+		}
+		j++;
+	}
+	y0 = 41 - (j + 1) * (a + 1) - ((type&0x20) >> 5);
+	x0 = 80 - (m * a >> 1);
+	if (type1 < 0x40)
+	{
+		Box(x0 - a - 1, y0 - a + 1, 161 - x0 + a, 79 - y0 + a, 1, 0);
+	}
+	else
+	{
+		Block(x0 - a - 1, y0 - a + 1, 161 - x0 + a, 79 - y0 + a, 0);
+	}
+	Line(x0 - a,		y0 - a + 3,		x0 - a, 76 - y0 + a, type1);
+	Line(x0 - a + 1,	y0 - a + 2,		158 - x0 + a, y0 - a + 2, type1);
+	Line(159 - x0 + a,	y0 - a + 3,		159 - x0 + a, 77 - y0 + a, type1);
+	Line(x0 - a + 1,	77 - y0 + a,	159 - x0 + a, 77 - y0 + a, type1);
+	Line(x0 - a + 2,	78 - y0 + a,	159 - x0 + a, 78 - y0 + a, type1);
+	Line(160 - x0 + a,	y0 - a + 4,		160 - x0 + a, 77 - y0 + a, type1);
+	i = 0;
+	while (i <= j)
+	{
+		TextOut2(80 - (strlen(tmp[i]) * a >> 1), y0 + i * ((a << 1) + 2), tmp[i], type);
+		i++;
+	}
+}
+
+void TXTrange(int x0, int y0, int x1, int y1, int type)
+{
+	X0 = x0;
+	Y0 = y0;
+	X1 = x1;
+	Y1 = y1;
+	TYPE = type;
+	width = (x1 - x0 + 1) / (6 + ((TYPE&0x80) >> 6));
+	heigh = (y1 - y0 + 1) / (12 + ((TYPE&0x80) >> 4));
+}
+
+void Setlbreak(char lbreak, char len_lb)
+{
+	LBREAK = lbreak;
+	LEN_LB = len_lb;
+} 
+
+int TXTload(char &TXTbuf[], long TXTlen, int &lip[])
+{
+	int n, i, j, k;
+
+	&TXT = TXTbuf;
+	&LIP = lip;
+	LEN = TXTlen;
+	k = j = LIP[0] = 0;
+	for (;;)
+	{
+		LIP[++j] = n = i = 0;
+		while (i < width)
+		{
+			if (k + i >= LEN)
+			{ 
+				LIP[j] = LEN;
+				return(N_LINE = j);
+			}
+			if (TXT[k + i] > 128) n++;
+			if (TXT[k + i] == LBREAK)
+			{
+				if ((LIP[j] = k = k + i + LEN_LB) == LEN)
+				{
+					N_LINE = j;
+					return j;
+				}
+				break;
+			}
+			i++;
+		} 
+		if (LIP[j]) continue;
+		k = k + width;
+		if (n&1)
+		{
+			LIP[j] = --k;
+			continue;
+		}
+		if (k >= LEN)
+		{
+			LIP[j] = LEN;
+			return(N_LINE = j);
+		}
+		if (TXT[k] == LBREAK)
+		{
+			if ((k = k + LEN_LB) == LEN)
+			{
+				LIP[j] = LEN;
+				return(N_LINE = j);
+			}
+		}
+		LIP[j] = k;
+	}
+}
+
+void TXTout(int lCur)
+{
+	char n, j, tmp[27];
+
+	if (TYPE&0x40)
+	{
+		Box(X0, Y0, X1, Y1, 1, 0);
+	}
+	else
+	{
+		Block(X0, Y0, X1, Y1, 0);
+	}
+	j = 0;
+	while (j < heigh)
+	{
+		if (j + lCur >= N_LINE)
+		{
+			memset(tmp, ' ', width);
+		}
+		else
+		{
+			n = LIP[j + lCur + 1] - LIP[j + lCur] + LEN_LB * (TXT[LIP[j + lCur + 1] - LEN_LB] == LBREAK);
+			memmove(tmp, TXT + LIP[j + lCur], n);
+			memset(tmp + n, ' ', width - n);
+		}
+		tmp[width] = 0;
+		if (TYPE&0x30)
+		{
+			TextOut2(X0, Y0 + j * (Y1-Y0) / heigh, tmp, TYPE);
+		}
+		else
+		{
+			TextOut(X0, Y0 + j * (Y1 - Y0) / heigh, tmp, TYPE);
+		}
+		j++;
+	}
+}
+
+void main()
+{
+}

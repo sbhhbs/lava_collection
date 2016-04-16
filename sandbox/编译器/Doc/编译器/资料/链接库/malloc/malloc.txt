@@ -1,0 +1,64 @@
+/* 该代码只能由yan的编译器编译，且不能优化 */
+
+int _pMStart = 0x5000;
+int _nMSize = 0x2000;
+int _pMEnd = NULL;
+/*struct _MemoryInfo{
+    bool bUsed : 1;
+    short nSize : 31;
+};*/
+void SetRange(int _pMRangeStart, int _pMRangeSize)
+{
+    _pMStart = _pMRangeStart;
+    _nMSize = _pMRangeSize;
+    _pMEnd = NULL;
+}
+
+int malloc(int _NewSize)
+{
+	int _nSize;
+	int &_rMInfo;
+	int &_rMInfoNext;
+
+	&_rMInfo = _pMStart;
+	while (&_rMInfo < _pMEnd)
+	{
+		if (_rMInfo > 0)
+		{
+			goto L_CombineLoopStart;
+			while (_rMInfoNext > 0 && &_rMInfoNext < _pMEnd)
+			{
+				_rMInfo = _rMInfo + _rMInfoNext + sizeof(int);
+L_CombineLoopStart:
+				&_rMInfoNext = &_rMInfo + _rMInfo + sizeof(int);
+			}
+			if (_rMInfo >= _NewSize)
+			{
+				if (_rMInfo > _NewSize)
+				{
+					&_rMInfoNext = &_rMInfo + (_nSize = _NewSize + sizeof(int));
+					_rMInfoNext = _rMInfo - _nSize;
+					_rMInfo = _NewSize;
+				}
+				_rMInfo = _rMInfo | 0x8000;
+				return &_rMInfo + sizeof(int);
+			}
+		}
+		&_rMInfo = &_rMInfo + (_rMInfo & 0x7FFF) + sizeof(int);
+	}
+	if (_NewSize + &_rMInfo > _pMStart + _nMSize) return 0;
+	_rMInfo = 0x8000 | _NewSize;
+	_pMEnd = &_rMInfo + _NewSize + sizeof(int);
+	return &_rMInfo + sizeof(int);
+}
+
+void free(int &_rMInfo)
+{
+    &_rMInfo = &_rMInfo - 2;
+    _rMInfo = _rMInfo & 0x7FFF;
+}
+
+void main()
+{
+
+}

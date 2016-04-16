@@ -1,0 +1,558 @@
+#define BackColor       3
+#define ForeColor       15
+#define ClearColor      0
+#define FullColor       15
+#define VL_GrayColor0   0
+#define VL_GrayColor1   1
+#define VL_GrayColor2   2
+#define VL_GrayColor3   3
+#define VL_GrayColor4   4
+#define VL_GrayColor5   5
+#define VL_GrayColor6   6
+#define VL_GrayColor7   7
+#define VL_GrayColor8   8
+#define VL_GrayColor9   9
+#define VL_GrayColor10  10
+#define VL_GrayColor11  11
+#define VL_GrayColor12  12
+#define VL_GrayColor13  13
+#define VL_GrayColor14  14
+#define VL_GrayColor15  15
+#define VL_ColorA       0
+#define VL_ColorB       3
+#define VL_ColorC       9
+#define VL_ColorD       12
+#define VL_ColorE       15
+
+//集合了Rectangle()、Block()、Box()的画矩形框函数
+void Boxes(int x0, int y0, int x1, int y1, int fill, int type)
+{
+	if (x0 < 0) x0 = 0;
+	if (y0 < 0) y0 = 0;
+	if (type&0x40)
+	{
+		Box(x0, y0, x1, y1, fill, type);
+	}
+	else if (!fill)
+	{
+		Rectangle(x0, y0, x1 ,y1, type);
+	}
+	else if (fill)
+	{
+		Block(x0, y0, x1, y1, type);
+	}
+}
+
+void Lines(int x0, int y0, int x1, int y1, int type)
+{
+	if (x0 < 0) x0 = 0;
+	if (y0 < 0) y0 = 0;
+	if (x1 < 0) x1 = 0;
+	if (y1 < 0) y1 = 0;
+	Line(x0, y0, x1, y1, type ^ 0x40);
+}
+
+//mode有10种,0-8为凸凹形边框,9为虚线框,10为阴影框
+//fill为1时以默认底色填充,为2时以白色填充(就是清除),为0时不填充
+//type为1时向缓冲区作图,为0x41时向屏幕作图
+void MyBox(int x0, int y0, int x1, int y1, int mode, int fill, int type)
+{
+	char Bill;
+	char a, b, c, d, e;
+	int f;
+	char bita, bitb;
+
+	if (x0 > x1)
+	{
+		x0 = x0 ^ x1;
+		x1 = x1 ^ x0;
+		x0 = x0 ^ x1;
+	}
+	if (y0 > y1)
+	{
+		y0 = y0 ^ y1;
+		y1 = y1 ^ y0;
+		y0 = y0 ^ y1;
+	}
+	a = VL_ColorA;
+	b = VL_ColorB;
+	c = VL_ColorC;
+	d = VL_ColorD;
+	e = VL_ColorE;
+	bita = 0;
+	bitb = 1;//配色
+	if (mode == 2)
+	{
+		a = VL_ColorC;
+		c = VL_ColorA;
+		bita = 1;
+		bitb = 0;
+	}
+	else if (mode == 4)
+	{
+		a = VL_ColorD;
+		b = VL_ColorC;
+		c = VL_ColorB;
+		d = VL_ColorA;
+		bita = 1;
+		bitb = 0;
+	}
+	else if (mode == 8)
+	{
+		a = VL_ColorD;
+		b = VL_ColorC;
+		c = VL_ColorB;
+		d = VL_ColorA;
+		bita = 1;
+		bitb = 0;
+	}
+	SetBgColor(BackColor);
+	if (fill == 2) SetBgColor(ClearColor);//清除
+	if (fill) Boxes(x0, y0, x1, y1, 1, type&0x40);//用底色填充
+	if (mode == 1 || mode == 2)//单线框
+	{
+		SetBgColor(a);
+		SetFgColor(a);
+		Lines(x0, y0, x0, y1 - 1, type&0x40|bita);
+		Lines(x0, y0, x1 - 1, y0, type&0x40|bita);
+		SetBgColor(c);
+		SetFgColor(c);
+		Lines(x1, y0, x1, y1, type&0x40|bitb);
+		Lines(x0, y1, x1, y1, type&0x40|bitb);
+	}
+	else if (mode == 3 || mode == 4)//一单一双线框
+	{
+		SetBgColor(a);
+		SetFgColor(a);
+		Lines(x0, y0, x0, y1 - 1, type&0x40|bita);
+		Lines(x0, y0, x1 - 1, y0, type&0x40|bita);
+		SetFgColor(b);
+		SetBgColor(b);
+		Lines(x0 + 1, y0 + 1, x0 + 1, y1 - 2, type&0x40|bita);
+		Lines(x0 + 1, y0 + 1, x1 - 2, y0 + 1, type&0x40|bita);
+		SetFgColor(d);
+		SetBgColor(d);
+		Lines(x0, y1, x1, y1, type&0x40|bitb);
+		Lines(x1, y0, x1, y1, type&0x40|bitb);
+		SetFgColor(c);
+		SetBgColor(c);
+		Lines(x0 + 1, y1 - 1, x1 - 1, y1 - 1, type&0x40|bitb);
+		Lines(x1 - 1, y0 + 1, x1 - 1, y1 - 1, type&0x40|bitb);
+	}
+	else if(mode==5){SetFgColor(d);Boxes(x0,y0,x1,y1,0,type);MyBox(x0+1,y0+1,x1-1,y1-1,3,fill,type);}//加黑边框凸
+	else if(mode==6){SetFgColor(d);Boxes(x0,y0,x1,y1,0,type);SetFgColor(c);Boxes(x0+1,y0+1,x1-1,y1-1,0,type);}//加黑边框凹
+	else if(mode==7|mode==8)//双线框
+	{SetFgColor(b);SetBgColor(b);Lines(x0,y0,x0,y1-1,type&0x40|1);Lines(x0,y0,x1-1,y0,type&0x40|1);
+		SetFgColor(d);SetBgColor(d);Lines(x0,y1,x1,y1,type&0x40|1);Lines(x1,y0,x1,y1,type&0x40|1);
+		SetFgColor(a);SetBgColor(a);Lines(x0+1,y0+1,x0+1,y1-2,type&0x40|bita);Lines(x0+1,y0+1,x1-2,y0+1,type&0x40|bita);
+		SetFgColor(c);SetBgColor(c);
+		Lines(x1-1,y0+1,x1-1,y1-1,type&0x40|bitb);Lines(x1-1,y0+1,x1-1,y0+1,type&0x40|0);
+		Lines(x0+1,y1-1,x1-1,y1-1,type&0x40|bitb);Lines(x0+1,y1-1,x0+1,y1-1,type&0x40|0);
+	}
+	else if(mode==9)//虚线框
+	{SetFgColor(d);
+		for(f=0;f<x1-x0;f++){if(f%2){Lines(f+x0,y0,f+x0,y0,type);Lines(f+x0,y1,f+x0,y1,type);}}
+		for(f=0;f<y1-y0;f++){if(f%2){Lines(x0,f+y0,x0,f+y0,type);Lines(x1,f+y0,x1,f+y0,type);}}
+		SetBgColor(b);
+		for(f=0;f<x1-x0;f++){if(!(f%2)){Lines(f+x0,y0,f+x0,y0,(type)&0x40);Lines(f+x0,y1,f+x0,y1,(type)&0x40);}}
+		for(f=0;f<y1-y0;f++){if(!(f%2)){Lines(x0,f+y0,x0,f+y0,(type)&0x40);Lines(x1,f+y0,x1,f+y0,(type)&0x40);}}
+	}
+	else if(mode==10){SetBgColor(a);Boxes(x0+1,y0+1,x1,y1,0,type&0x40);SetFgColor(c);Boxes(x0,y0,x1-1,y1-1,0,type);}//阴影框
+}
+//Caption:标题字串不限长短
+//Focus:为1时字串上有虚线框
+//Font:为合成参数,bit0-7的值为文字颜色值,bit8-15的值为1时文字为大字体
+//Font的使用形式为 Font = 15 | 1<<8 (颜色15,大字体)
+//fill:为1时控件以默认底色填充
+void DrawFrame(int x0,int y0,int x1,int y1,long Caption,char Focus,int Font,char fill,int type)
+{int T;
+ char Tsize,Tcolor,length;
+ char Bill;
+ Tcolor=Font&0xff;//文字颜色
+ if(x0>x1){x0=x0^x1;x1=x1^x0;x0=x0^x1;}
+ if(y0>y1){y0=y0^y1;y1=y1^y0;y0=y0^y1;}
+ T=type;//文字的type
+ Tsize=6;
+ if(Font>>8==1){Tsize=8;T=T|0x80;}//文字大小，大字体type
+ length=strlen(Caption);
+ if(fill==1){SetBgColor(BackColor);Boxes(x0,y0,x1,y1,1,type&0x40);}//用底色填充
+ MyBox(x0,y0+Tsize+1,x1,y1,10,0,type);//阴影框
+ SetBgColor(BackColor);
+ Boxes(x0+Tsize,y0+2,x0+Tsize+Tsize*length,y0+2+Tsize*2,1,type&0x40);
+ SetBgColor(ClearColor);
+ SetFgColor(Tcolor);
+ TextOut(x0+Tsize,y0+2,Caption,(T&0xf8)|3);//标题字串
+ if(Focus==1)MyBox(x0+Tsize-2,y0,x0+Tsize-2+length*Tsize+3,y0+Tsize*2+3,9,0,type);//虚线框
+}
+//Caption:按钮上的文字,居中对齐
+//BorderStyle:按钮样式共有4种,值1-4，效果各不同
+//Value:为1时画的按钮是被按下的样式
+//F_F:是Focus和Font的合成参数
+//其使用形式为: F_F = Focus | Font<<8 ，例如 1 | (15|0<<8)<<8 。(15|0<<8)为Font
+//Focus:为1在字串上画虚线框
+//Font:也是合成的参数,bit0-bit7 的值为文字颜色,bit8-bit15 的值为1大字体,例如 Font=15|1<<8 。
+void DrawCommand(int x0,int y0,int x1,int y1,long Caption,char BorderStyle,char Value,int F_F,int type)
+{int T,tx,ty;
+ char Tsize,Tcolor,length,dev;
+ char Bill;
+ char Focus;
+ char Font;
+ Focus=F_F;Font=F_F>>8;Tcolor=Font&0xff;
+ if(x0>x1){x0=x0^x1;x1=x1^x0;x0=x0^x1;}if(y0>y1){y0=y0^y1;y1=y1^y0;y0=y0^y1;}
+ dev=0;if(Value==1)dev=1;//按钮按下时文字的偏移
+ T=type;Tsize=6;//文字的type
+ if(Font>>8==1){Tsize=8;T=T|0x80;}//单个字符的宽度，文字的大小模式
+ length=strlen(Caption);
+ tx=x0+(x1-x0)/2-length*Tsize/2;ty=y0+(y1-y0)/2-Tsize;//文字起始坐标
+ if(BorderStyle<=0)BorderStyle=1;
+ MyBox(x0,y0,x1,y1,BorderStyle*2-1+Value,1,type);//边框,共有4种
+ SetBgColor(BackColor);SetFgColor(Tcolor);TextOut(tx+dev,ty+dev,Caption,T);//按钮上的文字
+ if(Focus==1)MyBox(x0+3,y0+3,x1-3,y1-3,9,0,type);//有焦点时画虚线框
+}
+
+void Tool(int mode,int a,int b,int c,int d,int e)
+{
+char dev;
+char Bill;
+
+dev=0;
+
+if(mode==3){//阴影线(a的值为1横向,为2竖向,b和c对应x和y坐标,d为线的长度,e为type)
+  if(a==1){
+    SetFgColor(VL_ColorC);
+    Lines(b,c,b+d-1,c,e);
+    SetBgColor(VL_ColorA);
+    Lines(b+1,c+1,b+d,c+1,e&0x40);
+    }
+  else if(a==2){
+    SetFgColor(VL_ColorC);
+    Lines(b,c,b,c+d-1,e);
+    SetBgColor(VL_ColorA);
+    Lines(b+1,c+1,b+1,c+d,e&0x40);
+    }
+  }
+else if(mode==2){//标题按扭,d为按钮类型,a  =5"关闭",=6"最大化",=7"还原",=8"最小化",=9"帮助",b和c对应x和y坐标,d为按钮类型,e为type
+  if(a<1||a>9)return;
+  if(d%2==0)dev=1;
+  MyBox(b,c,b+11,c+10,d,1,e);
+  Tool(1,a,b+2+dev,c+2+dev,0,e);
+  }
+else if(mode==1){//特殊符号,1-4为三角,滚动条用的,方向分别为↑↓→←,5-9为标题按钮上的各种符号
+  SetFgColor(VL_ColorE);
+  if(a==1){Lines(b+2,c+1,b+2,c+1,e);Lines(b+1,c+2,b+3,c+2,e);Lines(b,c+3,b+4,c+3,e);}
+  else if(a==2){Lines(b,c+1,b+4,c+1,e);Lines(b+1,c+2,b+3,c+2,e);Lines(b+2,c+3,b+2,c+3,e);}
+  else if(a==3){Lines(b+1,c,b+1,c+4,e);Lines(b+2,c+1,b+2,c+3,e);Lines(b+3,c+2,b+3,c+2,e);}
+  else if(a==4){Lines(b,c+2,b,c+2,e);Lines(b+1,c+1,b+1,c+3,e);Lines(b+2,c,b+2,c+4,e);}
+  else if(a==5){Lines(b,c,b+5,c+5,e);Lines(b+1,c,b+6,c+5,e);Lines(b,c+5,b+5,c,e);Lines(b+1,c+5,b+6,c,e);}
+  else if(a==6){Boxes(b,c,b+6,c+5,0,e);Lines(b+1,c+1,b+5,c+1,e);}
+  else if(a==7){Boxes(b+2,c,b+6,c+3,0,e);Boxes(b,c+2,b+4,c+5,0,e);SetFgColor(BackColor);Lines(b+2,c+3,b+3,c+3,e);}//有用到BackColor来恢复底色
+  else if(a==8){Lines(b+1,c+5,b+5,c+5,e);Lines(b+1,c+4,b+5,c+4,e);}
+  else if(a==9){Lines(b+1,c,b+4,c,e);Lines(b,c+1,b+1,c+1,e);Boxes(b+4,c+1,b+5,c+2,1,e);Lines(b+2,c+3,b+3,c+3,e);Lines(b+2,c+5,b+3,c+5,e);}
+  }
+}
+//Caption: 窗体的标题文字
+//Print: 窗体内显示的字串，自动换行，换行符也能换行
+//B_BD:因为一个函数只能有9个参数，而这个函数需要的参数太多了所以几个参数合成一个来用。
+//由Button和ButtonDown两个参数合并而成。
+//假设Button=4和ButtonDown=2，使用形式：B_BD = Button | ButtonDown<<8 ，即 参数 = 4 | 2<<8 。
+//⑴. Button:是窗体右上角的按钮的组合类型，有6种。
+//0 无按钮
+//1 "×"
+//2 "？","×"
+//3 "最小化","最大化","×"
+//4 "？","最小化","最大化","×"
+//5 "最小化","还原","×"
+//6 "？","最小化","还原","×"
+//⑵. ButtonDown:是按钮的被按下状态，有效值从1到4对应从右到左的四个按钮，为0时无被按下按钮，为2时第2个按钮在画出时是被按下的样子，以此类推。
+//msg: 和上面的参数一样也是几个参数合在一起的参数，有3个参数：Font、Icon和Focus。
+//使用形式为 msg = Font | Icon<8 | Focus<<16。
+//1. Font:字体模式，为1时用大字体(16*16)显示。
+//2. Icon:窗体引用图标号码，用于在左上角显示图标，在这里是无效的(未完成)，为1时只空开显示图标的位置，你可在画完窗体后自己再画上图标。
+//3. Focus:焦点，无效，打算在256色模式下使用，为1时标题栏是蓝色的(活动窗口)，为0时是灰色的(非活动窗口)。
+void DrawForm(int x0,int y0,int x1,int y1,long Caption,long Print,int B_BD,long msg,int type)
+{
+char Button;
+char ButtonDown;
+char Font;
+char Icon;
+char Focus;
+
+char str[256];
+char han[3];
+char b[5],t1,t2,t3,t4;//同时最多四个标题按钮
+int T,length,f,offset,dev;
+char Tsize,linelen,cur_line,lines;
+char Bill;
+
+if(x0>x1){x0=x0^x1;x1=x1^x0;x0=x0^x1;}
+if(y0>y1){y0=y0^y1;y1=y1^y0;y0=y0^y1;}
+
+Button=B_BD;
+ButtonDown=B_BD>>8;
+
+Font=msg;
+Icon=(msg>>8)&0xff;
+Focus=(msg>>16)&0xff;//Focus为1(有焦点)且256色状态时使用蓝色的标题栏，未完成
+
+T=type;//文字的type
+Tsize=6;
+if(Font==1){Tsize=8;T=T|0x80;}//单个字符的宽度，文字的大小模式
+
+if(Print){length=strlen(Print);}
+else length=0;
+linelen=(x1-x0-2*5)/Tsize;//每行字符数
+lines=(y1-y0-3-Tsize*2-1-2-3*2)/(Tsize*2+1);//窗体能显示的行数
+
+memset(b,3,5);
+if(ButtonDown)b[ButtonDown]=4;//被按下的按钮
+
+t1=t2=t3=t4=0;
+//分别设置按钮类型
+if(Button==1){t1=5;}
+else if(Button==2){t1=5;t2=9;}
+else if(Button==3){t1=5;t2=6;t3=8;}
+else if(Button==4){t1=5;t2=6;t3=8;t4=9;}
+else if(Button==5){t1=5;t2=7;t3=8;}
+else if(Button==6){t1=5;t2=7;t3=8;t4=9;}
+
+MyBox(x0,y0,x1,y1,7,1,type);//边框
+
+//渐变色标题框，没使用配色
+dev=0;
+for(f=6;f<=15;f++){
+  SetFgColor(f);
+  Boxes(x0+3,y0+3,x1-3-dev*(x1-x0)/160,y0+3+2*Tsize+1,1,type);
+  dev=dev+(16-f/2);
+  }
+
+SetFgColor(ForeColor);
+SetBgColor(ClearColor);
+//标题的文字需0背景色
+//画标题，需标题图标的话就空开位置，未完成画图标部分
+if(Icon)TextOut(x0+5+Tsize*2,y0+4,Caption,(T+0x4));
+else TextOut(x0+5,y0+4,Caption,(T+0x4));
+
+//恢复背景色
+SetBgColor(BackColor);
+SetFgColor(ForeColor);
+//Print方法，在窗体内显示外部字串，自动换行，可用换行符换行
+
+cur_line=0;
+if(Print){
+  for(offset=0;offset<length;){
+    memset(str,0,256);
+    for(f=0;;){
+      memmove(han,Print+offset+f,2);
+      if(han[0]==0x0a){memmove(str,Print+offset,f);f=f+1;offset=offset+f;break;}
+      else if(han[0]==0x0d&&han[1]==0x0a){memmove(str,Print+offset,f);f=f+2;offset=offset+f;break;}
+      else if(f>=linelen){memmove(str,Print+offset,linelen);offset=offset+linelen;break;}
+      f++;
+      }
+    TextOut(x0+5,y0+3+2*Tsize+1+2+3+cur_line*(Tsize*2+1),str,T);
+    cur_line++;
+    if(cur_line>=lines)break;
+    }
+  }
+
+//以下为画标题框上的按钮
+if(t1){Tool(2,t1,x1-16,y0+Tsize-1,b[1],type);}
+if(t2){Tool(2,t2,x1-30,y0+Tsize-1,b[2],type);}
+if(t3){Tool(2,t3,x1-42,y0+Tsize-1,b[3],type);}
+if(t4){Tool(2,t4,x1-54,y0+Tsize-1,b[4],type);}
+}
+//Caption:标签字串长短不限
+//合成使用的参数较多，请注意其使用形式
+//F_F:是Focus和Font的合成参数
+//其使用形式为: F_F = Focus | Font<<8 ，例如 1 | (15|0<<8)<<8 。(15|0<<8)为Font
+//Focus:为1在字串上画虚线框
+//Font:也是合成的参数,bit0-bit7 的值为文字颜色,bit8-bit15 的值为1大字体,例如 Font=15|1<<8 。
+//A_A:是Alignment和AutoSize的合成参数
+//其使用形式为：A_A = Alignment | AutoSize<<8 ，例如 2 | 1<<8 。
+//Alignment:为字串对齐方式,0左对齐，为1右对齐，为2居中对齐
+//AutoSize:为0字串超出部分截去（此功能未全部完成）,为1跟据字串长度,标签自动调整大小
+//B_W:是BorderStyle和WordWrap的合成参数
+//其使用形式为: B_W = BorderStyle | WordWrap<<8 ，例如 0 | 1<<8 。
+//BorderStyle:为边框风格，为0无边框，为1单线边框,注意,我为了丰富函数的作用，特地改了让这个函数的边框有1-10号共十种边框，使这个Label()函数同时可以作为消息框显示 提示信息 用！！！
+//WordWrap:未完成,自动换行设置,为0不换行,为1自动换行
+void DrawLabel(int x0,int y0,int x1,int y1,long Caption,int F_F,int A_A,int B_W,int type)
+{
+int T,tx,ty;
+char Tsize,Tcolor,length;
+char han[3];
+int f;
+char Focus;
+int Font;
+char Alignment,AutoSize;
+char BorderStyle,WordWrap;
+char Bill;
+
+Focus=F_F;
+Font=F_F>>8;
+Tcolor=Font&0xff;
+Alignment=A_A;
+AutoSize=A_A>>8;
+BorderStyle=B_W;
+WordWrap=B_W>>8;
+
+if(x0>x1){x0=x0^x1;x1=x1^x0;x0=x0^x1;}
+if(y0>y1){y0=y0^y1;y1=y1^y0;y0=y0^y1;}
+
+T=type;//文字的type
+Tsize=6;
+if(Font==1){Tsize=8;T=T|0x80;}//单个字符的宽度，文字的大小模式
+
+length=strlen(Caption);
+
+if(WordWrap==0){
+  if(Alignment>2)Alignment=0;
+  if(Alignment==0){tx=x0+3;}//对齐属性
+  else if(Alignment==1){tx=x1-length*Tsize-3;}
+  else if(Alignment==2){tx=x0+(x1-x0)/2-length*Tsize/2;}
+
+  if(length>(x1-x0)/Tsize){
+    if(AutoSize==0)tx=x0+3;
+    else if(AutoSize==1){
+      if(Alignment==0){x1=x0+3+length*Tsize+3;}
+      else if(Alignment==1){x0=x1-3-length*Tsize-3;}
+      else if(Alignment==2){x0=tx-3;x1=tx+length*Tsize+3;}
+      }
+    }
+  ty=y0+(y1-y0)/2-Tsize+1;
+
+  SetBgColor(BackColor);
+  Boxes(x0,y0,x1,y1,1,type&0x40);//用默认背景色清除
+  if(BorderStyle>10)BorderStyle=1;
+  if(BorderStyle)MyBox(x0,y0,x1,y1,BorderStyle,0,type);//10种边框！
+
+  SetBgColor(BackColor);
+  Boxes(tx,ty,tx+Tsize*length,ty+Tsize*2,1,type&0x40);
+  SetBgColor(ClearColor);
+  SetFgColor(Tcolor);//文字颜色
+  TextOut(tx,ty,Caption,(T&0xf8)|3);//标签内容
+
+  if(Focus==1)MyBox(tx-2,ty-2,tx+length*Tsize+2,ty+Tsize*2+1,9,0,type);//有焦点，文字上画虚线框
+  }
+else if(WordWrap==1){
+  if(Alignment>2)Alignment=0;
+  if(Alignment==0){tx=x0+3;}//对齐属性
+  else if(Alignment==1){tx=x1-length*Tsize-3;}
+  else if(Alignment==2){tx=x0+(x1-x0)/2-length*Tsize/2;}
+
+  if(length>(x1-x0)/Tsize){
+    if(AutoSize==0)tx=x0+3;  
+    else if(AutoSize==1){
+      if(Alignment==0){x1=x0+3+length*Tsize+3;}
+      else if(Alignment==1){x0=x1-3-length*Tsize-3;}
+      else if(Alignment==2){x0=tx-3;x1=tx+length*Tsize+3;}
+      }
+    }
+  ty=y0+(y1-y0)/2-Tsize+1;
+
+  SetBgColor(BackColor);
+  Boxes(x0,y0,x1,y1,1,type&0x40);//用默认背景色清除
+  if(BorderStyle>=1)MyBox(x0,y0,x1,y1,2,0,type);//单线边框
+
+  SetBgColor(BackColor);
+  Boxes(tx,ty,tx+Tsize*length,ty+Tsize*2,1,type&0x40);
+  SetBgColor(ClearColor);
+  SetFgColor(Tcolor);//文字颜色
+  TextOut(tx,ty,Caption,(T&0xf8)|3);//标签内容
+
+  if(Focus==1)MyBox(tx-2,ty-2,tx+length*Tsize+2,ty+Tsize*2+1,9,0,type);//有焦点，文字上画虚线框
+  }
+}
+//Max_Min:Max和Min的合成参数，当滑块处于滚动条最大、最小位置时所代表的值。
+//使用形式：Max_Min = Max | Min<<16 。
+//Value属性:表示滑块左端位置在滚动条中代表的值。
+//Size属性:表示滑块的长度在滚动条中代表的值。
+//Value和Size的值总在Max和Min之间。
+//B_M: Button和mode的合成参数。使用形式：B_M = Button | mode<<8。
+//Button为0两端无按钮，大于0两端按钮正长显示。
+//Button为1两端都按钮凸起，为2左端按钮被按下，为3右端按钮被按下。
+//mode为1水平滚动条，为2垂直滚动条。
+void DrawScrollBar(int x0,int y0,int x1,int y1,long Max_Min,int Value,int Size,int B_M,int type)
+{
+int Max,Min;
+int Button,mode;
+int total,now,cur_size;
+int B1,B2,BD1,BD2,e,f,width;
+int offset1,offset2;
+int percent1,percent2;
+
+Max=Max_Min&0xffff;
+Min=Max_Min>>16;
+Button=B_M&0xff;
+mode=B_M>>8;
+
+total=Max-Min;
+now=Value-Min;
+cur_size=Size;
+
+percent1=now/(total/100);
+percent2=cur_size/(total/100);
+B1=B2=7;
+BD1=BD2=0;
+if(Button==0)width=0;
+else if(Button==2){B1=6;BD1=1;}
+else if(Button==3){B2=6;BD2=1;}
+
+if(x0>x1){x0=x0^x1;x1=x1^x0;x0=x0^x1;}
+if(y0>y1){y0=y0^y1;y1=y1^y0;y0=y0^y1;}
+
+SetBgColor(VL_GrayColor6);
+SetFgColor(VL_GrayColor6);
+Boxes(x0,y0,x1,y1,1,type&0x40);
+Boxes(x0,y0,x1,y1,0,type&0x40|0x1);
+if(mode==1){
+  if(Button)width=y1-y0;
+  offset1=(x1-x0-2*width)*percent1/100+1;
+  offset2=(x1-x0-2*width)*percent2/100;
+  if(offset2+offset1>=x1-x0-width*2)offset2=x1-x0-width*2-1-offset1;
+  if(offset1<0)offset1=0;
+  if(width){
+    MyBox(x0,y0,x0+width,y1,B1,1,type);
+    Tool(1,4,x0+width/2-2+BD1,y0+width/2-2+BD1,0,type);
+    MyBox(x1-width,y0,x1,y1,B2,1,type);
+    Tool(1,3,x1-width+width/2-2+BD2,y0+width/2-2+BD2,0,type);
+    }
+  if((offset2)<2){
+    SetFgColor(VL_ColorD);
+    Boxes(x0+width+offset1,y0,x0+width+offset1+offset2,y1,1,type);
+    }
+  else MyBox(x0+width+offset1,y0,x0+width+offset1+offset2,y1,7,1,type);
+  }
+else if(mode==2){
+  if(Button)width=x1-x0;
+  offset1=(y1-y0-2*width)*percent1/100+1;
+  offset2=(y1-y0-2*width)*percent2/100;
+  if((offset2+offset1)>=y1-y0-width*2)offset2=y1-y0-width*2-1-offset1;
+  if(offset1<0)offset1=0;
+  if(width){
+    MyBox(x0,y0,x1,y0+width,B1,1,type);
+    Tool(1,1,x0+width/2-2+BD1,y0+width/2-2+BD1,0,type);
+    MyBox(x0,y1-width,x1,y1,B2,1,type);
+    Tool(1,2,x0+width/2-2+BD2,y1-width+width/2-2+BD2,0,type);
+    }
+  if((offset2)<2){
+    SetFgColor(VL_ColorD);
+    Boxes(x0,y0+width+offset1,x1,y0+width+offset1+offset2,1,type);
+    }
+  else MyBox(x0,y0+width+offset1,x1,y0+width+offset1+offset2,7,1,type);
+  }
+}
+void main()
+{SetGraphMode(4);
+ SetBgColor(3);ClearScreen();
+ DrawForm(1,0,159,79,"VisualLavaX","",3,0,1);
+ DrawFrame(4,17,102,76,"信息",0,15,1,1);
+ DrawCommand(110,24,150,44,"确定",2,0,1|15<<8,1);
+ DrawCommand(110,52,150,72,"退出",2,0,0|15<<8,1);
+ Refresh();getchar();
+ SetBgColor(3);ClearScreen();
+ DrawForm(1,0,159,79,"编辑","",3,0,1);
+ MyBox(4,18,144,76,8,2,1);
+ DrawScrollBar(147,18,156,76,100,0,20,1|2<<8,2);
+ Refresh();getchar();
+ DrawLabel(48,28,112,52,"编辑完成",0|15<<8,2|1<<8,7,1);
+ Refresh();getchar();
+}

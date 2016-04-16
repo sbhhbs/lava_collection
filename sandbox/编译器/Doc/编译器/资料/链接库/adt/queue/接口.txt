@@ -1,0 +1,9 @@
+0	fptr		0
+1	SwitchQueue	1
+1	InitQueue	1
+1	QueueFull	1
+1	QueueEmpty	1
+1	QueueDepth	1
+1	GetHead		0
+1	EnQueue		0
+1	DeQueue		0

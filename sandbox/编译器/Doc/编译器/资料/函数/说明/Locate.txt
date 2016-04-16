@@ -1,0 +1,11 @@
+原型:void Locate(int y,int x);
+功能:光标定位
+说明:把字符显示的光标定位在y行x列(x,y均从0开始计算)
+举例:
+void main()
+{
+ SetScreen(0);
+ Locate(2, 8);
+ printf("Good!");
+ getchar();
+}

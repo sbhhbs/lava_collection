@@ -1,0 +1,135 @@
+注意:该库调用了fptr.y，所以无法优化调用了该库的程序！
+
+原型:void qsort(int base, int n, int es, long funadd);
+功能:对数组（包括结构体数组，共用体数组等）进行排序，至于是升序还是降序由funadd所指的函数决定
+说明:base为数组，n为数组元素个数，es为数组元素大小，funadd为比较函数地址（回调函数），函数格式为:int compar(int, int);
+举例:
+#include <sort.y>
+
+long arr[] = {-5,9,1, 100000, 1, 320,0,7,6};
+
+void print()
+{
+ int i;
+
+ for (i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
+ {
+  printf("%d ", arr[i]);
+ }
+ printf("\n");
+ getchar();
+}
+
+int cmparr(long &a, long &b)//a,b为元素地址
+{
+ if (a < b) return(-1);
+ if (a == b) return 0;
+ return(1);
+ /*
+  * 以上代码是升序排列，以下代码是降序排列:
+  * if (a < b) return(1);
+  * if (a == b) return 0;
+  * return(-1);
+  *
+  */
+}
+
+void main()
+{
+ SetScreen(1);
+ print();
+ qsort(arr, sizeof(arr) / sizeof(arr[0]), sizeof(arr[0]), cmparr);
+ print();
+}
+
+原型:int bsearch(int key, int base, int n, int es, long funadd);
+功能:使用二元搜索算法对按升序排列好的数组（包括结构体数组等）中查找数据，找到则返回该数据地址，否则返回0。
+说明:key为要查找的数据地址，base为数组，n为数组元素个数，es为数组元素大小，funadd为比较函数地址（回调函数），函数格式为:int compar(int, int);若传给compar的第一个参数所指的元素数据大于第二个参数所指的元素数据则必须返回正数，相等则返回0，小于则返回负数。
+举例:
+#include <sort.y>
+
+char arr[][10] = {"123", "234", "afwe", "wfgg", "123", "ijgwe", "fwgge"};
+
+void print()
+{
+ int i;
+
+ for (i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
+ {
+  printf("%s ", arr[i]);
+ }
+ printf("\n");
+ getchar();
+}
+
+int compar(char &a[], char &b[])
+{
+ return strcmp(a, b);
+}
+
+void main()
+{
+ int t;
+ char a[10];
+
+ SetScreen(1);
+ print();
+ qsort(arr, sizeof(arr) / sizeof(arr[0]), sizeof(arr[0]), compar);
+ print();
+ strcpy(a, "wfgg");
+ t = bsearch(&a, arr, sizeof(arr) / sizeof(arr[0]), sizeof(arr[0]), compar);
+ if (t)
+ {
+  printf("%s 找到了,第%d个\n", a, (t - arr) / sizeof(arr[0]));
+ }
+ else
+ {
+  printf("%s 没找到!\n", a);
+ }
+ getchar();
+}
+
+原型:int lfind(int key, int base, int n, int es, long funadd);
+功能:使用线性搜索算法对数组（包括结构体数组等）中从头到尾一项项查找数据，找到则返回该数据地址，否则返回0。
+说明:key为要查找的数据地址，base为数组，n为数组元素个数，es为数组元素大小，funadd为比较函数地址（回调函数），函数格式为:int compar(int, int);若传给compar的两个参数比较后相同则返回0，否则返回非0.
+举例:
+#include <sort.y>
+
+char arr[][10] = {"123", "234", "afwe", "wfgg", "123", "ijgwe", "fwgge"};
+
+void print()
+{
+ int i;
+
+ for (i = 0; i < sizeof(arr) / sizeof(arr[0]); i++)
+ {
+  printf("%s ", arr[i]);
+ }
+ printf("\n");
+ getchar();
+}
+
+int compar(char &a[], char &b[])
+{
+ return strcmp(a, b);
+}
+
+void main()
+{
+ int t;
+ char a[10];
+
+ SetScreen(1);
+ print();
+ strcpy(a, "wfgg");
+ t = lfind(&a, arr, sizeof(arr) / sizeof(arr[0]), sizeof(arr[0]), compar);
+ if (t)
+ {
+  printf("%s 找到了,第%d个\n", a, (t - arr) / sizeof(arr[0]));
+ }
+ else
+ {
+  printf("%s 没找到!\n", a);
+ }
+ getchar();
+}

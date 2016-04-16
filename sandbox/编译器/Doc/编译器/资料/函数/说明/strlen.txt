@@ -1,0 +1,12 @@
+原型:int strlen(int str);
+功能:计算字符串str的长度
+说明:返回str的长度,不包括结束符NULL
+举例:
+char s[] = "Golden Global View";
+
+void main()
+{
+ SetScreen(0);
+ printf("%s has %d chars", s, strlen(s));
+ getchar();
+}

@@ -1,0 +1,1167 @@
+#define NAME_MAX	15													//最大文件名长度
+#include "设置/定义.txt"
+#define SETUP		1													//1:安装文件，0:建立安装文件
+#define MAX_TF		140
+//=======================================================按键定义=======================================================//
+#define F1_KEY		0x1c
+#define F2_KEY		0x1d
+#define F3_KEY		0x1e
+#define F4_KEY		0x1f
+#define CR_KEY		0x0d
+#define ESC_KEY		0x1b
+#define HELP_KEY	0x19
+#define SHIFT_KEY	0x1a
+#define CAPS_KEY	0x12
+#define UP_KEY		0x14
+#define	DOWN_KEY	0x15
+#define LEFT_KEY	0x17
+#define RIGHT_KEY	0x16
+#define UU_KEY		0x13
+#define DD_KEY		0x0e
+#define A_KEY		'a'
+#define D_KEY		'd'
+#define M_KEY		'm'
+#define S_KEY		's'
+#define Y_KEY		'y'
+#define N_KEY		'n'
+//=======================================================通用定义=======================================================//
+#define SWIN_COM	0													//普通
+#define SWIN_ONE	1													//确定按钮
+#define SWIN_TWO	2													//选择按钮
+#define SWIN_STW	3													//选择按钮[不停止]
+//----------------------------------------------------------------------------------------
+#define BUTTON_UP	0													//按键突出
+#define BUTTON_DOWN	1													//按键按下
+#define BUTTON_FOCU	1													//按键焦点
+#define BUTTON_UNFU	0													//按键无焦点
+//----------------------------------------------------------------------------------------
+#define PIC_QUEN	0													//问号图片
+#define PIC_WARN	1													//警告图片
+#define PIC_BUSY	2													//忙忙图片
+#define PIC_SVAE	3													//保存图片
+#define PIC_DOCU	4													//文件夹图片
+#define PIC_PROG	5													//进度图片
+//=======================================================帮助文本=======================================================//
+#define HLP_Z_SIZE	1000												//帮助装入长度
+#define HLP_S_LEN	25													//每行长度
+#define HLP_Z_PYBC	150													//偏移量补充[变]
+#define HLP_T_REL	HLP_Z_PYBC+HLP_Z_SIZE/(HLP_S_LEN-1)					//偏移量
+#define HLP_T_SIZE	HLP_Z_SIZE+HLP_T_REL								//帮助总长度
+#define HLP_L_SIZE	HLP_T_SIZE/(HLP_S_LEN-1)							//行数
+struct HLPUNIT															//基本结构
+{
+	char str[HLP_S_LEN];												//文本
+};
+struct HLPTABLE															//帮助结构
+{
+	struct HLPUNIT line[HLP_L_SIZE];									//行数
+};
+struct HLPTABLE h;
+//=======================================================配置信息=======================================================//
+struct CONFIG
+{
+	char ji;															//机型
+	char size;															//组件个数
+	char i;
+};
+struct CONFIG cf;
+#define JI_NUM     17
+char ji[][8]={"TC1000s","TC1000","TC808","TC800","NC2600c","NC3000","NC2000","PC2300","PC2000","PC1300","PC1000c","NC1020n","NC1020","CC980","CC880","CC800","其它"};
+char zhi[]={    20,       20,       20,     24,      20,       20,     20,       6,       20,      8,        6,        6,       6,       6,      6,     8,      8};
+struct FILE
+{
+	char name[16];
+	long add;//flag=2时,1:重新定位新目录，0:不重新定位新目录
+	char flag;//0:不安装,1:安装,2:目录切换,3:目录创建并且切换
+};
+struct TFILE
+{
+	char size;//数据块大小 位置不能变
+	struct FILE d[MAX_TF];
+};
+struct TFILE tf;
+char srcdir[16] = "/";
+//=========================================================说明=========================================================//
+char fp;                                                                 //安装文件句柄
+char txt1[]=
+{0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0xC9,0xF9,0x20,0x20,0xC3,0xF7,0x0A,0x20,0x20,0x20,0x20,0x4C,0x61,0x76,0x61,
+ 0x58,0xB5,0xC4,0xB0,0xE6,0xC8,0xA8,0xC8,0xCB,0xCE,0xAA,0x4C,0x65,0x65,0x53,0x6F,0x66,0x74,0xA3,0xAC,0xB1,0xBE,0xC8,0xED,
+ 0xBC,0xFE,0xD4,0xDA,0x4C,0x65,0x65,0x53,0x6F,0x66,0x74,0xB5,0xC4,0xCA,0xDA,0xC8,0xA8,0xCF,0xC2,0xBF,0xAA,0xB7,0xA2,0xA3,
+ 0xAC,0xD3,0xC9,0x79,0x61,0x6E,0xD6,0xC6,0xD7,0xF7,0xA3,0xAC,0xCA,0xF4,0xD3,0xDA,0xC3,0xE2,0xB7,0xD1,0xC8,0xED,0xBC,0xFE,
+ 0xA3,0xAC,0xD1,0xCF,0xBD,0xFB,0xD7,0xF7,0xCE,0xAA,0xC9,0xCC,0xD2,0xB5,0xCA,0xB9,0xD3,0xC3,0xBC,0xB0,0xD0,0xFB,0xB4,0xAB,
+ 0xA1,0xA3,0xC8,0xCE,0xBA,0xCE,0xC8,0xCB,0xB2,0xBB,0xB5,0xC3,0xD4,0xDA,0xCE,0xB4,0xBE,0xAD,0xB9,0xFD,0xD7,0xF7,0xD5,0xDF,
+ 0xCD,0xAC,0xD2,0xE2,0xCF,0xC2,0xB6,0xD4,0xC8,0xED,0xBC,0xFE,0xD7,0xF6,0xC8,0xCE,0xBA,0xCE,0xD0,0xDE,0xB8,0xC4,0xA3,0xAC,
+ 0xB7,0xB4,0xB1,0xE0,0xD2,0xEB,0xBC,0xB0,0xB0,0xD1,0xB1,0xBE,0xC8,0xED,0xBC,0xFE,0xB7,0xA2,0xB2,0xBC,0xB5,0xBD,0xC8,0xCE,
+ 0xBA,0xCE,0xC3,0xBD,0xCC,0xE5,0xA1,0xA3,0xB1,0xBE,0xC8,0xED,0xBC,0xFE,0xD4,0xDA,0xD4,0xCB,0xD0,0xD0,0xB4,0xED,0xCE,0xF3,
+ 0xCA,0xB1,0xD4,0xEC,0xB3,0xC9,0xB5,0xC4,0xD7,0xCA,0xC1,0xCF,0xB6,0xAA,0xCA,0xA7,0xB5,0xC8,0xA3,0xAC,0xB1,0xBE,0xC8,0xCB,
+ 0xD2,0xBB,0xB8,0xC5,0xB2,0xBB,0xB8,0xBA,0xD4,0xF0,0xA1,0xA3,0xCC,0xD8,0xB4,0xCB,0xC9,0xF9,0xC3,0xF7,0xA3,0xAC,0xC7,0xEB,
+ 0xD7,0xF1,0xCA,0xD8,0xA3,0xA1,0x00};
+char txt2[]="========软件信息========名称:编译器.lav(Y2.26)\n类型:编程工具\n授权:免费软件\n范围:lava all\n大小:105KB\n开发:yan\n========软件简介========请看自带的文档。";
+//=========================================================图库=========================================================//
+char pic[][128]=//问号
+{0x00,0x1F,0xE0,0x00,0x00,0xE0,0x1C,0x00,0x03,0x00,0x03,0x00,0x04,0x00,0x00,0x80,0x08,0x00,0x00,0x40,0x10,
+ 0x0F,0xC0,0x20,0x20,0x11,0xE0,0x10,0x40,0x30,0xF0,0x08,0x40,0x3C,0xF0,0x0C,0x80,0x3C,0xF0,0x06,0x80,0x19,
+ 0xE0,0x06,0x80,0x01,0xC0,0x07,0x80,0x03,0x80,0x07,0x80,0x03,0x00,0x07,0x80,0x03,0x00,0x07,0x80,0x00,0x00,
+ 0x07,0x40,0x03,0x00,0x0F,0x40,0x07,0x80,0x0F,0x20,0x07,0x80,0x1E,0x10,0x03,0x00,0x3E,0x08,0x00,0x00,0x7C,
+ 0x04,0x00,0x00,0xF8,0x03,0x00,0x03,0xF0,0x01,0xE0,0x1F,0xE0,0x00,0xFC,0x3F,0xC0,0x00,0x3E,0x3F,0x00,0x00,
+ 0x06,0x38,0x00,0x00,0x01,0x38,0x00,0x00,0x00,0xB8,0x00,0x00,0x00,0x78,0x00,0x00,0x00,0x38,0x00,0x00,0x00,
+ 0x18,0x00,//警告
+ 0x00,0x07,0x00,0x00,0x00,0x08,0x80,0x00,0x00,0x10,0x60,0x00,0x00,0x10,0x70,0x00,0x00,0x20,0x38,0x00,0x00,
+ 0x20,0x38,0x00,0x00,0x40,0x1C,0x00,0x00,0x40,0x1C,0x00,0x00,0x80,0x0E,0x00,0x00,0x87,0x0E,0x00,0x01,0x0F,
+ 0x87,0x00,0x01,0x0F,0x87,0x00,0x02,0x0F,0x83,0x80,0x02,0x0F,0x83,0x80,0x04,0x0F,0x81,0xC0,0x04,0x07,0x01,
+ 0xC0,0x08,0x07,0x00,0xE0,0x08,0x07,0x00,0xE0,0x10,0x02,0x00,0x70,0x10,0x02,0x00,0x70,0x20,0x02,0x00,0x38,
+ 0x20,0x00,0x00,0x38,0x40,0x03,0x00,0x1C,0x40,0x07,0x80,0x1C,0x80,0x07,0x80,0x0E,0x80,0x03,0x00,0x0E,0x80,
+ 0x00,0x00,0x0F,0x80,0x00,0x00,0x0F,0x40,0x00,0x00,0x1F,0x3F,0xFF,0xFF,0xFF,0x0F,0xFF,0xFF,0xFE,0x07,0xFF,
+ 0xFF,0xFC,//保存
+ 0x00,0x3f,0xfe,0x00,0x00,0x75,0x0f,0x00,0x00,0x70,0x07,0x80,0x00,0xf4,0x07,0x00,0x00,0x70,0x07,0x00,0x00,
+ 0xe0,0x0f,0x00,0x00,0x70,0x0f,0x00,0x00,0xf0,0x5f,0x00,0x00,0x7f,0xff,0x00,0x00,0xfc,0x17,0x00,0x00,0x70,
+ 0xf7,0x00,0x01,0xf3,0x77,0xc0,0x00,0x73,0x77,0xe0,0x00,0x73,0xf7,0x30,0x00,0x7f,0xff,0x98,0x00,0x3f,0xff,
+ 0x6c,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x02,0x9a,0xaa,0x80,0x03,0x15,0x50,0x00,0x03,0xab,0x55,0x00,0x03,
+ 0x17,0xff,0xff,0xc3,0x97,0xff,0xff,0xc3,0x00,0x00,0x00,0x03,0x80,0x00,0x00,0x03,0x00,0x00,0x00,0x13,0x80,
+ 0x00,0x00,0x33,0x00,0x00,0x00,0x33,0x80,0x00,0x00,0x03,0x7f,0xff,0xff,0xff,0x3f,0xff,0xff,0xfe,0x00,0x00,
+ 0x00,0x00};
+
+void Exit()
+{
+	if (fp) fclose(fp);
+	exit(0);
+}
+//=========================================================界面=========================================================//
+void textout(int x, int y, char &str[], int type)
+{
+	TextOut(x, y, str, type|3);
+	TextOut(x, y + 1, str, type|3);
+	TextOut(x, y + 2, str, type|3);
+	TextOut(x + 1, y, str, type|3);
+	TextOut(x + 1, y + 1, str, type|3);
+	TextOut(x + 1, y + 2, str, type|3);
+	TextOut(x + 2, y, str, type|3);
+	TextOut(x + 2, y + 1, str, type|3);
+	TextOut(x + 2, y + 2, str, type|3);
+	TextOut(x + 1, y + 1, str, (type&0xfc)|0xc);
+}
+
+void Button(int x, int y, char &tag[], int c, int f)/*按钮*/
+{
+	int len, i;
+
+	len = strlen(tag) * 6;
+	if (c == BUTTON_UP)
+	{
+		Block(x + 1, y + 1, x + len + 3, y + 14, 1);
+		Block(x, y, x + len + 2, y + 13, 0);
+		TextOut(x + 1, y + 1, tag, 1);
+		Rectangle(x, y, x + len + 2, y + 13, 1);
+		if (f)
+		{
+			for (i = 0; i < (len >> 1) - 1; i++)
+			{
+				Point(x + (i << 1) + 3, y + 2, 0x41);
+				Point(x + (i << 1) + 3, y + 11, 0x41);
+			}
+			for (i = 0; i < 4; i++)
+			{
+				Point(x + 2, y + (i << 1) + 3, 0x41);
+				Point(x + len, y + (i << 1) + 3, 0x41);
+			}
+		}
+	}
+	else if (c == BUTTON_DOWN)
+	{
+		Box(x, y, x + len + 2, y + 13, 1, 1);
+		Delay(300);
+		Refresh();
+	}
+}
+
+void Boxw(int x,int y,char &tag[],char c)
+{
+	Rectangle(x, y, x + strlen(tag) * 6 + 7, y + 17, 1);
+	TextOut(x + 4, y + 3, tag, 1);
+	if (c)
+	{
+		Block(x + 1, y + 1, x + strlen(tag) * 6 + 6, y + 16, 2);
+	}
+}
+
+void Sbox(int x1, int y1, int x2, int y2)
+{
+	Line(x1 + 1, y1, x2 - 1, y1, 65);
+	Line(x1 + 1, y2, x2 - 1, y2, 65);
+	Line(x1, y1 + 1, x1, y2 - 1, 65);
+	Line(x2, y1 + 1, x2, y2 - 1, 65);
+}
+
+void Dwin(char &tag[])/*大框框*/
+{
+	ClearScreen();
+	//TextOut(3, 2, tag, 1);
+	textout(3, 2, tag, 1);
+	Rectangle(1, 0, 159, 79, 1);
+	Sbox(120, 2, 131, 13);
+	Rectangle(122, 10, 129, 11, 1);
+	Sbox(133, 2, 144, 13);
+	Rectangle(135, 4, 142, 11, 1);
+	Line(135, 5, 142, 5, 65);
+	Sbox(146, 2, 157, 13);
+	Line(149, 5, 154, 10, 65);
+	Line(149, 10, 154, 5, 65);
+	Line(1, 15, 159, 15, 65);
+}
+
+int Swin(char &tag[],char &msg[],int type)/*小框框|type:0普通,1确定,2选择,3选择,*/
+{
+	char key;
+	char str[3][6];
+
+	strcpy(str[0], "是[Y]");
+	strcpy(str[1], "否[N]");
+	strcpy(str[2], "确定");
+	Block(16, 19, 141, 73, 1);
+	Block(15, 18, 140, 72, 0);
+	Rectangle(15, 18, 140, 72, 1);
+	//TextOut(17, 20, tag, 1);
+	textout(17, 20, tag, 1);
+	Sbox(101, 20, 112, 31);
+	Rectangle(103, 28, 110, 29, 1);
+	Sbox(114, 20, 125, 31);
+	Rectangle(116, 22, 123, 29, 1);
+	Line(116, 23, 123, 23, 65);
+	Sbox(127, 20, 138, 31);
+	Line(130, 23, 135, 28, 65);
+	Line(130, 28, 135, 23, 65);
+	Line(15, 33, 140, 33, 65);
+	if (type == SWIN_COM) return(0);
+	TextOut(92 - strlen(msg) * 3, 37, msg, 1);
+	if (type == SWIN_ONE)//单按钮
+	{
+		WriteBlock(17, 35, 32, 32, 1, pic[PIC_WARN]);
+		Button(78, 56, str[2], BUTTON_UP, 0);
+		Refresh();
+		while (Inkey() != CR_KEY);
+		Button(78, 56, str[2], BUTTON_DOWN, 0);//响应
+	}
+	else
+	{
+		WriteBlock(17, 35, 32, 32, 1, pic[PIC_QUEN]);
+		Button(55, 56, str[0], BUTTON_UP, 0);
+		Button(98, 56, str[1], BUTTON_UP, 0);
+		if (type == SWIN_STW) return(0);
+		Refresh();
+		for(;;)
+		{
+			key = Inkey();
+			if (key == Y_KEY || key == CR_KEY)
+			{
+				Button(55, 56, str[0], BUTTON_DOWN, 0);
+				return(1);
+			}
+			else if (key == N_KEY || key == ESC_KEY)
+			{
+				Button(98, 56, str[1], BUTTON_DOWN, 0);
+				return(0);
+			}
+		}
+	}
+}
+#if SETUP == 1
+void bar(char c, char n)
+{
+	if (n)
+	{
+		Button(8, 63, "上一步", BUTTON_UP, c&4);
+	}
+	Button(61, 63, "下一步", BUTTON_UP, c&2);
+	Button(114, 63, "取  消", BUTTON_UP, c&1);
+}
+//=======================================================数据读取=======================================================//
+int Loadtxt(char &s[], char len)
+{
+	char c;
+	int j, i, p;
+
+	for (j = p = 0; ; j++)//换行
+	{
+		for (i = 0; i < len; i++)
+		{
+			c = *((p++) + s);
+			if (c < 128)
+			{
+				if (c > 13) h.line[j].str[i] = c;
+				else if (c == 10)
+				{
+					if (!i)
+					{
+						j--;
+						goto end;
+					}
+					break;
+				}
+				else
+				{
+					if (i) j++;
+					goto start;
+				}
+			}
+			else if (i < HLP_S_LEN - 2)
+			{
+				h.line[j].str[i++] = c;
+				h.line[j].str[i] = *((p++) + s);
+			}
+			else
+			{
+				p--;
+				break;
+			}
+		}
+		h.line[j].str[i]=0;end:
+	}
+start:
+	h.line[j - 1].str[i] = 0;
+	return(j);
+}
+
+int Show(char &s[], int n)
+{
+	char key;
+	char c, t[3];
+	int i, len, cur;
+
+	Dwin("安装");
+	cur = 0;
+	len = Loadtxt(s, HLP_S_LEN - 1);
+	t[0] = 114;
+	t[1] = 61;
+	t[2] = 8;
+	c = 2;
+	for(;;)
+	{
+		Block(2, 16, 158, 78, 0);
+		Rectangle(3, 17, 150, 61, 1);
+		Rectangle(152, 17, 157, 61, 1);
+		for (i = 0; i < 3 && i + cur < len; i++)
+		{
+			TextOut(5, i * 13 + 20, h.line[i + cur].str, 1);
+		}
+		Block(154, (cur * 40) / len + 19, 155, ((cur + i) * 40) / len + 19, 1);//进度显示
+		bar(c, n);
+		Refresh();
+		key = getchar();
+		if		(key == UP_KEY && cur) cur--;
+		else if (key == DOWN_KEY && cur + 3 < len) cur++;
+		else if (key == UU_KEY)
+		{
+			if (cur >= 4) cur = cur - 4;
+			else cur = 0;
+		}
+		else if (key == DD_KEY)
+		{
+			if (cur + 4 < len) cur = cur + 4;
+		}
+		else if (key == LEFT_KEY && !(c&4))
+		{
+			if (n || !(c&2)) c = c << 1;
+		}
+		else if (key == RIGHT_KEY && !(c&1)) c = c >> 1;
+		else if (key == CR_KEY || key == ESC_KEY)
+		{
+			if (key == ESC_KEY) c = 1;
+			Button(t[c/2], 63, "      ", BUTTON_DOWN, NULL);
+			if (c == 1)
+			{
+				if (!Swin("退出", "未安装，退出？", SWIN_TWO)) continue;
+			}
+			return(c);
+		}
+	}
+}
+
+int GetPin()
+{
+	char key;
+	char i, j;
+	char cur, first;
+	char c, t[3];
+
+	t[0] = 114;
+	t[1] = 61;
+	t[2] = 8;
+	c = 2;
+	cur = cf.ji;
+	if (!cur) first = 0;
+	else first = cur - 1;
+	for(;;)
+	{
+		Block(2, 16, 158, 78, 0);
+		Rectangle(3, 17, 157, 61, 1);
+		bar(c, 1);
+		TextOut(16, 26, "请选择软件", 1);
+		TextOut(16, 42, "的运行平台：", 1);
+		Rectangle(100-5, 19, 155-5, 59, 1);
+		for (j = 0; j < 3 && first + j < JI_NUM; j++)
+		{
+			TextOut(122 - strlen(ji[first + j]) * 3, j * 13 + 21, ji[first + j], 1);
+		}
+		Block(101 - 5, (cur - first) * 13 + 20, 154 - 5, (cur - first) * 13 + 32, 2);
+		Refresh();
+		key = getchar();
+		if (key == UP_KEY && cur)
+		{
+			if ((--cur) < first) first = cur;
+		}
+		else if (key == DOWN_KEY && cur + 1 < JI_NUM)
+		{
+			if ((++cur) > first + 2) first = cur - 2;
+		}
+		else if (key == UU_KEY)
+		{
+			if (first < 3)
+			{
+				cur = cur - first;
+				first = 0;
+			}
+			else
+			{
+				first = first - 3;
+				cur = cur - 3;
+			}
+		}
+		else if (key == DD_KEY && first + 3 < JI_NUM)
+		{
+			first = first + 3;
+			cur = cur + 3;
+			if (cur >= JI_NUM) cur = JI_NUM - 1;
+		}
+		else if(key == LEFT_KEY && !(c&4)) c = c << 1;
+		else if(key == RIGHT_KEY && !(c&1)) c = c >> 1;
+		else if(key == CR_KEY || key == ESC_KEY)
+		{
+			if (key == ESC_KEY) c = 1;
+			Button(t[c/2], 63, "      ", BUTTON_DOWN, NULL);
+			if (c == 1)
+			{
+				if (!Swin("退出", "未安装，退出？", SWIN_TWO)) continue;
+				return(-1);
+			}
+			else if (c == 4) return(-2);
+			return(cur);
+		}
+	}
+}
+
+int Choose()
+{
+	char key;
+	char c, t[3];
+	int d;
+	char len, i;
+
+	t[0] = 114;
+	t[1] = 61;
+	t[2] = 8;
+	c = d = 2;
+	for(;;)
+	{
+		Block(2, 16, 158, 78, 0);
+		Rectangle(3, 17, 157, 61, 1);
+		Boxw(5, 20, "默认", d&2);
+		Boxw(5, 40, "高级", d&1);
+		if (d == 2)
+		{
+			len = Loadtxt("根据可用内存分配出最佳的编译器配置。普通用户推荐使用", 18);
+		}
+		else
+		{
+			len = Loadtxt("手动分配编译器配置，打造自己个性的编译器，更适合自己", 18);
+		}
+		for (i = 0; i < len; i++) TextOut(45, i * 13 + 22, h.line[i].str, 1);
+		bar(c, 1);
+		Refresh();
+		key = getchar();
+		if (key == UP_KEY && d < 2) d++;
+		else if (key == DOWN_KEY && d > 1) d--;
+		else if (key == LEFT_KEY && !(c&4)) c = c << 1;
+		else if (key == RIGHT_KEY && !(c&1)) c = c >> 1;
+		else if (key == CR_KEY || key == ESC_KEY)
+		{
+			if (key == ESC_KEY) c = 1;
+			Button(t[c/2], 63, "      ", BUTTON_DOWN, NULL);
+			if (c == 1)
+			{
+				if (!Swin("退出", "未安装，退出？", SWIN_TWO)) continue;
+			}
+			return((d << 8)|c);
+		}
+	}
+}
+
+void LoadData()
+{
+	long jmp;
+
+	rewind(fp);
+	fread(&jmp, 1, 4, fp);
+	fseek(fp, jmp, 0);
+	tf.size = getc(fp);
+	fread(tf.d, 1, tf.size * sizeof(struct FILE), fp);
+}
+
+int FileChoose()
+{
+	char key;
+	char i, j;
+	char cur, first;
+
+	cur = first = 0;
+	for(;;)
+	{
+		Block(2, 16, 158, 78, 0);
+		Rectangle(3, 32, 157, 77, 1);
+		TextOut(4, 18, "选择要安装的程序组件：", 1);
+		Line(4, 47, 156, 47, 65);
+		Line(4, 62, 156, 62, 65);
+		Block(100, 32, 105, 77, 0);
+		Rectangle(100, 32, 105, 77, 1);
+		for (j = 0; j < 3; j++)
+		{
+			if (first + j >= tf.size) break;
+			TextOut(5, j * 15 + 34, tf.d[first + j].name, 1);
+			TextOut(113, j * 15 + 34, "是  否", 1);
+			if (tf.d[first + j].flag)
+			{
+				Block(113, j * 15 + 33, 125, j * 15 + 46, 2);
+			}
+			else
+			{
+				Block(137, j * 15 + 33, 149, j * 15 + 46, 2);
+			}
+		}
+		Block(4, (cur - first) * 15 + 33, 99, (cur - first) * 15 + 46, 2);
+		Block(102, (cur * 40) / tf.size + 34, 103, (cur * 40) / tf.size + 37, 1);//进度显示
+		Refresh();
+		key = getchar();
+		if (key == UP_KEY && cur)
+		{
+			if((--cur) < first) first = cur;
+		}
+		else if (key == DOWN_KEY && cur + 1 < tf.size)
+		{
+			if ((++cur) > first + 2) first = cur - 2;
+		}
+		else if (key == UU_KEY)
+		{
+			if (first < 3)
+			{
+				cur = cur - first;
+				first = 0;
+			}
+			else
+			{
+				first = first - 3;
+				cur = cur - 3;
+			}
+		}
+		else if (key == DD_KEY && first + 3 < tf.size)
+		{
+			first = first + 3;
+			cur = cur + 3;
+			if (cur >= tf.size) cur = tf.size - 1;
+		}
+		else if (key == LEFT_KEY)
+		{
+			if (tf.d[cur].flag < 2) tf.d[cur].flag = tf.d[cur].flag ^ 1;
+		}
+		else if (key == RIGHT_KEY)
+		{
+			if (tf.d[cur].flag < 2) tf.d[cur].flag = tf.d[cur].flag ^ 1;
+		}
+		else if (key == ESC_KEY)
+		{
+			if (!Swin("退出", "未安装，退出？", SWIN_TWO)) continue;
+			return(-1);
+		}
+		else if (key == CR_KEY) return(0);
+	}
+}
+
+void Init()
+{
+	if (zhi[cf.ji] == 24)
+	{
+		tf.d[2].flag = 
+		tf.d[8].flag = 0;
+		tf.d[4].flag = 
+		tf.d[10].flag = 1;
+	}
+	else if (zhi[cf.ji] == 20)
+	{
+		tf.d[2].flag = 0;
+		tf.d[3].flag = 1;
+		if (cf.ji == 0 || cf.ji == 1 || cf.ji == 5)//TC1000S TC1000 NC3000
+		{
+			tf.d[8].flag = 0;
+			tf.d[9].flag = 1;
+		}
+		if (cf.ji == 2)//TC808
+		{
+			tf.d[8].flag = 0;
+			tf.d[11].flag = 1;
+		}
+	}
+	else if (zhi[cf.ji] == 8)
+	{
+		if(cf.ji == 16)//其他
+		{
+			tf.d[8].flag = 0;
+			tf.d[12].flag = 1;
+		}
+	}
+	else if (zhi[cf.ji] == 6)
+	{
+		tf.d[1].flag = 1;
+		tf.d[2].flag = 0;
+	}
+}
+
+int WriteFile(char &str[], long add)
+{
+	char tp;
+	int size;
+	long len;
+	char buf[256];
+
+	if (!(tp = fopen(str, "w")))
+	{
+		Swin("错误", "无法创建文件", SWIN_ONE);
+		return(1);
+	}
+	fseek(fp, add, 0);
+	fread(&len, 1, 4, fp);
+	while(len)
+	{
+		if (len < 256)
+		{
+			size = len;
+			len = 0;
+		}
+		else
+		{
+			len = len - 256;
+			size = 256;
+		}
+		fread(buf, 1, size, fp);
+		fwrite(buf, 1, size, tp);
+	}
+	fclose(tp);
+}
+
+int Writecfset(char &lavdir[], char &funname[], char lav, char fun)
+{
+	char tp, i;
+	struct CONTABLE0 cfset;
+
+	if (!(tp = fopen("/CplData/config.dat", "r+")))
+	{
+CREAT:
+		if (!(tp = fopen("/CplData/config.dat", "w")))
+		{
+			Swin("错误", "无法创建文件", SWIN_ONE);
+			return(1);
+		}
+		memset(cfset, 0, sizeof(struct CONTABLE0));
+		cfset.dat[0].tem[0].value =		//退出程序时确认？
+		cfset.dat[0].tem[3].value =		//结束后删除临时文件?
+		cfset.dat[1].tem[3].value =		//编译结束后自动退出?
+		cfset.dat[2].tem[0].value =		//删除文件夹时确认？
+		cfset.dat[2].tem[1].value =		//删除宏定义时确认？
+		cfset.dat[2].tem[2].value = 1;	//保存设置时确认？
+		cfset.dat[1].tem[2].value =		//选择载入的函数文件
+		cfset.dat[2].tem[4].value =		//选择源程序的目录
+		cfset.dat[3].tem[4].value = 2;	//选择程序存放的目录
+		cfset.dat[3].tem[0].value = 60;	//按键暂停时间设置
+		cfset.dat[3].tem[1].value = 12;	//光标闪动速度调整
+		if (fun > 1)
+		{
+			for (i = 8; i < 13; i++)//获取fun个数
+			{
+				if (tf.d[i].flag)
+				{
+					strcpy(funname, tf.d[i].name);
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		fread(cfset, 1, sizeof(struct CONTABLE0), tp);
+		if (fseek(tp, 0, 2) != sizeof(struct CONTABLE0))
+		{
+			fclose(tp);
+			goto CREAT;
+		}
+	}
+	if (lav) strcpy(cfset.lav, lavdir);//程序目录
+	if (funname[0]) strcpy(cfset.fun, funname);//fun
+	strcpy(cfset.src, "/文本文件");//源程序目录
+	rewind(tp);
+	fwrite(cfset, 1, sizeof(struct CONTABLE0), tp);
+	fclose(tp);
+}
+
+/* 改变目录 */
+int ChPath(char &path[])
+{
+	if (!ChDir(path))
+	{
+		MakeDir(path);
+		if (!ChDir(path)) return(-1);
+	}
+}
+
+/* 目录选择[只是一级] */
+int SelectDir(char &name[], char &path[])
+{
+	char tn[16];
+
+	ChPath(path);
+	for (;;)
+	{
+		if (!FileList(tn) || !strcmp(tn, "..")) return(1);
+		if (ChDir(tn))
+		{
+			strcpy(name, "/");
+			strcat(name, tn);
+			return(0);
+		}
+	}
+}
+
+/* 判断后缀 */
+int ChkExt(char &s[], char &e[])
+{
+	int t, p;
+	char ext[10];
+
+	p = s;
+	while (t = strchr(p, '.')) p = t + 1;
+	if (p > s)
+	{
+		t = 0;
+		while (*p) ext[t++] = tolower(*p++);
+		ext[t] = 0;
+		return (!strcmp(ext, e));
+	}
+}
+
+/* 改变后缀 */
+void ChExt(char &s[], char &e[])
+{
+	long t, p;
+
+	p = s;
+	while (t = strchr(p, '.')) p = t + 1;
+	if (p > s)
+	{
+		strcpy(p, e);
+	}
+	else
+	{
+		strcat(p, ".");
+		strcat(p, e);
+	}
+}
+
+void face(char &s[][30], char &name[], char cmd)
+{
+	char i;
+
+	if(!cmd)
+	{
+		if (s[3][0])
+		{
+			for (i = 0; i < 3; i++) strcpy(s[i], s[i + 1]);
+			memset(s[3], 0, 30);
+		}
+	}
+	for (i = 0; i < 4; i++)
+	{
+		if (!s[i][0]) break;
+	}
+	if (cmd)
+	{
+		strcat(s[i - 1], name);
+	}
+	else
+	{
+		strcpy(s[i], name);
+	}
+	Block(2, 16, 158, 78, 0);
+	Rectangle(3, 17, 157, 22, 1);
+	Block(5, 19, cf.i * 150 / cf.size + 5, 20, 1);//进度
+	Rectangle(3, 24, 157, 77, 1);
+	for (i = 0; i < 4 && s[i][0]; i++)
+	{
+		TextOut(5, i * 13 + 26, s[i], 1);
+	}
+	Refresh();
+}
+
+void Anzhuan()
+{
+	char i, lav, fun, dir;
+	char sec, fail;
+	char lavdir[16], funname[16];
+	char str[30];
+	char s[4][30];
+
+	ChDir("/");
+	memset(s, 0, 120);
+	funname[0] = fail = lav = fun = dir = 0;
+	for (i = cf.size = 0; i < tf.size; i++)//获取组件个数
+	{
+		if (tf.d[i].flag) cf.size++;
+	}
+	for (i = 1; i < 5; i++)//获取lav个数
+	{
+		if (tf.d[i].flag) lav++;
+	}
+	for (i = 8; i < 13; i++)//获取fun个数
+	{
+		if (tf.d[i].flag) fun++;
+	}
+	for (i = cf.i = 0; cf.i < cf.size; cf.i++)
+	{
+		sec = 1;
+		while (!tf.d[i].flag) i++;
+		if (tf.d[i].flag == 1)
+		{
+			if (ChkExt(tf.d[i].name, "lav"))
+			{
+				if (lav == 1) strcpy(tf.d[i].name, "编译器.lav");
+			}
+			else if (ChkExt(tf.d[i].name, "fun"))
+			{
+				if (fun == 1 && cf.ji != 16)
+				{
+					strcpy(tf.d[i].name, ji[cf.ji]);
+					ChExt(tf.d[i].name, "fun");
+					strcpy(funname, tf.d[i].name);
+				}
+			}
+			sprintf(str, "复制: %s", tf.d[i].name);
+			face(s, str, 0);//界面
+			if (WriteFile(tf.d[i].name, tf.d[i].add))
+			{
+				fail++;
+				sec = 0;
+			}
+		}
+		else if (tf.d[i].flag == 2)
+		{
+			dir++;
+			if (tf.d[i].add)
+			{
+				if (ChDir("LAVA2"))
+				{
+					strcpy(lavdir, "/LAVA2");
+				}
+				else if (ChDir("LAVA"))
+				{
+					strcpy(lavdir, "/LAVA");
+				}
+				else if (ChDir("GVmaker"))
+				{
+					strcpy(lavdir, "/GVmaker");
+				}
+				else
+				{
+					SetScreen(0);
+					printf("\n   找不到程序目录！\n\n\n按任意键选择.......");
+					getchar();
+					if(SelectDir(lavdir, "/")) Exit();
+				}
+				sprintf(str, "切换目录: %s", lavdir);
+				face(s, str, 0);//界面
+			}
+			else
+			{
+				sprintf(str, "切换目录: %s", tf.d[i].name);
+				face(s, str, 0);//界面
+				if (!ChDir(tf.d[i].name)) sec = 0;
+			}
+		}
+		else if (tf.d[i].flag == 3)
+		{
+			dir++;
+			sprintf(str, "创建目录: %s", tf.d[i].name);
+			face(s, str, 0);//界面
+			if (ChPath(tf.d[i].name)) sec = 0;//失败
+		}
+		else
+		{
+			Swin("错误", "错误的指令", SWIN_ONE);
+			Exit();
+		}
+		if(sec)
+		{
+			face(s, " 完成", 1);
+		}
+		else
+		{
+			face(s, " 未完成", 1);
+		}
+		i++;
+	}
+	strcpy(str, "配置设置文件...");
+	face(s, str, 0);
+	Writecfset(lavdir, funname, lav, fun);
+	face(s, " 完成", 1);
+	sprintf(str, "共有%d个文件被创建！", cf.size - fail - dir + 1);
+	face(s, str, 0);
+	fclose(fp);
+	for (i = 0; i < 200; i++)//暂停
+	{
+		Delay(20);
+		if (Inkey()) break;
+	}
+	if (Swin("删除", "删除安装程序？", SWIN_TWO))
+	{
+		ChDir(srcdir);
+		DeleteFile("Setup.dat");
+		ChDir(lavdir);
+		DeleteFile("Setup.lav");
+	}
+}
+
+int SeekFile()
+{
+	fp = fopen("Setup.dat", "r");
+	return(fp);
+}
+
+void OpenFile()
+{
+	ChDir(srcdir);
+	if (!SeekFile())
+	{
+		strcpy(srcdir, "/LavaData");
+		ChDir(srcdir);
+		if (!SeekFile())
+		{
+			strcpy(srcdir, "/GVMdata");
+			ChDir(srcdir);
+			if (!SeekFile())
+			{
+				SetScreen(0);
+				printf("\n   找不到安装文件！\n\n\n按任意键选择.......");
+				getchar();
+				if (SelectDir(srcdir, "/")) Exit();
+				if (!SeekFile())
+				{
+					Swin("错误！", "丢失安装文件", SWIN_ONE);
+					exit(0);
+				}
+			}
+		}
+	}
+}
+
+void main()
+{
+	long f;
+
+STEP0:
+	if ((f = Show(" 欢迎使用编译器安装向导单击\"下一步\"继续，或单击\"取消\"退出安装程序。", 0)) == 1) Exit();
+STEP1:
+	if ((f = Show(txt1, 1)) == 1) Exit();
+	if (f == 4) goto STEP0;
+STEP2:
+	if ((f = Show(txt2, 1)) == 1) Exit();
+	if (f == 4) goto STEP1;
+STEP3:
+	if ((f = GetPin()) == -1) Exit();//选择平台
+	if (f == -2) goto STEP2;
+	cf.ji = f;
+	if (!fp) OpenFile();
+STEP4:
+	if (((f = Choose())&7) == 1) Exit();
+	if ((f&7) == 4) goto STEP3;
+	LoadData();//载入信息
+	if ((f >> 8) == 2)
+	{
+		Init();
+		goto STEP6;
+	}
+STEP5:
+	if (FileChoose() == -1) Exit();
+STEP6:
+	Anzhuan();
+}
+
+#else
+int WriteFile(char &str[])
+{
+	char tp;
+	long len;
+	char buf[256];
+
+	if (!(tp = fopen(str, "r")))
+	{
+		Swin("错误", "无法打开文件", SWIN_ONE);
+		Exit();
+	}
+	fseek(tp, 0, 2);
+	len = ftell(tp);
+	rewind(tp);
+	fwrite(&len, 1, 4, fp);
+	while (!feof(tp))
+	{
+		fwrite(buf, 1, fread(buf, 1, 256, tp), fp);
+	}
+	fclose(tp);
+	tf.size++;
+}
+
+void LoadDFile()
+{
+	char namebuf[16];
+    int i;
+
+    for (i = 1; ; i++)
+    {
+    	if (!FindFile(i, 1, namebuf)) break;
+    	//printf("%s\n", namebuf);getchar();
+    	if (ChDir(namebuf))
+    	{
+    		strcpy(tf.d[tf.size].name, namebuf);
+			tf.d[tf.size].add = 0;//不可重新定位目录
+			tf.d[tf.size++].flag = 3;//目录切换
+    		LoadDFile();
+    		strcpy(tf.d[tf.size].name, "..");
+			tf.d[tf.size].add = 0;//不可重新定位目录
+			tf.d[tf.size++].flag = 2;//目录切换
+    		ChDir("..");
+    	}
+    	else
+    	{
+    		strcpy(tf.d[tf.size].name, namebuf);
+			tf.d[tf.size].add = ftell(fp);
+			tf.d[tf.size].flag = 1;
+			WriteFile(namebuf);
+    	}
+    }
+}
+
+void main()
+{
+	long jmp;
+	SetScreen(1);
+	printf("资源文件生成中......");
+	if (!(fp = fopen("/Setup.dat", "w")))
+	{
+		Swin("错误!", "无法创建Setup.dat", SWIN_ONE);
+		return;
+	}
+	fwrite(&jmp, 1, 4, fp);
+	tf.size = 0;
+
+	strcpy(tf.d[tf.size].name, "LAVA");
+	tf.d[tf.size].add = 1;//可重新定位目录
+	tf.d[tf.size++].flag = 2;//目录切换
+
+	strcpy(tf.d[tf.size].name, "编译器6K.lav");//1
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/LAVA2/编译器6K.lav");
+
+	strcpy(tf.d[tf.size].name, "编译器8K.lav");//2
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 1;
+	WriteFile("/LAVA2/编译器8K.lav");
+
+	strcpy(tf.d[tf.size].name, "编译器20K.lav");//3
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/LAVA2/编译器20K.lav");
+
+	strcpy(tf.d[tf.size].name, "编译器24K.lav");//4
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/LAVA2/编译器24K.lav");
+
+	strcpy(tf.d[tf.size].name, "..");
+	tf.d[tf.size].add = 0;//不可重新定位目录
+	tf.d[tf.size++].flag = 2;//目录切换
+
+	strcpy(tf.d[tf.size].name, "CplData");
+	tf.d[tf.size].add = 0;//不可重新定位目录
+	tf.d[tf.size++].flag = 3;//目录切换
+
+	strcpy(tf.d[tf.size].name, "compile.dat");
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 1;
+	WriteFile("/CplData/compile.dat");
+
+	strcpy(tf.d[tf.size].name, "common.fun");//8
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 1;
+	WriteFile("/CplData/common.fun");
+
+	strcpy(tf.d[tf.size].name, "NC3000.fun");//9
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/CplData/NC3000.fun");
+
+	strcpy(tf.d[tf.size].name, "TC800.fun");//10
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/CplData/TC800.fun");
+
+	strcpy(tf.d[tf.size].name, "TC808.fun");//11
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/CplData/TC808.fun");
+
+	strcpy(tf.d[tf.size].name, "LavaX3.5.fun");//12
+	tf.d[tf.size].add = ftell(fp);
+	tf.d[tf.size].flag = 0;
+	WriteFile("/CplData/LavaX3.5.fun");
+
+	strcpy(tf.d[tf.size].name, "..");
+	tf.d[tf.size].add = 0;//不可重新定位目录
+	tf.d[tf.size++].flag = 2;//目录切换
+
+	strcpy(tf.d[tf.size].name, "LibData");
+	tf.d[tf.size].add = 0;//不可重新定位目录
+	tf.d[tf.size++].flag = 3;//目录切换
+	ChDir("/LibData");
+	LoadDFile();
+	
+	strcpy(tf.d[tf.size].name, "..");
+	tf.d[tf.size].add = 0;//不可重新定位目录
+	tf.d[tf.size++].flag = 2;//目录切换
+
+	strcpy(tf.d[tf.size].name, "FunData");
+	tf.d[tf.size].add = 0;//不可重新定位目录
+	tf.d[tf.size++].flag = 3;//目录切换
+	ChDir("/FunData");
+	LoadDFile();
+
+	jmp = ftell(fp);
+	if (tf.size >= MAX_TF)
+	{
+		Swin("错误", "文件个数太多！", SWIN_ONE);
+		fclose(fp);
+		Swin("信息","安装文件失败。", SWIN_ONE);
+		return;
+	}
+	fwrite(tf, 1, tf.size * sizeof(struct FILE) + 1, fp);
+	rewind(fp);
+	fwrite(&jmp, 1, 4, fp);
+	fclose(fp);
+	printf("\nsize: %d\nOK!\n", tf.size);
+	//getchar();
+	//Swin("信息", "安装文件完成。", SWIN_ONE);
+}
+#endif

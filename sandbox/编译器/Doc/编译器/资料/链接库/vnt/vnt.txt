@@ -1,0 +1,117 @@
+struct REPT
+{
+	char fp;																	//文件句柄
+	long start, end, cur;														//起点,终点,当前点
+	long a, b;																	//复读点a,复读点b
+};
+struct REPT vnt;
+
+void CloseVnt()
+{
+	System.SndStop();
+	System.SndClose();
+	fclose(vnt.fp);
+	vnt.fp = vnt.start = vnt.end = vnt.cur = vnt.a = vnt.b = 0;//防止偏移
+	//memset(vnt, 0, sizeof(struct REPT));
+}
+
+void DecodeVnt()
+{
+	fseek(vnt.fp, (vnt.start << 6) + 2, 0);
+	System.SndPlayFile(vnt.fp, (vnt.end - vnt.start) << 6, 0x18007);
+}
+
+void RestartVnt()
+{
+	vnt.start = vnt.cur = vnt.a;
+	System.SndStop();
+	DecodeVnt();
+}
+
+void RepeatVnt()
+{
+	if (!vnt.a)
+	{
+		vnt.a = vnt.cur;
+	}
+	else if (!vnt.b)
+	{
+		if (vnt.cur > vnt.a) vnt.b = vnt.cur;
+	}
+	else
+	{
+		vnt.a = vnt.b = 0;
+	}
+}
+
+void SetVntStart(long start)
+{
+	System.SndStop();
+	vnt.start = vnt.cur = start;
+	DecodeVnt();
+}
+
+long GetVntCurrent()
+{
+	vnt.cur = vnt.start + (System.SndGetPlay() >> 5);
+	return(vnt.cur);
+}
+
+long GetVntEnd()
+{
+	return(vnt.end);
+}
+
+void GetVntTime(char &str[])
+{
+	char min,sec;
+	long num;
+
+	num = (vnt.cur << 2) / 125;
+	min = num / 60;
+	sec = num % 60;
+	if (min < 10)
+	{
+		if (sec < 10)
+		{
+			sprintf(str, "0%d:0%d", min, sec);
+		}
+		else
+		{
+			sprintf(str, "0%d:%d", min, sec);
+		}
+	}
+	else if (sec < 10)
+	{
+		sprintf(str, "%d:0%d", min, sec);
+	}
+	else
+	{
+		sprintf(str, "%d:%d", min, sec);
+	}
+}
+
+int PlayVnt(char &filename[])
+{
+	long attr;
+
+	vnt.fp = vnt.start = vnt.end = vnt.cur = vnt.a = vnt.b = 0;//防止偏移
+	//memset(vnt, 0, sizeof(struct REPT));//初始化
+	if (!(vnt.fp = fopen(filename, "r"))) return(-1);//打开文件
+	attr = 0;
+	fread(&attr, 1, 2, vnt.fp);
+	if (attr != 0x8007)
+	{
+		fclose(vnt.fp);
+		vnt.fp = 0;
+		return(-2);
+	}
+	fseek(vnt.fp, 0, 2);
+	vnt.end = ftell(vnt.fp) >> 6;
+	System.SndOpen();
+	DecodeVnt();
+}
+
+void main()
+{
+}

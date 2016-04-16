@@ -1,0 +1,36 @@
+机型:TC800
+原型:void CloseVnt();
+功能:关闭当前正在播放的vnt文件。
+说明:在播放结束后要用该函数关闭vnt文件。
+原型:void RestartVnt();
+功能:复读。
+说明:从标记点a开始播放。配合RepeatVnt函数使用，可以实现复读功能。
+原型:void RepeatVnt();
+功能:复读。
+说明:第一次调用该函数时，记录标记点a，第二次调用该函数时，记录标记点b，第三次调用该函数则清除所有标记点。
+原型:void SetVntStart(long start);
+功能:设置播放起点，并从该起点播放vnt声音。
+说明:通过该函数可以实现快进，快退功能。
+原型:long GetVntCurrent();
+功能:获取当前播放进度。
+原型:long GetVntEnd();
+功能:获取当前播放结束。
+原型:void GetVntTime(char &str[]);
+功能:获取当前播放时间。
+说明:结果保存在str中。
+原型:int PlayVnt(char &filename[]);
+功能:播放vnt文件。
+说明:文件打开错误返回-1，文件格式错误返回-2，正常则开始播放vnt文件。
+举例:
+#include <vnt.y>
+
+void main()
+{
+ PlayVnt("/双语声音/a.vnt");
+ for(;;)
+ {
+  if(System.SndIfEnd())break;
+  //可以做其它事
+ }
+ CloseVnt();
+}

@@ -1,0 +1,6 @@
+1	getkey		1
+1	setcursor	0
+1	setseat		0
+1	setspeed	0
+1	setdelay	0
+1	clearkey	0

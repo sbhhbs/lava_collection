@@ -1,0 +1,22 @@
+原型:void Delay(int ms);
+功能:延时
+说明:延时ms个毫秒,ms最大取值32767(即:32.7秒)
+举例:
+char s[] = "Golden Global View";
+
+void main()
+{
+ int p;
+ char c;
+
+ SetScreen(0);
+ p = s;
+ for (;;)
+ {
+  c = *p++;
+  if (c) putchar(c);
+  else break;
+  if (c != ' ') Delay(200);
+ }
+ getchar();
+}

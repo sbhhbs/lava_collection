@@ -1,0 +1,16 @@
+原型:void GetBlock(int x, int y, int width, int height, int type, int data);
+功能:取屏幕图形
+说明:把屏幕或图形缓冲区的(x,y)坐标处的宽为width高height的矩形区域保存到内存地址data处
+     type=0:从图形缓冲区取图形,type=0x40:从屏幕取图形
+     注意:x和width忽略bit0-bit2
+举例:
+void main()
+{
+ char data[16];
+
+ Locate(0, 1);
+ putchar('V');
+ GetBlock(8, 0, 8, 16, 0x40, data);
+ WriteBlock(80, 40, 8, 16, 0x41, data);
+ getchar();
+}

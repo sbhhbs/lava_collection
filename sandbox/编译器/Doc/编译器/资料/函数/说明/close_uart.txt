@@ -1,0 +1,2 @@
+原型:void close_uart()
+功能:关闭UART端口

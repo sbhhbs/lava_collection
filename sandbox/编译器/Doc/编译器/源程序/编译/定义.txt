@@ -1,0 +1,270 @@
+//********************************************************缓冲区********************************************************//
+#define FB_CUSH		0x2000													//缓冲区地址
+//-----------------------------------------------------------------------
+#ifndef FB_C_SIZE
+#define FB_C_SIZE	1500													//总缓冲区长度[变]
+#endif
+
+#define FB_C_REL	256														//代码缓冲长度
+#define CB_L_SIZE	FB_C_SIZE - FB_C_REL									//文本缓冲长度
+//*******************************************************变量空间*******************************************************//
+#define VAR_TABLE	FB_CUSH + FB_C_SIZE                                    //变量缓冲区地址
+
+#ifndef DIM_MAX
+#define DIM_MAX		5														//数组最大维数+1[变]
+#endif
+//-----------------------------------------------------------------------
+#define VGLOBOLE	0														//全局
+#define VPART		1														//局部
+#define VTEMP		2														//临时
+#define VBACKUP		3														//备份
+
+#define UNIT_COM	0														//基本
+#define UNIT_STU	6														//结构体
+#define UNIT_UNI	8														//共用体
+#define V_POINT		18														//指针
+
+#define UNIT_VAR	0														//变量
+#define UNIT_ARR	4														//数组
+#define UNIT_QFM	8														//结构引用
+//-------------------------------------------------------特征码-----------
+#define GLOB_VAR	VGLOBOLE	+UNIT_VAR									//外变量0
+#define PART_VAR	VPART		+UNIT_VAR									//内变量1
+#define GLOB_ARR	VGLOBOLE	+UNIT_ARR									//外数组4
+#define PART_ARR	VPART		+UNIT_ARR									//内数组5
+
+#define G_STU_V		VGLOBOLE	+UNIT_STU+UNIT_VAR							//外结构体变量6
+#define P_STU_V		VPART		+UNIT_STU+UNIT_VAR							//内结构体变量7
+#define G_UNI_V		VGLOBOLE	+UNIT_UNI+UNIT_VAR							//外共用体变量8
+#define P_UNI_V		VPART		+UNIT_UNI+UNIT_VAR							//内共用体变量9
+#define G_STU_A		VGLOBOLE	+UNIT_STU+UNIT_ARR							//外结构体数组10
+#define P_STU_A		VPART		+UNIT_STU+UNIT_ARR							//内结构体数组11
+#define G_UNI_A		VGLOBOLE	+UNIT_UNI+UNIT_ARR							//外共用体数组12
+#define P_UNI_A		VPART		+UNIT_UNI+UNIT_ARR							//内共用体数组13
+
+#define G_STU_Q		VGLOBOLE	+UNIT_STU+UNIT_QFM							//外结构体引用14
+#define P_STU_Q		VPART		+UNIT_STU+UNIT_QFM							//内结构体引用15
+#define G_UNI_Q		VGLOBOLE	+UNIT_UNI+UNIT_QFM							//外共用体引用16
+#define P_UNI_Q		VPART		+UNIT_UNI+UNIT_QFM							//内共用体引用17
+
+																			//指针18~31
+
+#define LVM_LABEL	98														//标号
+#define LVM_FUN		99														//函数(要改的话,需重新生成函数文件)
+#define LVM_SUB		100														//子程序
+//-----------------------------------------------------------------------[以上需要存储]
+#define NUMBER		138														//数字
+#define LVM_SIZE	139														//sizeof
+#define LVM_SIGN	140														//运算符
+#define _LVM_T		115														//_TEXT等的偏移量
+#define LVM_TEXT	26	+	_LVM_T											//_TEXT[伪代码+偏移量][最后]
+#define LVM_GRAPH	27	+	_LVM_T											//_GRAPH[伪代码+偏移量][最后]
+#define LVM_GBUF	66	+	_LVM_T											//_GBUF[伪代码+偏移量][最后]
+#define POINT		182														//.
+#define STRING		183														//字符串
+#define L_M_BRAC	184														//[
+#define L_S_BRAC	185														//(
+#define R_M_BRAC	186														//]
+#define R_S_BRAC	187														//)
+#define STIR_NUM	188														//,
+#define LVM_SEMI	189														//;
+//-----------------------------------------------------------------------[以下是语句]
+#define R_B_BRAC	190														//}[与上面要连着]
+#define L_B_BRAC	191														//{
+#define LVM_BRK		192														//break
+#define LVM_CONT	193														//continue
+#define LVM_RET		194														//return
+#define LVM_GOTO	195														//goto
+#define LVM_IF		196														//if
+#define LVM_ELSE	197														//else
+#define LVM_FOR		198														//for
+#define LVM_WHILE	199														//while
+#define LVM_DO		200														//do
+
+#define LVM_NULL	255														//空(不产生操作)
+/*
+-------------------------------------------------------------------------
+struct结构:                           |union结构:
+ byte=总字节长度                      | byte=最大字节长度
+ value=与union结构的value一样         | value=地址(16[低]),标志[第几个结构],位置[STU_NUM,16-STU_NUM]
+--------------------------------------|----------------------------------
+成员结构:                             |成员结构:
+ name=名称[第一个字节为标志]          | name=名称[第一个字节为标志]
+ value=相对地址                       |
+-------------------------------------------------------------------------
+子程序结构:                           |struct或union引用结构:
+ byte=类型                            | byte=总字节长度或最大字节长度
+ value=地址                           | value=标志[第几个结构],位置[STU_NUM,16-STU_NUM(高2B)]
+ dim[0]=标志[第几个子程序]            |
+ dim[1]=参数个数                      |
+--------------------------------------|----------------------------------
+struct _VAR//变量                                                       映射到通用接口
+{
+	char t;                                                                 //类型->cv.t
+	char b;                                                                 //字节->cv.b
+	int v;                                                                  //地址->cv.v
+};
+struct _ARR//数组
+{
+	char t;                                                                 //类型->cv.t
+	char b;                                                                 //字节->cv.b
+	int v;                                                                  //地址->cv.v(2B)
+	int d[DIM_MAX];                                                         //下标->cv.d(其中d[0]为维数)
+};
+struct _LAB//标号
+{
+	char t;                                                                 //类型->cv.t
+	long v;                                                                 //地址->cv.v
+	int f;                                                                  //标志->cv.d[0](第几个)
+};
+struct _FUN//函数
+{
+	char t;                                                                 //类型->cv.t
+	char b;                                                                 //字节->cv.b
+	char v;                                                                 //伪代码->cv.v
+	char n;                                                                 //参数个数->cv.d[1]
+};
+struct _SUB//子程序
+{
+	char t;                                                                 //类型->cv.t
+	int b;                                                                  //字节->cv.b
+	long v;                                                                 //地址->cv.v
+	int f;                                                                  //标志->cv.d[0](第几个)
+	int n;                                                                  //参数个数->cv.d[1]
+};
+struct _STU//结构
+{
+	char t;                                                                 //类型->cv.t
+	int b;                                                                  //字节->cv.b
+	int f;                                                                  //标志->cv.v(高2B 第几个)
+	int v;                                                                  //地址->cv.v(低2B)
+	int d[DIM_MAX];                                                         //下标->cv.d(其中d[0]为维数)[可缺省]
+};
+struct _REF//引用
+{
+	char t;                                                                 //类型->cv.t
+	int b;                                                                  //字节->cv.b
+	int v;                                                                  //标志->cv.v(第几个)
+};
+*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//*******************************************************变量链表*******************************************************//
+#ifndef VAR_SIZE
+#define VAR_SIZE	270														//变量链表大小[变]
+#endif
+//======================================================================================================================//
+struct VAR_LINK
+{
+	int i;																	//当前指针
+	int bh, ph;																//(空间bufhead,链表ptrhead)分界处
+	int bt, pt;																//(空间buftail,链表ptrtail)结尾处
+	int ptr[VAR_SIZE];														//链表
+};
+//-----------------------------------------------------------------------
+struct COM_VAR//成员之间的相对位置不能改变
+{
+	char t;																	//type:类型
+	int b;																	//byte:字节
+	long v;																	//value:值
+	int d[DIM_MAX];															//下标
+	char n[MAC_N_LEN];														//名称[在查看/定义中]
+};
+struct TMP_VAR//临时接口(与COM_VAR保持一致)
+{
+	char t;																	//type:类型
+	int b;																	//byte:字节
+	long v;																	//value:值
+	int d[DIM_MAX];															//下标
+};
+//*******************************************************跳转模块*******************************************************//
+#ifndef N_A_MAX
+#define N_A_MAX		8														//嵌套首地址栈大小[变]
+#endif
+
+#ifndef N_F_MAX
+#define N_F_MAX		80														//嵌套标志栈大小[变]
+#endif
+
+#ifndef JP_SIZE
+#define JP_SIZE		80														//跳转表大小[变]
+#endif
+//-----------------------------------------------------------------------
+#define JP_TYP		3														//特征(共16B,其中高JMP_TYP位表示特征[下面])
+//-----------------------------------------------------------------------
+#define JP_CONT		0														//continue
+#define JP_BRK		1														//break
+#define JP_LABEL	2														//标号
+#define JP_SUB		3														//子程序
+#define JP_IF		4														//if
+#define JP_DO		5														//do
+#define JP_WHILE	6														//while
+#define JP_FOR		7														//for
+//======================================================================================================================//
+struct UNIT_JUMP
+{
+	int t;																	//类型
+	long a;																	//地址
+};
+struct JUMP_LINK
+{
+	char i;																	//嵌套首地址栈指针
+	long t[N_A_MAX];														//嵌套首地址栈
+	int j;																	//嵌套标志栈指针
+	char f[N_F_MAX];														//嵌套标志栈
+//----------------------------
+	int size;																//跳转表大小
+	struct UNIT_JUMP d[JP_SIZE];											//待值地址
+};
+//*******************************************************链接系统*******************************************************//
+#ifndef LIB_SIZE
+#define LIB_SIZE	6														//链接个数
+#endif
+//======================================================================================================================//
+/*
+ lib.name[0].t1 lib.name[0].t2:在Fun_deal()中使用
+*/
+struct TMPLIB																//16B[同时在编译系统中作为临时变量]
+{
+	long t1;
+	long t2;
+	char a[8];
+};
+struct LIBFILE
+{
+	char size;
+	char path[PATH_MAX];													//原目录
+	struct TMPLIB name[LIB_SIZE];
+	char flag[LIB_SIZE];													//>:/LibData ":原目录
+};
+//*******************************************************记录变量*******************************************************//
+struct OPERATOR																//运算符
+{
+	char g;																	//等级
+	char c;																	//伪代码
+};
+struct COMPILE
+{
+	char fp;																//临时文件句柄
+//----------------------------
+	long offset;															//偏移量
+	long ary;																//数组初始化所用空间
+//----------------------------
+	int add[4];																//外,内,临时,备份变量地址起始
+	char i;																	//外,内,临时切换
+//----------------------------
+	char hp;																//变量栈指针
+	struct OPERATOR o;														//运算符
+	int fn;																	//子程序个数
+	///cp.fn -> fun.len（优化）
+	int ln;																	//标号个数
+	///cp.ln -> add.len（优化）
+	char sn,ts;																//结构体,共用体个数 备份结构体,共用体个数
+	////////cp.ts -> stack.len（优化）
+//----------------------------
+	char sf;																//当前变量是否是静态变量 0:不是,1:是
+	///(优化：临时变量)
+	char la;																//代码是否有#loadall 0:无,1:有
+	char mai;																//代码是否有main 0:没有,1:有
+	char ma;																//当前函数是否是main 0:不是,1:是
+	char sub;																//当前函数是否有返回值 0:无,1:有
+};

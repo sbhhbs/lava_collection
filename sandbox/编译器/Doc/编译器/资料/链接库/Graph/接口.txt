@@ -1,0 +1,11 @@
+1	settype		0
+1	line		0
+0	cpoint		0
+1	circle		0
+0	epoint		0
+1	ellipse		0
+1	drawpoly	0
+1	MoveDown	0
+1	MoveUp		0
+1	Shutter		0
+1	DrawPoint	0

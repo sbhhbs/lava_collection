@@ -1,0 +1,103 @@
+void MovePic(int x, int y, char width, char height, int data, int _data, char mode, char distance, int lasttime)
+{
+	char i;
+	char buf[1600];
+
+	GetBlock(0, 0, 160, 80, 64, buf);
+	if (!mode)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x + i, y, width, height, 1, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else if (mode == 1)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x - i, y, width, height, 1, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else if (mode == 2)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x, y - i, width, height, 1, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else if (mode == 3)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x, y + i, width, height, 1, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else if (mode == 4)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x + i, y, width, height, 4, _data);
+			WriteBlock(x + i, y, width, height, 3, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else if (mode == 5)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x - i, y, width, height, 4, _data);
+			WriteBlock(x - i, y, width, height, 3, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else if (mode == 6)
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x, y - i, width, height, 4, _data);
+			WriteBlock(x, y - i, width, height, 3, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+	else
+	{
+		for (i = 0; i <= distance; i++)
+		{
+			WriteBlock(0, 0, 160, 80, 1, buf);
+			WriteBlock(x, y + i, width, height, 4, _data);
+			WriteBlock(x, y + i, width, height, 3, data);
+			Delay(lasttime);
+			Refresh();
+		}
+	}
+}
+
+void main()
+{
+	int i;
+	
+	for (i = 0; i < 80; i = i + 3)
+	{
+		Line(1, i, 159, i, 0x41);
+	}
+	Refresh();
+	getchar();
+}

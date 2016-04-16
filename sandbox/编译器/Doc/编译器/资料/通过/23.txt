@@ -1,0 +1,3630 @@
+long aaa;
+int MAX_MON;  //怪物上限
+int sMagic_e;//魔法结束
+int sItemA_b;//道具A起始
+int sItemA_e;//道具A结束
+int sItemB_b;//道具B起始
+int sItemB_e;//道具B结束
+int sItemC_b;//道具C起始
+int sItemC_e;//道具C结束
+int sItemD_b;//道具D起始
+int sItemD_e;//道具D结束
+//******************变量定义开始**********************//
+struct TIME
+{int year;
+char month;
+char day;
+char hour;
+char minute;
+char second;
+char week;
+};
+char bGame=0;
+char PROJECT_NAME[]="/LavaData/sl";//这个必须和游戏项目名称保持一致
+char PROJECT_PATH[25];
+long o[32];//资源offset
+int oMax[32],oMin[32];//资源序号的上限和下限
+int stack[10];//do..while循环栈目前最多10层嵌套
+struct TIME b_time;//开始时间
+struct TIME e_time;//结束时间
+char isdebug=0;
+char GAME_VER[]="版本号v1.00";//游戏版本号码
+char EventDat[256];
+char fp;//游戏资料文件句柄
+char block[32];//临时block数据
+char mask[384];//掩膜Block
+char move[384];//移动动画
+char dect_x[]={1,1,2,0};//方向变量
+char dect_y[]={0,2,1,1};
+long tData[1600];//屏幕缓存
+char mem[2000];//游戏的Ram，全部信息在此
+char EquPerFix[4][6][6];//装备前缀
+char EquName[12];//装备名称
+char mapdat[4096];//临时地图信息
+char evtlink[2][256];//事件链表
+int tNo=256;//上一次事件号码。
+char Ns[]="<name>";//姓名替换标志
+char str_num[11];//数字转换储存
+char IDstack[20];//菜单ID的栈空间
+char ENstack[20];//菜单是否进入的栈空间
+char pID;//菜单ID的指针
+char wx=6;//每个字的宽
+char wy=13;//每个字的长
+char IfLink=0;//事件是否连接
+char IsJump=0;//是否地图跳转
+char IsEnter=0;//是否回车按下
+char IsMenuMemary=1;//是否菜单记忆
+char IsPixelMove=1;//是否点移模式打开
+int SpeedUpKey=97;//按键信息
+char pos_list[20][2];//战斗动画需要,最多20个。
+//片头菜单坐标
+/*
+//模式一
+char Title_Menu[]=
+{4,
+1,13,50,25,
+1,26,50,38,
+1,39,50,51,
+1,52,50,64
+};
+*/
+//模式二
+char Title_Menu[]={4,102,10,152,23,102,24,152,37,102,38,152,51,102,52,152,65};
+//其他模式另行添加
+//法宝道具ItemD所对应的魔法
+char ItemD_Attack[]={1,101,3,4,5,101,101,101,9,101,101,101,101,101,101,101,101,101,101};
+//菜单信息
+//各项含义：
+//子菜单总数，每行显示个数，初坐标X，初坐标Y，宽，长，间隔宽，间隔长，下级菜单起始ID，需要显示的系统对话，对话数量，对话位置
+char MenuData[][12]={
+//主菜单ID=0
+5,5,1,0,4,1,5,1,1,8,5,1,
+//选项ID=1
+3,1,6,2,14,1,14,1,215,0,0,0,
+//状态ID=2
+4,1,3,1,17,1,17,1,6,14,5,1,
+//物品ID=3
+4,2,6,2,4,1,10,1,10,71,2,2,
+//法术ID=4
+0,0,1,1,2,1,2,1,0,0,0,0,
+//系统ID=5
+3,1,8,1,8,1,8,1,14,92,3,1,
+//状态一ID=6
+0,0,0,0,0,0,0,0,0,0,0,0,
+//状态二ID=7
+0,0,0,0,0,0,0,0,0,0,0,0,
+//状态三ID=8
+0,0,0,0,0,0,0,0,0,0,0,0,
+//状态四ID=9
+0,0,0,0,0,0,0,0,0,0,0,0,
+//普通ID=10
+0,0,1,1,2,1,2,1,0,0,0,0,
+//法宝ID=11
+0,0,1,1,2,1,2,1,0,0,0,0,
+//锻造ID=12
+0,0,1,1,2,1,2,1,0,0,0,0,
+//特殊ID=13
+0,0,0,0,0,0,0,0,0,0,0,0,
+//储存ID=14
+2,1,8,2,10,1,10,1,0,0,0,0,
+//读取ID=15
+2,1,8,2,10,1,10,1,0,0,0,0,
+//退出ID=16
+0,0,0,0,0,0,0,0,0,0,0,0,
+//打造菜单ID=17
+3,3,1,5,4,1,5,1,210,0,0,0,
+//战斗菜单ID=18
+5,5,1,5,4,1,5,1,19,34,1,5,
+//攻击ID=19
+2,2,4,5,8,1,10,1,24,28,1,5,
+//魔法ID=20
+0,0,0,0,0,0,0,0,0,0,0,0,
+//道具ID=21
+2,2,4,5,8,1,10,1,100,31,1,5,
+//逃跑ID=22
+0,0,0,0,0,0,0,0,0,0,0,0,
+//状态ID=23
+0,0,0,0,0,0,0,0,0,0,0,0,
+//普通攻击ID=24
+0,0,0,0,0,0,0,0,0,0,0,0,
+//附魔攻击ID=25
+0,0,0,0,0,0,0,0,0,0,0,0,
+//买卖ID=26
+3,1,19,3,6,1,6,1,27,0,0,0,
+//买道具ID=27
+0,6,1,0,2,1,2,1,0,0,0,0,
+//卖道具ID=28四字菜单
+3,1,5,1,9,1,9,1,30,0,0,0,
+//离开ID=29
+0,0,0,0,0,0,0,0,0,0,0,0,
+//卖道具详细列表ID=30
+0,6,1,0,2,1,2,1,0,0,0,0
+};
+/******************变量定义结束*****************/
+//按键暂停
+long KeyPause(char delaytime)
+{int keyvalue;
+if(delaytime!=0)Delay(delaytime);
+keyvalue=0;
+while(keyvalue==0)keyvalue=CheckKey(128);
+return keyvalue;
+}
+//得到路径
+long ProjectPath(int filename)
+{strcpy(PROJECT_PATH,PROJECT_NAME);strcat(PROJECT_PATH,filename);return PROJECT_PATH;}
+//游戏初始化代码
+long GameInitialize()
+{char head[256],i;
+ClearScreen();
+TextOut(2,7,"资料载入中...",1);Refresh();
+fp=fopen(ProjectPath("_SC.dat"),"rb");
+if(fp==0){TextOut(30,30,"游戏资源文件丢失",0x41);Delay(500);return 0;}
+//资源偏移量列表读取
+fseek(fp,0,0);
+fread(head,1,256,fp);
+for(i=0;i<32;i++)
+{memcpy(o+i*4,head+i*8,4);memcpy(oMin+i*2,head+i*8+4,2);memcpy(oMax+i*2,head+i*8+6,2);
+}
+//上下限计算
+sMagic_e=oMax[aaa=13]-oMin[aaa=13];
+sItemA_b=sMagic_e+oMin[aaa=7];
+sItemA_e=sMagic_e+oMax[aaa=7];
+sItemB_b=sMagic_e+oMin[aaa=8];
+sItemB_e=sMagic_e+oMax[aaa=8];
+sItemC_b=sMagic_e+oMin[aaa=9];
+sItemC_e=sMagic_e+oMax[aaa=9];
+sItemD_b=sMagic_e+oMin[aaa=10];
+sItemD_e=sMagic_e+oMax[aaa=10];
+MAX_MON=oMax[aaa=5];
+//读取人物掩膜图像
+fseek(fp,o[aaa=14],0);
+	fread(move,1,384,fp);
+	fseek(fp,o[aaa=14]+384,0);
+	fread(mask,1,384,fp);
+	fseek(fp,o[aaa=11],0);
+	fread(EquPerFix,1,144,fp);
+return 1;
+}
+void GetName(char n)
+{
+fseek(fp,o[aaa=12]+n*12,0);
+fread(EquName,1,12,fp);
+}
+//产生随机数
+long rnd(long n)
+{
+return rand()*n/32768;
+}
+//按号码读取地图
+void getmap(char n)
+{
+if(n>oMax[aaa=1])n=oMax[aaa=1];
+if(n<1)n=1;
+fseek(fp,o[aaa=2]+(n-1)*8192,0);
+fread(evtlink,1,512,fp);
+fseek(fp,o[aaa=1]+(n-1)*4096,0);
+fread(mapdat,1,4096,fp);
+}
+//计算双字节无符号数值函数
+long add16(int address)
+{return (*(address+1))*256+(*address);}
+long add10(int address)
+{return (*address)*100+(*(address+1));}
+
+//双字节无符号数值增加函数
+long add_bit16(int address,long num)
+{
+long sum;
+sum=num+(*(address+1))*256+(*address);
+if(sum<=65535&&sum>=0)
+{
+*(address+1)=(sum/256);
+*(address)=sum-(sum/256)*256;
+return 1;
+}
+return 0;
+}
+//单字节无符号数值增加函数
+long add_bit8(int address,long num)
+{
+long sum;
+sum=num+(*address);
+if(sum<=255&&sum>=0)
+{
+*(address)=sum;
+return 1;
+}
+return 0;
+}
+//双字节求和函数
+long sum_bit16(int address,long num1,long num2)
+{
+long sum;
+sum=num1+num2;
+if(sum<=65535&&sum>=0)
+{
+*(address+1)=(sum/256);
+*(address)=sum-(sum/256)*256;
+return 1;
+}
+return 0;
+}
+//单字节求和函数
+long sum_bit8(int address,long num1,long num2)
+{
+long sum;
+sum=num1+num2;
+if(sum<=255&&sum>=0)
+{
+*(address)=sum;
+return 1;
+}
+return 0;
+}
+//开关测试函数(1～8)
+long Test(char address,char position)
+{return address&(1<<position-1);}
+//模拟poke函数
+void poke(int address,char value)
+{mem[address]=value;}
+//给定左上角坐标和大小，清屏幕，三种速度。
+void AnimateBox(int x,int y,int w,int h,int speed,int type)
+{
+int i,step;
+int ax,ay,ix,iy;
+ax=w/2+x;
+ay=h/2+y;
+ix=2<<speed;
+iy=h*ix/w;//计算增量
+step=w/ix/2-1;
+for(i=0;i<step;i++)
+{
+i++;
+Box(ax-i*ix,ay-i*iy,ax+i*ix,ay+i*iy,1,-type+1);
+i--;
+Box(ax-i*ix,ay-i*iy,ax+i*ix,ay+i*iy,1,type);
+Delay(50);
+}
+Box(x,y,x+w-1,y+h-1,1,type);
+}
+void AnimateBlock(int x,int y,int w,int h,int speed,int type)
+{
+int i,step;
+int ax,ay,ix,iy;
+ax=w/2+x;
+ay=h/2+y;
+ix=2<<speed;
+iy=h*ix/w;//计算增量
+step=w/ix/2-1;
+for(i=0;i<step;i++)
+{
+i++;
+Block(ax-i*ix,ay-i*iy,ax+i*ix,ay+i*iy,-type+1);
+i--;
+Block(ax-i*ix,ay-i*iy,ax+i*ix,ay+i*iy,type);
+Refresh();
+Delay(50);
+}
+Block(x,y,x+w-1,y+h-1,type);
+Refresh();
+Delay(50);
+}
+//给定圆心坐标，清屏幕，三中速度。
+void AnimateCircle(int x,int y,int r,int speed,int type)
+{
+int i,ir,step;
+ir=2<<speed;
+step=r/ir;
+for(i=0;i<step;i++)
+{
+i++;
+Circle(x,y,i*ir,1,-type+1);
+i--;
+Circle(x,y,i*ir,1,type);
+Delay(50);
+}
+Circle(x,y,r,1,type);
+}
+//根据标号画图库的图像,Type写0或者0x40就是带Mask一起绘制
+//画装备图像
+void ShowEqu(int n,int x,int y,int type)
+{
+char pic[128];
+if(n>31)n=31;
+if(n<0)n=0;
+fseek(fp,o[aaa=6]+n*128,0);
+fread(pic,1,128,fp);
+WriteBlock(x,y,32,32,type,pic);
+}
+//根据标号画PSL图库的图像
+void ShowPSL(int n,int x,int y,int type,char format,int flag)
+{
+char pic[1600];
+long offset;
+char size[4];
+int len;
+if(n>=512)n=511;
+if(n<0)n=0;
+fseek(fp,o[flag]+n*8,0);
+fread(&offset,1,4,fp);
+fread(size,1,4,fp);
+len=(size[aaa=0]/8)*size[aaa=1];
+fseek(fp,o[flag]+4096+offset,0);
+fread(pic,1,len,fp);
+if(format==3)
+{
+WriteBlock(x-size[aaa=0]/2,y-size[aaa=1]/2,size[aaa=0],size[aaa=1],type,pic);
+}else if(format==1)
+{
+WriteBlock(x-size[aaa=0]+1,y-size[aaa=1]+1,size[aaa=0],size[aaa=1],type,pic);
+}else 
+{
+WriteBlock(x,y,size[aaa=0],size[aaa=1],type,pic);
+};
+}
+//根据怪物号码画怪物图像
+void ShowMon(int n,int x,int y,int type,char format)
+{
+if((type&7)==0)
+{
+ShowPSL(n+255,x,y,type+4,format,4);
+ShowPSL(n,x,y,type+3,format,4);
+}else 
+{
+ShowPSL(n,x,y,type,format,4);
+}
+}
+//绘制PSL图库里面的PSL图
+void ShowPic(int n,int x,int y,int type,char format)
+{
+if((type&7)==0)
+{
+ShowPSL(n+1,x,y,type+4,format,16);
+ShowPSL(n,x,y,type+3,format,16);
+}else 
+{
+ShowPSL(n,x,y,type,format,16);
+}
+}
+//根据偏移量画图(X,Y,Width,Height,起始偏移,type)
+void DrawPic(int x,int y,int w,int h,long offset,int type)
+{
+char pic[1600];
+int len;
+len=(w/8)*h;
+fseek(fp,offset,0);
+fread(pic,1,len,fp);
+WriteBlock(x,y,w,h,type,pic);
+}
+//移植需要，装备修正
+void EqSet(int InfoAddress,char i)
+{
+char EqFix[6];
+memcpy(EqFix,InfoAddress,6);
+if(i==0)
+{
+EqFix[aaa=1]=EqFix[aaa=1]+mem[aaa=1620+i*3];
+EqFix[aaa=4]=EqFix[aaa=4]+mem[aaa=1621+i*3];
+EqFix[aaa=3]=EqFix[aaa=3]+mem[aaa=1622+i*3];
+}else if(i==1)
+{
+EqFix[aaa=2]=EqFix[aaa=2]+mem[aaa=1620+i*3];
+EqFix[aaa=5]=EqFix[aaa=5]+mem[aaa=1621+i*3];
+EqFix[aaa=3]=EqFix[aaa=3]+mem[aaa=1622+i*3];
+}else if(i==2)
+{
+EqFix[aaa=3]=EqFix[aaa=3]+mem[aaa=1620+i*3];
+EqFix[aaa=2]=EqFix[aaa=2]+mem[aaa=1621+i*3];
+EqFix[aaa=5]=EqFix[aaa=5]+mem[aaa=1622+i*3];
+}else if(i==3)
+{
+EqFix[aaa=4]=EqFix[aaa=4]+mem[aaa=1620+i*3];
+EqFix[aaa=5]=EqFix[aaa=5]+mem[aaa=1621+i*3];
+EqFix[aaa=2]=EqFix[aaa=2]+mem[aaa=1622+i*3];
+}
+memcpy(InfoAddress,EqFix,6);
+}
+
+//数字转字符串函数,最多转换10位，字符串存在str_num[]里面
+void str(long n)
+{
+char i;
+long j;
+j=10;
+i=0;
+while(n>=j)
+{
+i++;
+j=j*10;
+}//测试n是几位数字
+str_num[i+1]=0;
+while(n/10>0)
+{
+j=n-(n/10)*10;
+n=n/10;
+str_num[i]=j+48;
+i--;
+}
+str_num[i]=n+48;
+}
+//格式化字符串最多10位
+void fstr(int string,char len,char format,char fill)
+{
+char slen;
+slen=strlen(string);//获取源字符串长度
+if(len==slen)return ;//如果一样，就不作处理
+if(len<slen)//小于则去除
+{
+if(format==1)
+{
+memmove(string,string+slen-len,len);
+}
+*(string+len)=0;
+return ;
+}
+if(format==1)//大于则移动
+{
+memmove(string+len-slen,string,slen);
+memset(string,fill,len-slen);
+}else if(format==0)
+{
+memset(string+slen,fill,len-slen);
+}else if(format==3)
+{
+memmove(string+(len-slen)/2,string,slen);
+memset(string,fill,(len-slen)/2);
+memset(string+(len-slen)/2+slen,fill,len-(len-slen)/2-slen);
+}
+*(string+len)=0;
+}
+//绘制菜单光标，返回选中的菜单ID
+void menudraw(char id)
+{//数据在MenuData[id][dat]
+char key;
+char max,n;
+char x,y,w,h;
+char ix,iy;
+char tID,menuID;
+
+n=MenuData[id][aaa=1];//
+x=MenuData[id][aaa=2]*wx;
+y=MenuData[id][aaa=3]*wy;
+w=MenuData[id][aaa=4]*wx;
+h=MenuData[id][aaa=5]*wy;
+ix=MenuData[id][aaa=6]*wx;
+iy=MenuData[id][aaa=7]*wy;
+tID=MenuData[id][aaa=8];//起始ID
+max=MenuData[id][aaa=0]+tID-1;//最大可能达到的ID数目
+menuID=tID;//目前的ID
+
+if(IsMenuMemary==1&&ENstack[pID]==1)
+{
+menuID=IDstack[pID+1];
+if(menuID>max||menuID<tID)
+{
+menuID=tID;
+}else 
+{
+y=(menuID-tID)/n*iy+y;
+x=((menuID-tID)-((menuID-tID)/n)*n)*ix+x;
+}
+}
+key=0;
+do
+{
+	if(key==23)
+{
+if(x-ix>=MenuData[id][aaa=2]*wx)
+{
+if(menuID-1>=tID)
+{
+menuID--;
+x=x-ix;
+}
+}
+	}
+	if(key==22)
+	{
+if(x+ix<=(MenuData[id][aaa=2]*wx+(n-1)*ix))
+{
+if(menuID+1<=max)
+{
+menuID++;
+x=x+ix;
+}
+}
+	}
+	if(key==20)
+	{
+	if(menuID-n>=tID)
+	{
+	menuID=menuID-n;
+	y=y-iy;
+	}
+	}
+	if(key==21)
+	{
+	if(menuID+n<=max)
+	{
+	menuID=menuID+n;
+	y=y+iy;
+	}
+	}
+	if(key==27)
+	{
+ENstack[pID]=0;
+pID--;
+return ;
+	}
+Refresh();
+Box(x,y,x+w+1,y+h-1,1,2);
+Delay(150);
+key=0;
+while(key==0)key=CheckKey(128);
+}while(key!=13)//按键循环
+ENstack[pID]=1;
+pID++;
+IDstack[pID]=menuID;
+}
+//读取某个位置的图素号码
+long map(char x,char y)
+{return mapdat[(mem[aaa=1306]+y)*50+mem[aaa=1305]+x];}
+//读取键盘输入函数
+void Input(int string,int x,int y,int length)
+{
+int c;//字符缓存
+char p;//指针
+char len[256];//字符长度储存
+char Caps;
+char mode;
+Caps=1;
+mode=3;
+p=0;
+do
+{
+Box(x+p*6,y+13,x+p*6+6,y+14,1,1);
+c=GetWord(mode);
+if(c==29||c==23)
+{
+if(p!=0)
+{
+p=p-len[p];
+*(string+p)=0;
+}
+}/*else if(c==26)
+{
+if(mode==2)
+mode=0;
+else 
+mode++;
+}*/
+/*else if(c==18)
+{
+if(Caps==0)
+Caps=1;
+else 
+Caps=0;
+}*/
+else if(c==13)
+{
+*(string+p)=0;
+break;
+}else 
+{
+if((c&0xff00)==0&&isprint(c)&&p<length)
+{
+//if(Caps==1)c=toupper(c);
+*(string+p)=c;
+p++;
+len[p]=1;
+*(string+p)=0;
+}else if(c<0&&p<length-1)
+{
+memset(_TEXT+80,' ',20);//清除提示行
+*(string+p)=c;
+*(string+p+1)=c>>8;
+p=p+2;
+len[p]=2;
+*(string+p)=0;
+}
+}
+Refresh();
+TextOut(x,y,string,0x43);
+}while(p>=0)
+}
+//显示文字到指定文本坐标，支持换行
+void MsgPaint (int x,int y,int string,int type)
+{
+char out[27];
+int j,len;
+len=strlen(string);
+if(len+x<26)
+{//不够一行
+TextOut(x*wx,y*wy,string,type);
+return ;
+}
+memcpy(out,string,(26-x));
+out[aaa=26-x]=0;
+TextOut(x*wx,y*wy,out,type);
+y++;
+string=string+26-x;
+len=len-(26-x);//非整行处理
+out[aaa=26]=0;
+for(j=0;j<(len/26);j++)
+{
+memcpy(out,string+j*26,26);
+TextOut(0,(y+j)*wy,out,type);
+}//整行处理
+string=string+j*26;
+len=len-j*26;
+memcpy(out,string,len);
+out[len]=0;
+TextOut(0,(y+j)*wy,out,type);
+}
+//显示文字到任意坐标，支持换行
+void tMsgPaint (int x,int y,int string,int type)
+{
+char out[27];
+int j,len;
+int n_wx_max;
+n_wx_max=26-(x/wx);//计算每行能显示多少
+len=strlen(string);
+if(len*wx+x<n_wx_max*wx)
+{//不够一行
+TextOut(x,y,string,type);
+return ;
+}
+out[n_wx_max]=0;
+for(j=0;j<(len/n_wx_max);j++)
+{
+memcpy(out,string+j*n_wx_max,n_wx_max);
+TextOut(x,y+j*wy,out,type);
+}//整行处理
+string=string+j*n_wx_max;
+len=len-j*n_wx_max;
+if(len==0)return ;
+memcpy(out,string,len);
+out[len]=0;
+TextOut(x,y+j*wy,out,type);
+}
+
+//从游戏资源文件里面读取文字，放在txt处
+void GetTxt(int p,int n,int txt)
+{
+char add[4];
+int i,j,len;
+fseek(fp,o[aaa=0]+(p*255+n-1)*2,0);
+fread(add,1,4,fp);
+len=(add[aaa=2]-add[aaa=0])*256+add[aaa=3]-add[aaa=1]-2;
+fseek(fp,o[aaa=0]+add[aaa=0]*256+add[aaa=1],0);
+fread(txt,1,len,fp);
+*(txt+len)=0;
+j=0;
+while(j<len)
+{
+j=strstr(txt+j,Ns);
+if(j!=0)
+{
+memcpy(j,mem+(aaa=1128),6);
+j=j-txt+6;
+}else 
+{
+j=len;
+}
+}
+}
+
+//显示一句游戏对话，会根据主人公位置自动调整
+void ShowTxt(int p,int n)
+{
+int x,y;
+char txt[53];
+x=0;
+if(mem[aaa=1308]>2)
+y=0;
+else 
+y=wy*4;
+Box(x,y,x+160,y+28,1,0);
+Box(x+1,y,x+160,y+28,0,1);
+GetTxt(p,n,txt);
+tMsgPaint (x+3,y+2,txt,0x43);
+}
+//显示一句系统对话，也就是0页游戏对话
+void ShowSysTxt(int line,int n,int num,int type)
+{
+int i;
+char txt[53];
+for(i=0;i<num;i++)
+{
+GetTxt(0,n+i,txt);
+tMsgPaint (1,(line+i)*wy,txt,type);
+}
+}
+//显示菜单的文字,根据菜单号码
+void menuTxt(char id)
+{
+int i;
+char txt[53];
+if(MenuData[id][aaa=10]==0)return ;
+for(i=0;i<MenuData[id][aaa=10];i++)
+{
+GetTxt(0,MenuData[id][aaa=9]+i,txt);
+tMsgPaint (0,(MenuData[id][aaa=11]+i)*wy,txt,3);
+}
+Refresh();
+}
+//存屏幕
+void SaveScr(int type,char flag)
+{
+if(flag>=1)return ;
+GetBlock(0,0,160,80,type,tData+flag*1600);
+}
+//读屏幕
+void LoadScr(int type,char flag)
+{
+if(flag>=1)return ;
+WriteBlock(0,0,160,80,type,tData+flag*1600);
+}
+/***********以下函数大都嵌套以及调用了上面的函数**************/
+//计算时间
+void CountTime()
+{//计算时间
+
+GetTime(e_time);
+//秒进位
+if(e_time.second>=b_time.second)
+{
+add_bit8(mem+(aaa=1618),e_time.second-b_time.second);
+}else {
+e_time.minute--;
+add_bit8(mem+(aaa=1618),60+e_time.second-b_time.second);
+}
+if(mem[aaa=1618]>=60)
+{
+mem[aaa=1618]=mem[aaa=1618]-60;
+mem[aaa=1617]++;
+}
+//分进位
+if(e_time.minute>=b_time.minute)
+{
+add_bit8(mem+(aaa=1617),e_time.minute-b_time.minute);
+}else {
+e_time.hour--;
+add_bit8(mem+(aaa=1617),60+e_time.minute-b_time.minute);
+}
+if(mem[aaa=1617]>=60)
+{
+mem[aaa=1617]=mem[aaa=1617]-60;
+mem[aaa=1616]++;
+}
+//时进位
+if(e_time.hour>=b_time.hour)
+{
+add_bit8(mem+(aaa=1616),e_time.hour-b_time.hour);
+}else {
+e_time.day--;
+add_bit8(mem+(aaa=1616),24+e_time.hour-b_time.hour);
+}
+if(mem[aaa=1616]>=24)
+{
+mem[aaa=1616]=mem[aaa=1616]-24;
+mem[aaa=1615]++;
+}
+//日进位
+if(e_time.day>=b_time.day)
+{
+add_bit8(mem+(aaa=1615),e_time.day-b_time.day);
+}else {
+e_time.month--;
+add_bit8(mem+(aaa=1615),30+e_time.day-b_time.day);
+}
+GetTime(b_time);
+}
+//震动屏幕
+void ShackScr(char level,int sx,int sy)
+{
+int i,j,last_time;
+if(level==0)return ;
+SaveScr(0,0);
+for(i=level*2-1;i>0;i=i-2)
+{
+last_time=Getms();
+if(j==-1)j=1;else j=-1;
+WriteBlock(j*sx*level,j*sy*level,160,80,1,tData);
+Refresh();
+while(((Getms()-last_time)&0xff)<10);
+}
+WriteBlock(0,0,160,80,1,tData);
+Refresh();
+}
+void Bomb(int id,int x,int y,char level)
+{//4张动画的定义为Bomb
+int i;
+for(i=0;i<4;i++)
+{
+ShowPic(id+i*2,x,y,0,3);
+Refresh();
+Delay(40);
+}
+ShackScr(level,1,0);
+}
+void Rock(int id,int x,int y,char level)
+{//不清屏幕的Bomb定义为Rock
+int i;
+SaveScr(0,0);
+for(i=0;i<4;i++)
+{
+ShowPic(id+i*2,x,y,0,3);
+Refresh();
+LoadScr(1,0);
+Delay(40);
+}
+ShackScr(level,0,1);
+}
+void Ball(int id,int ax,int ay,int bx,int by,
+char step,char fix,char level)
+{//运动的物体定义为Ball
+int i,ix,iy,j;
+if(step<1)step=1;
+ix=(bx-ax)/step;
+iy=(by-ay)/step;
+SaveScr(0,0);
+j=0;
+for(i=0;i<step;i++)
+{
+if(j>fix)j=0;
+ShowPic(id+j*2,ax+ix*i,ay+iy*i,0,3);
+Refresh();
+LoadScr(1,0);
+Delay(40);
+j++;
+}
+ShackScr(level,0,1);
+}
+void xBall(int id,int ax,int ay,int bx,int by,
+char step,char fix,char index)
+{//运动的物体定义为Ball
+int i,ix,iy,j;
+i=pos_list[index][aaa=0];
+j=pos_list[index][aaa=1];
+if(i>=step)i=0;
+if(step<1)step=1;
+ix=(bx-ax)/step;
+iy=(by-ay)/step;
+if(j>fix)j=0;
+ShowPic(id+j*2,ax+ix*i,ay+iy*i,0,3);
+Refresh();
+pos_list[index][aaa=0]=i+1;
+pos_list[index][aaa=1]=j+1;
+}
+//动画显示一段直线
+void ArtLine_1(int a,int b)
+{
+int rx,ry,ax,ay;
+int i,type;
+rx=80;
+ry=40;
+for(type=2;type>=0;type=type-2)
+{
+for(i=45;i>=10;i--)
+{
+ax=35*Cos(a*i*573/10/10)/1024+75;
+ay=25*Sin(b*i*573/10/10)/1024+40;
+Line(ax,ay,80,40,type);
+Line(ax,ay,rx,ry,type);
+rx=ax;
+ry=ay;
+Delay(20);
+}
+}
+}
+//绘制随机连线
+void ArtLine_2(int xa,int xb,int xc,int xd)
+{
+int x,y;
+int kx,ky;
+kx=0;ky=0;
+while((xc-xa)*(xc-xa)+(xd-xb)*(xd-xb)>25)
+{
+x=xa;
+xa=kx*rnd(10)+x;
+y=xb;
+xb=ky*rnd(10)+y;
+if(xa<=0)xa=0;
+if(xb<=0)xb=0;
+if(xc>xa)kx=1;else kx=-1;
+if(xd>xb)ky=1;else ky=-1;
+Line(x,y,xa,xb,1);
+Delay(30);
+}
+Line(xa,xb,xc,xd,1);
+}
+//显示游戏Title图片（可以自己换）
+void Rpg_Title()
+{
+ClearScreen();
+ShowPic(92,0,0,1,0);
+Refresh();
+}
+//显示游戏制作者Studio图片（可以自己换）
+void Rpg_Studio()
+{
+
+}
+//显示一个Logo（可以自己换）
+void Rpg_Logo()
+{
+int i;
+for(i=0;i<7;i++)
+{
+ClearScreen();
+ShowPic(143+i,80,40,1,3);
+Refresh();
+Delay(50);
+}
+ShackScr(2,1,0);
+for(i=0;i<6;i++)
+{
+ShowPic(156,80,62,1,3);
+ShowPic(150+i,80,62,4,3);
+Refresh();
+Delay(50);
+}
+ShowPic(156,80,62,1,3);
+Refresh();
+Delay(800);
+}
+//检测Hp和Mp的值
+void InfoFix()
+{
+long max,now;
+max=add16(mem+(aaa=1157));
+now=add16(mem+(aaa=1141));
+if(now>max)sum_bit16(mem+(aaa=1141),max,0);
+max=add16(mem+(aaa=1159));
+now=add16(mem+(aaa=1143));
+if(now>max)sum_bit16(mem+(aaa=1143),max,0);
+}
+//读档
+long Load(int n)
+{//共两个存档目前
+char savefile;
+if(n>1)n=1;
+if(n<0)n=0;
+if((savefile=fopen(ProjectPath("_Save.dat"),"rb"))!=0)
+{
+GetTime(e_time);
+fseek(savefile,n*2000,0);
+fread(mem,1,2000,savefile);
+fclose(savefile);
+MsgPaint (7,5,"存档读取成功",0x48);
+KeyPause(100);
+getmap(mem[aaa=1311]);
+return 1;
+}else 
+{
+MsgPaint (7,5,"存档读取失败",0x48);
+KeyPause(100);
+return 0;
+}
+}
+//存档目前两个
+long Save(int n)
+{
+char savefile;
+if(n>1)n=1;
+if(n<0)n=0;
+savefile=fopen(ProjectPath("_Save.dat"),"rb+");
+if(savefile==0)savefile=fopen(ProjectPath("_Save.dat"),"wb+");
+if(savefile!=0)
+{
+CountTime();
+fseek(savefile,n*2000,0);
+fwrite(mem,1,2000,savefile);
+fclose(savefile);
+MsgPaint (7,5,"存档保存成功",0x48);
+KeyPause(100);
+return 1;
+}else 
+{
+MsgPaint (7,5,"存档创建失败",0xC8);
+KeyPause(100);
+return 0;
+}
+}
+//根据号码画图素到x,y
+void DrawBlock(int n,int x,int y,int type)
+{
+fseek(fp,o[aaa=3]+n*32,0);
+fread(block,1,32,fp);
+WriteBlock(x,y,16,16,type,block);
+}
+void DrawPlayer(int x,int y,int dect,int step,int type)
+{
+int pf;
+if(mem[aaa=1301]>9||mem[aaa=1302]>4)return ;
+if(mem[aaa=1319]!=mem[aaa=1318])
+{
+mem[aaa=1319]=mem[aaa=1318];
+fseek(fp,o[aaa=14]+mem[aaa=1318]*384*2,0);
+fread(move,1,384,fp);
+fseek(fp,o[aaa=14]+mem[aaa=1318]*384*2+384,0);
+fread(mask,1,384,fp);
+}
+pf=mem[aaa=1318]*24+mem[aaa=1309]*3+step;//人物图像修正
+//人物块移动
+Refresh();
+WriteBlock(x,y,16,16,type+4,mask+pf*32);
+WriteBlock(x,y,16,16,type+3,move+pf*32);
+}
+//部分刷屏
+void DrawMap()
+{
+int i,j;
+int x,y,pos,b;
+int dx,dy,dp;//方向控制
+char tScr[1600];
+char tLine[320];
+int ix,iy;//点移
+int last_time;//延时
+last_time=Getms();
+//地图号变了
+if(mem[aaa=1310]!=mem[aaa=1311])
+{
+mem[aaa=1310]=mem[aaa=1311];
+getmap(mem[aaa=1311]);
+IsJump=1;
+}
+//跳转画法
+if(IsJump==1)
+{
+//全部刷屏
+pos=mem[aaa=1306]*50+mem[aaa=1305];
+for(y=0;y<5;y++)
+{
+i=pos+y*50;
+for(x=0;x<10;x++)
+{
+b=mapdat[i];
+j=b-224;
+//地图替换
+if(b>=224&&Test(mem[aaa=256+(mem[aaa=1311]-1)*4+(j/8)*(aaa=8)],j-(j/8)*(aaa=8)+1)>0)b=j+192;
+b=mapdat[aaa=3583+b]+mapdat[aaa=3839+b]*256;
+DrawBlock(b,x*16,y*16,1);
+i++;
+}
+}
+IsJump=0;
+mem[aaa=1303]=mem[aaa=1305];
+mem[aaa=1304]=mem[aaa=1306];
+if(mem[aaa=1301]>9||mem[aaa=1302]>4)
+{
+Refresh();
+return ;
+}
+mem[aaa=1301]=mem[aaa=1307];
+mem[aaa=1302]=mem[aaa=1308];
+DrawPlayer(mem[aaa=1307]*16,mem[aaa=1308]*16,mem[aaa=1309],2,0x40);
+return ;
+}
+//判断是否需要移动
+if(mem[aaa=1307]==mem[aaa=1301]&&mem[aaa=1308]==mem[aaa=1302]&&mem[aaa=1305]==mem[aaa=1303]&&mem[aaa=1306]==mem[aaa=1304])return ;
+//判断是否加速
+if(IsPixelMove==0||CheckKey(SpeedUpKey)!=0){dp=8;}else {dp=4;}
+//保存当前屏幕
+GetBlock(0,0,160,80,0,tScr);
+//计算方向
+dx=mem[aaa=1305]-mem[aaa=1303];
+dy=mem[aaa=1306]-mem[aaa=1304];
+//人物点移
+ix=(mem[aaa=1301]-mem[aaa=1307])-dx;
+iy=(mem[aaa=1302]-mem[aaa=1308])-dy;
+//x向点移
+if(dx!=0)
+{
+x=(dx+1)/2*9;//计算x为0或者9
+i=mem[aaa=1306]*50+mem[aaa=1305]+x;
+for(y=0;y<5;y++){
+b=mapdat[i];
+//地图替换
+j=b-224;
+if(b>=224&&Test(mem[aaa=256+(mem[aaa=1311]-1)*4+(j/8)*(aaa=8)],j-(j/8)*8+1)>0)b=j+192;
+b=mapdat[aaa=3583+b]+mapdat[aaa=3839+b]*256;
+DrawBlock(b,8,y*16,1);
+i=i+50;
+}
+GetBlock(8,0,16,80,0,tLine);
+}
+//Y向的点移
+if(dy!=0)
+{
+y=(dy+1)*2;//计算x为0或者4
+i=(mem[aaa=1306]+y)*50+mem[aaa=1305];
+for(x=0;x<10;x++)
+{
+b=mapdat[i];
+//地图替换
+j=b-224;
+if(b>=224&&Test(mem[aaa=256+(mem[aaa=1311]-1)*4+(j/8)*(aaa=8)],j-(j/8)*(aaa=8)+1)>0)b=j+192;
+b=mapdat[aaa=3583+b]+mapdat[aaa=3839+b]*256;
+DrawBlock(b,x*16,0,1);
+i++;
+}
+GetBlock(0,0,160,16,0,tLine);
+}
+//点地图移开始
+i=1;j=0;
+x=mem[aaa=1307]*16;
+y=mem[aaa=1308]*16;
+while(dp*i<=16)
+{
+if(dx!=0||dy!=0)
+{
+if(dx>0)
+{//图像左移
+WriteBlock(-i*dp,0,160,80,1,tScr);
+WriteBlock(160-i*dp,0,16,80,1,tLine);
+}
+if(dx<0)
+{//图像右移
+WriteBlock(i*dp-16,0,16,80,1,tLine);
+WriteBlock(i*dp,0,160,80,1,tScr);
+}
+if(dy>0)
+{//图像上移
+WriteBlock(0,-i*dp,160,80,1,tScr);
+WriteBlock(0,80-i*dp,160,16,1,tLine);
+}
+if(dy<0)
+{//图像下移
+WriteBlock(0,i*dp-16,160,16,1,tLine);
+WriteBlock(0,i*dp,160,80,1,tScr);
+}
+}
+Refresh();
+//ShackScr(1,4,0);
+if(j==0)j=1;else j=0;
+DrawPlayer(x+ix*i*dp,y+iy*i*dp,mem[aaa=1309],j,0x40);
+i++;
+while(((Getms()-last_time)&0xff)<21);
+last_time=Getms();
+}
+//坐标恢复
+mem[aaa=1307]=mem[aaa=1307]+ix;
+mem[aaa=1308]=mem[aaa=1308]+iy;
+mem[aaa=1301]=mem[aaa=1307];
+mem[aaa=1302]=mem[aaa=1308];
+mem[aaa=1303]=mem[aaa=1305];
+mem[aaa=1304]=mem[aaa=1306];
+}
+
+//模拟GameSub
+long GameSub(char n)
+{
+char key;
+long i,j,k;
+char t,p,s,bRun;
+long count,address,score;
+if(n==0)
+{
+//游戏片头绘制
+//Rpg_Logo();
+Rpg_Studio();
+Rpg_Title();
+//清零所有数据
+memset(mem,0,2000);
+bRun=1;
+p=1;
+do
+{
+Refresh();
+j=Title_Menu+(aaa=1)+(p-1)*4;
+Box(*j,*(j+1),*(j+2),*(j+3),1,2);
+key=KeyPause(150);
+if(key==23||key==20)
+{
+if(p>1)p--;else p=Title_Menu[aaa=0];
+}else if(key==22||key==21)
+{
+if(p<Title_Menu[aaa=0])p++;else p=1;
+}else if(key==13)
+{
+if(p==4)
+{//退出
+GameSub(6);
+}else if(p==3)
+{//制作组
+ClearScreen();
+ShowSysTxt(0,22,6,1);
+Refresh();
+KeyPause(100);
+Rpg_Title();
+}else if(p==2)
+{//读取
+if(GameSub(2)==1)bRun=0;else Rpg_Title();
+}else if(p==1)
+{
+//初始人物头像
+mem[aaa=1000]=109;
+	//初始游戏坐标
+		mem[aaa=1311]=1;
+		mem[aaa=1307]=0;
+		mem[aaa=1308]=0;
+		mem[aaa=1301]=mem[aaa=1307];
+		mem[aaa=1302]=mem[aaa=1308];
+		mem[aaa=1305]=0;
+		mem[aaa=1306]=0;
+		mem[aaa=1303]=0;
+		mem[aaa=1304]=0;
+	/////////////////////////
+	//建立人物
+	GameSub(1);
+	bRun=0;
+	/////////////////////////
+	//测试用数据
+		//sum_bit16(mem+1157,5000,0);
+		//sum_bit16(mem+1159,5000,0);
+		//sum_bit16(mem+1141,200,0);
+		//sum_bit16(mem+1143,5000,0);
+		//sum_bit16(mem+1163,50000,0);
+		//for(i=4824;i<=4833;i++)poke(i,20);//写入所有魔法
+		//for(i=0;i<64;i++)poke(memfix+sItemA_b+i,20);//写入所有道具
+	////////////////////////////////////////////////////////////////
+}
+}//按键检测循环
+}while(bRun==1)//菜单循环结束
+ReleaseKey(128);
+return 1;
+}else if(n==1)
+{//新建英雄
+ClearScreen();
+ShowPic(166,80,40,1,3);
+ShowPic(add16(mem+(aaa=1000)),64,0,1,0);
+Refresh();
+getchar ();
+Input(mem+(aaa=1128),62,34,6);
+//默认名字
+if(mem[aaa=1128]==0)memcpy(mem+(aaa=1128),"小强",5);
+fstr(mem+(aaa=1128),6,3,32);
+return 1;
+}else if(n==5)
+{//储存档案
+i=pID;
+pID++;
+IDstack[pID]=14;
+ShowPic(114,1,0,1,0);
+MsgPaint (8,2,"储存进度一",3);
+MsgPaint (8,3,"储存进度二",3);
+Refresh();
+menudraw(IDstack[pID]);
+for(j=i+1;j<=pID;j++)ENstack[j]=0;
+j=pID;
+pID=i;//恢复菜单ID
+if(j==i)
+{
+return 0;
+}else 
+{
+return Save(IDstack[j]);
+}
+}else if(n==2)
+{
+i=pID;
+pID++;
+IDstack[pID]=15;
+ShowPic(114,1,0,1,0);
+MsgPaint (8,2,"读取进度一",3);
+MsgPaint (8,3,"读取进度二",3);
+Refresh();
+menudraw(IDstack[pID]);
+for(j=i+1;j<=pID;j++)ENstack[j]=0;
+j=pID;
+pID=i;
+if(j==i)
+{
+return 0;
+}else 
+{
+return Load(IDstack[j]);
+}
+}else if(n==4)
+{
+CountTime();//计算时间
+ClearScreen();
+ShowSysTxt(0,111,6,1);
+Refresh();
+Delay(500);
+KeyPause(100);
+for(i=111;i<=117;i++)
+{
+ClearScreen();
+ShowSysTxt(0,i,6,3);
+Refresh();
+Delay(400);
+}
+Delay(1000);
+KeyPause(100);
+//获取通关时间及评价
+ShowPic(140,1,0,1,0);
+MsgPaint (3,1,"您的通关时间:",1);
+MsgPaint (6,2,"时分秒",3);
+k=mem[aaa=1614]*720+mem[aaa=1615]*24+mem[aaa=1616];
+str(k);
+fstr(str_num,5,1,32);
+MsgPaint (6,2,str_num,3);
+for(i=0;i<2;i++)
+{
+str(mem[aaa=1617+i]);
+fstr(str_num,2,1,32);
+MsgPaint (13+i*4,2,str_num,3);
+}
+score=k*60+mem[aaa=1617];
+Refresh();
+Delay(1000);
+KeyPause(100);
+if(score<20)
+{
+ClearScreen();
+MsgPaint (3,2,"你作弊了吧？这么快！",8);
+Refresh();
+Delay(1000);
+KeyPause(100);
+ShowPic(140,1,0,1,0);
+}
+if(score<30)
+{//S
+count=161;
+}else if(score<55)
+{//A
+count=157;
+}else if(score<80)
+{//B
+count=158;
+}else if(score<120)
+{//C
+count=159;
+}else {count=160;}//D
+ShowPic(140,1,0,1,0);
+MsgPaint (5,1,"综合评价...",1);
+Refresh();
+Delay(500);
+for(i=0;i<4;i++)
+{
+ShowPic(count,80,40,1,3);
+ShowPic(165-i,80,40,4,3);
+Refresh();
+Delay(50);
+}
+ShowPic(count,80,40,1,3);
+Refresh();
+KeyPause(100);
+//剧终
+ShowPic(140,1,0,1,0);
+ShowPic(108,80,40,1,3);
+Refresh();
+Delay(2000);
+KeyPause(100);
+bGame=0;
+return 0;
+}else if(n==6)
+{//退出游戏
+ClearScreen();
+fclose(fp);
+for(j=0;j<2;j++)
+{
+for(i=0;i<40;i++){
+Line(0,i*2+j,160,i*2+j,0);
+Delay(10);
+}
+}
+getchar ();
+exit(0);
+return 0;
+}else if(n==11)
+{
+ClearScreen();
+Refresh();
+tMsgPaint (24,32,"GAMEOVER...",0xC1);
+Delay(1000);
+bGame=0;
+return 0;
+}
+}
+//事件解析子程序,把事件代码赋值给mem[EventDat]就可以解析。
+int Translate(int eDat,int i)
+{
+char key,IsIf,IsTrue,IfMove;//临时按键
+int tAdd;//临时地址储存
+long j,k,s,p;//循环变量
+//交易菜单用
+char Item_tmp[2];//道具信息暂存
+int Item_b;
+int Item_e;
+long Item_offset;//道具信息偏移
+char menuID;
+char pID_b;//pID储存
+char IfMenuDraw;//是否画菜单
+char IfAutoShow;//是否第一次动画演示
+int x,y;
+char eName[11];//道具名字
+char tItemInfo[53];
+long NowMoney;
+///////////
+IfMove=0;
+IsIf=0;
+IsTrue=0;
+//是不是回车键触发的
+if(IsEnter==1)
+{
+if(*eDat==26)
+{
+if(i==0)i++;
+}else {
+i=256;
+}
+}else if(*eDat==26)//回车触发非26号
+{
+i=256;
+}
+//事件解析～开始～
+while(*(eDat+i)!=0&&i<256)
+{
+if(*(eDat+i)==1)
+{//新的单句对话
+ShowTxt(*(eDat+i+1),*(eDat+i+2));
+KeyPause(500);
+i=i+3;
+}
+else if(*(eDat+i)==2)
+{//Poke
+tAdd=add10(eDat+i+1);
+mem[tAdd]=*(eDat+i+3);
+i=i+4;
+}
+else if(*(eDat+i)==3)
+{//打开开关
+tAdd=add10(eDat+i+1);
+mem[tAdd]=mem[tAdd]|(1<<*(eDat+i+3)-1);
+i=i+4;
+}
+else if(*(eDat+i)==4)
+{//关闭开关
+tAdd=add10(eDat+i+1);
+mem[tAdd]=mem[tAdd]&(255-(1<<*(eDat+i+3)-1));
+i=i+4;
+}
+else if(*(eDat+i)==5)
+{//事件=
+if(mem[add10(eDat+i+1)]==mem[add10(eDat+i+3)])
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+5;
+}
+else if(*(eDat+i)==6)
+{//事件>
+if(mem[add10(eDat+i+1)]>mem[add10(eDat+i+3)])
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+5;
+}
+else if(*(eDat+i)==7)
+{//事件<
+if(mem[add10(eDat+i+1)]<mem[add10(eDat+i+3)])
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+5;
+}
+else if(*(eDat+i)==8)
+{//判断开关情况
+if(Test(mem[add10(eDat+i+1)],*(eDat+i+3))>0)
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+4;
+}
+else if(*(eDat+i)==9)
+{//调用GameSub
+GameSub(*(eDat+i+1));
+i=i+2;
+}
+else if(*(eDat+i)==10)
+{//交易菜单循环
+pID++;
+pID_b=pID;
+IDstack[pID]=26;//26号示买卖菜单
+menuID=IDstack[pID];
+do
+{
+NowMoney=add16(mem+(aaa=1163));//现有金钱
+str(NowMoney);
+fstr(str_num,5,3,32);
+wx=6;
+wy=13;
+IfMenuDraw=1;
+if(menuID==26)
+{//买卖菜单
+ShowPic(113,1,0,1,0);//显示菜单框架
+tMsgPaint (120,18,str_num,3);//显示钱
+Refresh();
+}else if(menuID==27)
+{//买道具列表,暂时以o[aaa=7]连续来写
+ShowPic(113,1,0,1,0);
+tMsgPaint (120,18,str_num,3);
+Item_offset=o[aaa=7];
+x=9;
+y=1;
+MenuData[menuID][aaa=0]=*(eDat+i+1);
+MenuData[menuID][aaa=8]=100;//买道具起始ID
+for(j=0;j<*(eDat+i+1);j++)
+{
+fseek(fp,Item_offset+(*(eDat+i+3+j)-1)*128,0);
+fread(Item_tmp,1,2,fp);//储存图像号码
+DrawPic(x,y,16,16,o[aaa=15]+Item_tmp[aaa=1]*32,3);
+x=x+16;
+if(x>=105)
+{
+x=8;
+y=y+16;
+}
+}//画道具图像
+wx=8;
+wy=16;
+}else if(menuID==28)
+{//卖出目录
+ShowPic(113,1,0,1,0);
+MsgPaint (6,1,"普通道具",1);
+MsgPaint (6,2,"法术道具",1);
+MsgPaint (6,3,"材料装备",1);
+tMsgPaint (120,18,str_num,3);//显示钱
+MenuData[menuID][aaa=0]=3;
+Refresh();
+}else if(menuID==29)
+{//离开
+break;
+}else if(menuID==30||menuID==31||menuID==32)
+{//卖道具列表
+ShowPic(113,1,0,1,0);
+tMsgPaint (120,18,str_num,3);
+if(menuID==30)
+{
+Item_b=sItemA_b;
+Item_e=sItemA_e;
+Item_offset=o[aaa=7];
+}else if(menuID==31)
+{
+Item_b=sItemD_b;
+Item_e=sItemD_e;
+Item_offset=o[aaa=10];
+}else if(menuID==32)
+{
+Item_b=sItemB_b;
+Item_e=sItemB_e;
+Item_offset=o[aaa=8];
+}
+x=9;
+y=1;
+k=0;
+for(j=0;j<=(Item_e-Item_b);j++)
+{
+if(mem[Item_b+j]!=0)
+{
+fseek(fp,Item_offset+j*128,0);
+fread(Item_tmp,1,2,fp);//储存图像号码
+DrawPic(x,y,16,16,o[aaa=15]+Item_tmp[aaa=1]*32,3);
+x=x+16;
+if(x>=105)
+{
+x=9;
+y=y+16;
+}
+k++;
+}
+}//画道具图像
+if(k>0)
+{
+menuID=30;
+MenuData[menuID][aaa=0]=k;
+MenuData[menuID][aaa=8]=150;//卖道具起始ID
+wx=8;
+wy=16;
+}else 
+{
+IfMenuDraw=0;
+}
+}else if(menuID>=100&&menuID<150)
+{
+j=*(eDat+i+3+menuID-100)-1;
+fseek(fp,Item_offset+j*128+70,0);
+fread(Item_tmp,1,2,fp);//储存图像号码
+fseek(fp,Item_offset+j*128+2,0);
+fread(eName,1,10,fp);//储存道具名字
+fseek(fp,Item_offset+j*128+18,0);
+fread(tItemInfo,1,52,fp);//储存道具名字
+tItemInfo[aaa=52]=0;//读取道具信息
+Box(0,0,160,28,1,0);
+Box(1,0,160,28,0,1);
+tMsgPaint (3,2,tItemInfo,0x43);
+j=strchr(eName,32);
+if(j!=0)*j=0;
+fstr(eName,10,3,32);//显示名字
+j=add16(Item_tmp)**(eDat+i+2)/100;//道具花费
+str(j);
+fstr(str_num,5,3,32);
+MsgPaint (5,5,"价格:",0x41);
+MsgPaint (10,5,str_num,0x41);
+MsgPaint (5,4,eName,0x41);
+tMsgPaint (5*wx,33,"买下?[Y/N]",0x48);
+key=KeyPause(500);
+if(key==121)
+{
+if(NowMoney>=j)
+{//*(eDat+i+3+menuID-100)-1是道具号码
+if(mem[sItemA_b+*(eDat+i+3+menuID-100)-1]<255)
+{
+add_bit16(mem+(aaa=1163),-j);
+tMsgPaint (5*wx,33,"交易成功",0x48);
+mem[sItemA_b+*(eDat+i+menuID-97)-1]++;
+}else 
+{
+tMsgPaint (5*wx,33,"道具箱满了",0x48);
+}
+}else 
+{
+tMsgPaint (5*wx,33,"您的钱不够",0x48);
+}
+Delay(300);
+}//道具按键循环结束
+IfMenuDraw=0;
+}else if(menuID>=150)
+{
+j=0;
+for(k=0;k<=(Item_e-Item_b);k++)
+{
+if(mem[Item_b+k]!=0)j++;
+if(j-1==menuID-150)break;
+}
+j=k;//获取道具号码
+fseek(fp,Item_offset+j*128+70,0);
+fread(Item_tmp,1,2,fp);//储存图像号码
+fseek(fp,Item_offset+j*128+2,0);
+fread(eName,1,10,fp);//储存道具名字
+menuID=k;//道具号码转移
+j=strchr(eName,32);
+if(j!=0)*j=0;
+fstr(eName,10,3,32);//显示名字
+j=add16(Item_tmp)*6/(aaa=10);//道具花费
+str(j);
+fstr(str_num,5,3,32);
+MsgPaint (5,5,"价格:",0x41);
+MsgPaint (10,5,str_num,0x41);
+MsgPaint (5,4,eName,0x41);
+tMsgPaint (5*wx,33,"卖出?[Y/N]",0x48);
+key=KeyPause(500);
+if(key==121)
+{
+if(sum_bit16(mem+(aaa=1163),NowMoney,j)==1)
+{
+tMsgPaint (5*wx,33,"交易成功",0x48);
+mem[Item_b+menuID]--;
+}else 
+{
+tMsgPaint (5*wx,33,"钱箱已满",0x48);
+}
+Delay(300);
+}//卖出道具按键循环结束
+IfMenuDraw=0;
+}
+if(IfMenuDraw==1)
+menudraw(menuID);
+else 
+pID--;
+menuID=IDstack[pID];
+}while(pID>=pID_b)//菜单循环结束
+for(j=pID_b;j<=pID;j++)ENstack[j]=0;
+pID=pID_b-1;
+i=i+*(eDat+i+1)+3;
+IsJump=1;
+}
+else if(*(eDat+i)==11)
+{//可以行走
+IfMove=1;
+i++;
+}
+else if(*(eDat+i)==12)
+{//Move
+mem[add10(eDat+i+1)]=mem[add10(eDat+i+3)];
+i=i+5;
+}
+else if(*(eDat+i)==13)
+{//动画演示
+if(IfAutoShow==0)
+{
+IfAutoShow=1;
+DrawPlayer(mem[aaa=1307]*16,mem[aaa=1308]*16,mem[aaa=1309],0,0);
+}
+SaveScr(0,0);
+tAdd=*(eDat+i+1)*256+*(eDat+i+2);
+for(j=0;j<*(eDat+i+3);j++)
+{
+LoadScr(1,0);
+DrawBlock(tAdd,*(eDat+i+4+j*2)*16,*(eDat+i+5+j*2)*16,1);
+Refresh();
+Delay(200);
+}
+i=i+4+*(eDat+i+3)*2;
+}
+else if(*(eDat+i)==14)
+{//存屏幕
+SaveScr(0,0);
+i=i+1;
+}
+else if(*(eDat+i)==15)
+{//读屏幕
+LoadScr(1,0);
+Refresh();
+i=i+1;
+}
+else if(*(eDat+i)==16||*(eDat+i)==17)
+{//拖屏
+key=mem[aaa=1309]+20;
+j=18-*(eDat+i);
+if(mem[aaa=1305]>0&&mem[aaa=1301]<j&&key==23)mem[aaa=1305]--;
+if(mem[aaa=1306]>0&&mem[aaa=1302]<j&&key==20)mem[aaa=1306]--;
+if(mem[aaa=1305]<40&&mem[aaa=1301]>9-j&&key==22)mem[aaa=1305]++;
+if(mem[aaa=1306]<66&&mem[aaa=1302]>4-j&&key==21)mem[aaa=1306]++;
+i++;
+}
+else if(*(eDat+i)==18)
+{//刷屏幕
+IsJump=1;
+DrawMap();
+i++;
+}
+else if(*(eDat+i)==19)
+{//事件连接代码
+IfLink=1;
+i++;
+}
+else if(*(eDat+i)==20)
+{
+//跳转语句
+i=i+*(eDat+i+1)+1;
+}
+else if(*(eDat+i)==21)
+{//进门存坐标
+mem[aaa=1312]=mem[aaa=1311];
+for(j=0;j<5;j++)
+{
+mem[aaa=1313+j]=mem[aaa=1305+j];
+}
+i=i+1;
+}
+else if(*(eDat+i)==22)
+{//战斗
+mem[aaa=1232]=*(eDat+i+1);
+i=i+2;
+return i;
+}
+else if(*(eDat+i)==23)
+{//【Y/N】事件
+tMsgPaint (48,30,"是/否[Y/N]",0x49);
+key=KeyPause(500);
+Refresh();
+if(key==121)
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+1;
+}
+else if(*(eDat+i)==24)
+{//休息
+sum_bit16(mem+(aaa=1141),0,add16(mem+(aaa=1157)));
+sum_bit16(mem+(aaa=1143),0,add16(mem+(aaa=1159)));
+//魔法没有清零^_^bb
+i=i+1;
+}
+else if(*(eDat+i)==25)
+{//坐标跳转
+mem[aaa=1305]=*(eDat+i+1);
+mem[aaa=1306]=*(eDat+i+2);
+mem[aaa=1301]=255;
+mem[aaa=1302]=255;
+if(*(eDat+i+3)>=*(eDat+i+1)&&*(eDat+i+3)<=*(eDat+i+1)+9)
+{
+mem[aaa=1307]=*(eDat+i+3)-*(eDat+i+1);
+mem[aaa=1301]=mem[aaa=1307];
+}
+if(*(eDat+i+4)>=*(eDat+i+2)&&*(eDat+i+4)<=*(eDat+i+2)+4)
+{
+mem[aaa=1308]=*(eDat+i+4)-*(eDat+i+2);
+mem[aaa=1302]=mem[aaa=1308];
+}
+IsJump=1;
+i=i+5;
+}
+else if(*(eDat+i)==26)
+{//回车事件
+i++;
+}
+else if(*(eDat+i)==27)
+{//增加
+tAdd=add10(eDat+i+2);
+if(*(eDat+i+1)==1)
+{
+add_bit8(mem+tAdd,*(eDat+i+4));
+}
+else 
+{
+add_bit16(mem+tAdd,*(eDat+i+4));
+}
+i=i+5;
+}
+else if(*(eDat+i)==28)
+{//减少
+tAdd=add10(eDat+i+2);
+if(*(eDat+i+1)==1)
+{
+add_bit8(mem+tAdd,-*(eDat+i+4));
+}
+else 
+{
+add_bit16(mem+tAdd,-*(eDat+i+4));
+}
+i=i+5;
+}
+else if(*(eDat+i)==29)
+{//出门事件
+IsJump=1;
+mem[aaa=1311]=mem[aaa=1312];
+for(j=0;j<5;j++)
+{
+mem[aaa=1305+j]=mem[aaa=1313+j];
+}
+mem[aaa=1301]=mem[aaa=1307];
+mem[aaa=1302]=mem[aaa=1308];
+i=i+1;
+}
+else if(*(eDat+i)==30)
+{//旁白事件,bnum,enum,line
+if((*(eDat+i+2)-*(eDat+i+1)+1)<(6-*(eDat+i+3)))
+{k=*(eDat+i+1);p=*(eDat+i+2)-*(eDat+i+1)+1;}
+else {k=*(eDat+i+2)-(6-*(eDat+i+3))+1;p=6-*(eDat+i+3);}
+
+for(j=*(eDat+i+1);j<=k;j++)
+{
+Refresh();
+ShowSysTxt(*(eDat+i+3),j,p,0x45);
+Delay(1500);
+}
+i=i+4;
+}
+else if(*(eDat+i)==31)
+{//(NPC同伴)目前不支持
+i=i+9;
+}
+else if(*(eDat+i)==32)
+{//清屏，黑1白0
+for(j=15;j>=0;j--)
+{
+Box(j*5,j*2,160-j*5,79-j*2,1,1-*(eDat+i+1));
+Delay(*(eDat+i+2)*3+9);
+}
+i=i+3;
+}
+else if(*(eDat+i)==33)
+{//(读书)目前不支持
+i=i+7;
+}
+else if(*(eDat+i)==34)
+{//连续对话
+for(j=0;j<=(*(eDat+i+3)-*(eDat+i+2));j++)
+{
+ShowTxt(*(eDat+i+1),*(eDat+i+2)+j);
+KeyPause(500);
+}
+i=i+4;
+}
+else if(*(eDat+i)==35)
+{
+//长跳转语句
+i=i+*(eDat+i+1)*256+*(eDat+i+2)+1;
+}
+else if(*(eDat+i)==36)
+{//随机连续对话
+//四个参数，格式：[aaa=36],[x个循环],[页数],[起始对话号码],[对话数量]
+tAdd=rnd(*(eDat+i+1))**(eDat+i+4);
+
+for(j=0;j<*(eDat+i+4);j++)
+{
+ShowTxt(*(eDat+i+2),*(eDat+i+3)+j+tAdd);
+KeyPause(500);
+}
+i=i+5;
+}
+else if(*(eDat+i)==37)
+{//随机打开开关
+tAdd=add10(eDat+i+1);
+mem[tAdd]=rnd(256);
+i=i+3;
+}
+else if(*(eDat+i)==38)
+{//(ShowNpc)目前不支持
+i=i+4;
+}
+else if(*(eDat+i)==39)
+{//plus
+mem[add10(eDat+i+1)]=mem[add10(eDat+i+3)]+mem[add10(eDat+i+5)];
+i=i+7;
+}
+else if(*(eDat+i)==40)
+{//minus
+mem[add10(eDat+i+1)]=mem[add10(eDat+i+3)]-mem[add10(eDat+i+5)];
+i=i+7;
+}
+else if(*(eDat+i)==41)
+{//time
+mem[add10(eDat+i+1)]=mem[add10(eDat+i+3)]*mem[add10(eDat+i+5)];
+i=i+7;
+}
+else if(*(eDat+i)==42)
+{//div
+mem[add10(eDat+i+1)]=mem[add10(eDat+i+3)]/mem[add10(eDat+i+5)];
+i=i+7;
+}
+else if(*(eDat+i)==43)
+{//坐标跳转，读取4个地址
+//j,k,s,p
+j=add10(eDat+i+1);
+k=add10(eDat+i+3);
+s=add10(eDat+i+5);
+p=add10(eDat+i+7);
+mem[aaa=1305]=j;
+mem[aaa=1306]=k;
+mem[aaa=1301]=255;
+mem[aaa=1302]=255;
+if(s>j&&s<=j+9)
+{
+mem[aaa=1307]=s-j;
+mem[aaa=1301]=mem[aaa=1307];
+}
+if(p>k&&p<=k+4)
+{
+mem[aaa=1308]=p-k;
+mem[aaa=1302]=mem[aaa=1308];
+}
+IsJump=1;
+i=i+9;
+}
+else if(*(eDat+i)==44)
+{//ShowPicid,x,y,type,format
+j=add10(eDat+i+1);
+if(j>512)j=512;
+ShowPic(j,*(eDat+i+3),*(eDat+i+4),*(eDat+i+5),*(eDat+i+6));
+if(*(eDat+i+5)<0x40)Refresh();
+i=i+7;
+}
+else if(*(eDat+i)==45)
+{//MapChangemapid,blockid,isshow
+p=add10(eDat+i+1);//地图号码
+k=add10(eDat+i+3);//图素ID
+if(k>=224)
+{
+k=k-224;
+j=k-(k/8)*(aaa=8)+1;//开关号码
+
+if(*(eDat+i+5)==1)mem[s]=mem[s]&(255-(1<<j-1));
+else mem[s]=mem[s]|(1<<j-1);
+}
+i=i+6;
+}
+else if(*(eDat+i)==46)
+{//DelaydTime
+Delay(add10(eDat+i+1));
+i=i+3;
+}
+else if(*(eDat+i)==47)
+{//战斗，怪物号来自地址
+mem[aaa=1232]=mem[add10(eDat+i+1)];
+i=i+3;
+return i;
+}
+else if(*(eDat+i)==48)
+{
+mem[add10(eDat+i+1)]=KeyPause(100);
+i=i+3;
+}
+else if(*(eDat+i)==49)
+{//操作立即数的=
+if(mem[add10(eDat+i+1)]==add10(eDat+i+3))
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+5;
+}
+else if(*(eDat+i)==50)
+{//操作立即数的>
+if(mem[add10(eDat+i+1)]>add10(eDat+i+3))
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+5;
+}
+else if(*(eDat+i)==51)
+{//操作立即数的<
+if(mem[add10(eDat+i+1)]<add10(eDat+i+3))
+{
+IsTrue=1;
+}
+IsIf=1;
+i=i+5;
+}
+else if(*(eDat+i)==52)
+{//地址操作的While=
+if(mem[add10(eDat+i+1)]==mem[add10(eDat+i+3)])
+{
+i=stack[*(eDat+i+5)];
+}else i=i+6;
+}
+else if(*(eDat+i)==53)
+{//地址操作的While>
+if(mem[add10(eDat+i+1)]>mem[add10(eDat+i+3)])
+{
+i=stack[*(eDat+i+5)];
+}else i=i+6;
+}
+else if(*(eDat+i)==54)
+{//地址操作的While<
+if(mem[add10(eDat+i+1)]<mem[add10(eDat+i+3)])
+{
+i=stack[*(eDat+i+5)];
+}else i=i+6;
+}
+else if(*(eDat+i)==55)
+{//地址操作的While=
+if(mem[add10(eDat+i+1)]==add10(eDat+i+3))
+{
+i=stack[*(eDat+i+5)];
+}else i=i+6;
+}
+else if(*(eDat+i)==56)
+{//地址操作的While>
+if(mem[add10(eDat+i+1)]>add10(eDat+i+3))
+{
+i=stack[*(eDat+i+5)];
+}else i=i+6;
+}
+else if(*(eDat+i)==57)
+{//地址操作的While<
+if(mem[add10(eDat+i+1)]<add10(eDat+i+3))
+{
+i=stack[*(eDat+i+5)];
+}else i=i+6;
+}
+else if(*(eDat+i)==58)
+{//设置Do标志
+stack[*(eDat+i+1)]=i+2;
+i=i+2;
+}
+else if(*(eDat+i)==59)
+{//Scrupdata配合1301,1302,1305,MapY可以做出移动效果。
+DrawMap();
+i++;
+}
+else 
+{//遇到没有出现的代码
+break;
+}
+//If结构统一判断
+if(IsIf==1)
+{
+if(IsTrue==1)
+{
+i=i+*(eDat+i);
+}else 
+{
+if(*(eDat+i+1)==127)
+{
+i=i+2+*(eDat+i+2);
+}else 
+{
+i=i+*(eDat+i+1)*256+*(eDat+i+2);
+}
+}
+IsIf=0;
+IsTrue=0;
+}
+}
+//移动标志
+if(IfMove==0)
+{
+mem[aaa=1301]=mem[aaa=1307];
+mem[aaa=1302]=mem[aaa=1308];
+}
+return 0;
+}
+//由魔法号绘制魔法，返回伤害和鉴定
+long Magic(int n,int damage_address,int sBattle_Actor,int sBattle_Enemy,int tScr)
+{
+int i,j,k,last_time;
+int p,s;
+int rx,ry,mx,my;
+int rate;//在显示怪物属性的时候用
+memset(damage_address,0,4);
+mx=*(sBattle_Enemy+30);
+my=*(sBattle_Enemy+31);
+if(n==101||n==201)
+{//普通攻击1
+for(i=0;i<3;i++)
+{
+last_time=Getms();
+ShowPic(33,mx+i*5,35+i*5,0,3);
+Refresh();
+while(((Getms()-last_time)&0xff)<10);
+}
+ShackScr(2,1,0);
+return 0;
+}else if(n==102||n==202)
+{//普通攻击2
+for(i=0;i<3;i++)
+{
+last_time=Getms();
+ShowPic(35,mx+i*7,25+i*8,0,3);
+Refresh();
+while(((Getms()-last_time)&0xff)<10);
+}
+ShackScr(2,1,0);
+return 0;
+}else if(n==103||n==203)
+{//奋力一击
+for(i=0;i<3;i++)
+{
+rx=mx;
+ry=rnd(30)+20;
+for(j=0;j<3;j++)
+{
+last_time=Getms();
+ShowPic(41+j*2,rx+i*15,ry,0,3);
+Refresh();
+while(((Getms()-last_time)&0xff)<10);
+}
+ShackScr(2,1,0);
+}
+return 0;
+}else if(n==1)
+{//魔法（怪物资料列表）
+ClearScreen();
+ShowPic(135,50,31,1,3);
+for(i=0;i<5;i++)
+{
+str(add16(sBattle_Enemy+i*2));
+fstr(str_num,5,3,32);
+tMsgPaint (54,i*13,str_num,1);
+}
+str(add16(sBattle_Enemy+10));
+fstr(str_num,5,3,32);
+MsgPaint (4,5,"生命:",1);
+MsgPaint (9,5,str_num,1);
+str(add16(sBattle_Enemy+12));
+fstr(str_num,5,3,32);
+MsgPaint (15,5,"内力:",1);
+MsgPaint (20,5,str_num,1);
+//绘制血槽
+ShowPic(141,112,3,1,0);
+ShowPic(142,128,3,1,0);
+rate=add16(sBattle_Enemy+14)-add16(sBattle_Enemy+10);
+if(rate>0)Block(114,7,116,6+rate*50/add16(sBattle_Enemy+14),0);
+rate=add16(sBattle_Enemy+16)-add16(sBattle_Enemy+12);
+if(rate>0)Block(130,7,132,6+rate*50/add16(sBattle_Enemy+16),0);
+Refresh();
+KeyPause(100);
+WriteBlock(0,0,160,80,1,tScr);
+MsgPaint (2,5,sBattle_Enemy+19,8);
+Refresh();
+KeyPause(100);
+sum_bit16(damage_address,0,0);
+return 0;
+}else if(n==2)
+{//魔法火球术
+for(i=0;i<5;i++)
+{
+
+rx=rnd(10)+mx;
+ry=rnd(20)+my;
+ShowPic(3,rx,ry,0,3);
+Refresh();
+Delay(500);
+for(j=0;j<3;j++)
+{
+last_time=Getms();
+ShowPic(86+j*2,rx,ry,0,3);
+while(((Getms()-last_time)&0xff)<25);
+}
+ShackScr(2,1,0);
+}
+sum_bit16(damage_address,rnd(10),200);
+return 2;
+}else if(n==3)
+{//魔法落雷术
+for(i=0;i<2;i++)
+{
+ShowPic(28,mx/2+i*30,0,0,0);
+ShackScr(2,1,0);
+}
+sum_bit16(damage_address,rnd(10),300);
+return 2;
+}else if(n==4)
+{//魔法狂怒
+if(add16(mem+(aaa=1157))>50)
+{
+add_bit16(mem+(aaa=1233),30);
+add_bit16(mem+(aaa=1157),-add16(mem+(aaa=1157))/10);
+}
+MsgPaint (2,5,mem+(aaa=1128),0x49);
+MsgPaint (8,5,"的力量膨胀起来....",0x49);
+Delay(800);
+sum_bit16(damage_address,0,0);
+return 0;
+}else if(n==5)
+{//魔法无形剑气
+for(i=0;i<4;i++)
+{
+ry=13+i*13;
+for(j=0;j<2;j++)
+{
+for(k=0;k<10;k++)
+{
+last_time=Getms();
+Line(5+k*8,ry,5+k*8+7,ry,2);
+while(((Getms()-last_time)&0xff)<5);
+}
+}
+}
+last_time=Getms();
+Box(1,0,160,79,1,2);
+while(((Getms()-last_time)&0xff)<25);
+Box(1,0,160,79,1,2);
+ShackScr(2,1,0);
+p=0;
+last_time=Getms();
+for(i=0;i<5;i++)
+{
+GetBlock(p*8,i*13,80,i*13+12,0,tScr);
+if(p==0)p=1;else p=0;
+Block(0,i*13,80,i*13+13,0);
+WriteBlock(p*8,i*13,80,13,1,tScr);
+}
+Refresh();
+while(((Getms()-last_time)&0xff)<12);
+sum_bit16(damage_address,rnd(10),900);
+return 1;
+}else 
+{//其他魔法
+sum_bit16(damage_address,0,1);
+ShackScr(1,1,1);
+return 0;
+}
+return 0;
+}
+
+//战斗模块
+long battle(int n)
+{
+char key;
+char tScr[1600];
+char tItem[128];
+char tMon[43];
+char IfMenuDraw;
+char IfShowHeroInfo;
+char IfEscape;
+int pID_b;
+char menuID;
+char Magic_Test;
+char Pass_Test;
+long rate;//各种几率
+long Damage;
+char Damage_Fix;//攻击修正
+char Attack_Type;//攻击种类
+char EqFix[6];//装备修正
+long Item_offset;
+long Item_b;
+long Item_e;
+char Item_Use;
+long sBattle_Enemy;
+long sBattle_Actor;
+long i,j,k;
+int last_time;//延时
+IsJump=1;
+if(n<=0||n>MAX_MON)return 0;//怪物号码从1开始
+IfShowHeroInfo=1;
+AnimateBlock(0,0,160,80,2,0);
+
+//************初始属性拷贝****************
+//
+//载入42字节怪物数据
+fseek(fp,o[aaa=5]+(n-1)*42,0);
+fread(tMon,1,42,fp);
+//怪物属性拷贝
+memcpy(mem+(aaa=1265),tMon+(aaa=6),14);
+mem[aaa=1283]=tMon[aaa=20];
+//怪物名称居中
+for(i=0;i<10;i++)
+{
+if(tMon[aaa=32+i]==32)tMon[aaa=32+i]=0;
+}
+fstr(tMon+(aaa=32),10,3,32);
+mem[aaa=1294]=0;
+//拷贝怪物的HP,MP最大值
+memcpy(mem+(aaa=1279),mem+(aaa=1275),4);
+memcpy(mem+(aaa=1284),tMon+(aaa=32),10);
+//拷贝怪物中心坐标
+memcpy(mem+(aaa=1295),tMon+(aaa=4),2);
+//拷贝英雄属性
+mem[aaa=1251]=mem[aaa=1147];
+//五项属性
+memset(EqFix,0,6);
+for(i=0;i<4;i++)EqSet(EqFix,i);
+for(i=0;i<5;i++)sum_bit16(mem+(aaa=1233)+i*2,mem[aaa=1136+i],EqFix[i+1]);
+//拷贝英雄HP,MP以及最大值
+memcpy(mem+(aaa=1243),mem+(aaa=1141),4);
+memcpy(mem+(aaa=1247),mem+(aaa=1157),4);
+memcpy(mem+(aaa=1254),mem+(aaa=1128),6);
+mem[aaa=1262]=0;
+//拷贝英雄中心坐标
+memcpy(mem+(aaa=1263),mem+(aaa=1154),2);
+//*************数据初始化结束*******************
+//行动顺序由敏捷决定
+if(add16(mem+(aaa=1237))<add16(mem+(aaa=1269)))
+{//敌方行动
+sBattle_Enemy=(aaa=1265)+(aaa=mem);
+}else 
+{
+sBattle_Enemy=(aaa=1233)+(aaa=mem);
+}
+IfEscape=0;
+//*****************战斗模块********************
+do
+{
+//为零就死亡了
+if(add16(sBattle_Enemy+10)==0)break;
+//同步英雄属性
+memcpy(mem+(aaa=1141),mem+(aaa=1243),4);
+memcpy(mem+(aaa=1157),mem+(aaa=1247),4);
+//保证HPMP不超限
+InfoFix();
+//更新屏幕
+ClearScreen();
+ShowPic(300+mem[aaa=1153],0,0,1,0);
+ShowMon(tMon[aaa=0]*256+tMon[aaa=1],tMon[aaa=2],tMon[aaa=3],0,0);
+ShowPic(mem[aaa=1156],mem[aaa=1154],mem[aaa=1155],0,3);
+Refresh();
+if(sBattle_Enemy==(aaa=1233)+(aaa=mem))
+{//我方行动
+Damage_Fix=0;
+sBattle_Enemy=(aaa=1265)+(aaa=mem);
+sBattle_Actor=(aaa=1233)+(aaa=mem);
+if(IfShowHeroInfo==1)
+{
+ShowPic(141,1,1,1,0);
+ShowPic(142,153,1,1,0);
+rate=add16(sBattle_Actor+14)-add16(sBattle_Actor+10);
+if(rate>0)Block(3,5,5,4+rate*50/add16(sBattle_Actor+14),0);
+rate=add16(sBattle_Actor+16)-add16(sBattle_Actor+12);
+if(rate>0)Block(155,5,157,4+rate*50/add16(sBattle_Actor+16),0);
+}
+pID++;
+pID_b=pID;
+IDstack[pID]=18;//18号战斗菜单
+menuID=IDstack[pID];
+//我方战斗菜单循环
+do
+{
+wx=6;
+wy=13;
+IfMenuDraw=1;
+if(menuID==18)
+{//主菜单
+pID=pID_b+1;
+IDstack[pID]=18;//18号战斗菜单
+menuID=IDstack[pID];
+ShowPic(115,1,62,1,0);
+menuTxt(menuID);
+}else if(menuID==19)
+{//攻击
+//Block(0,5*wy,160,80,0);
+ShowPic(115,1,62,1,0);
+menuTxt(menuID);
+Attack_Type=0;
+}else if(menuID==20)
+{//魔法选项
+i=-1;k=1;
+do
+{
+Attack_Type=0;//每次开始都==0
+for(j=0;j<=(sMagic_e)+1;j++)
+{
+i=i+k;
+if(i>sMagic_e)i=0;
+if(i<0)i=sMagic_e;
+if(mem[i]!=0)break;
+}
+if(i==0&&mem[i]==0)break;//一个魔法也没有
+//获取魔法号码
+Attack_Type=i;
+fseek(fp,o[aaa=13]+Attack_Type*128,0);
+fread(tItem,1,128,fp);
+//Block(0,5*wy,160,80,0);
+ShowPic(115,1,62,1,0);
+//MP消耗
+k=tItem[aaa=80]*256+tItem[aaa=81];
+str(k);
+MsgPaint (12,5,"耗费:",1);
+MsgPaint (18,5,str_num,1);
+//显示名称
+tItem[aaa=12]=0;
+MsgPaint (2,5,tItem+2,1);
+Attack_Type++;
+Refresh();
+key=KeyPause(150);
+if(key==23)
+{
+k=-1;
+}else if(key==22)
+{
+k=1;
+}else if(key==13)
+{
+if(add_bit16(mem+(aaa=1143),-k)==1)break;
+MsgPaint (9,5,"法力不足",0x48);
+KeyPause(100);
+k=0;
+}else if(key==27)
+{
+Attack_Type=0;
+}
+}while(Attack_Type!=0)
+if(Attack_Type==0)
+{
+IfMenuDraw=0;//返回上级菜单
+}else 
+{
+break;//选到魔法退出
+}
+}else if(menuID==21)
+{//道具
+ShowPic(115,1,62,1,0);
+menuTxt(menuID);
+}else if(menuID==22)
+{//逃跑选项
+if(mem[aaa=1231]!=255)
+{
+Attack_Type=254;
+break;
+}else 
+{
+Refresh();
+MsgPaint (7,5,"不能逃跑...",0x48);
+KeyPause(100);
+IfMenuDraw=0;
+}
+}else if(menuID==23)
+{//状态选项
+Refresh();
+MsgPaint (3,5,"HP:MP:",0x48);
+str(add16(mem+(aaa=1141)));
+fstr(str_num,6,3,32);
+MsgPaint (7,5,str_num,0x48);
+str(add16(mem+(aaa=1143)));
+fstr(str_num,6,3,32);
+MsgPaint (16,5,str_num,0x48);
+KeyPause(100);
+IfMenuDraw=0;
+}else if(menuID==24)
+{//普通攻击
+break;
+}else if(menuID==25)
+{//附魔攻击
+if(add_bit16(mem+(aaa=1143),-20)==1)
+{
+Damage_Fix=30;
+}
+break;
+}else if(menuID>=100)
+{//道具选择
+Attack_Type=255;
+menuID=menuID-100;
+if(menuID==0)
+{//选择普通
+Item_b=sItemA_b;
+Item_e=sItemA_e;
+Item_offset=o[aaa=7];
+}else if(menuID==1)
+{//选择法宝
+Item_b=sItemD_b;
+Item_e=sItemD_e;
+Item_offset=o[aaa=10];
+}
+i=Item_b-1;
+k=1;
+do
+{
+Item_Use=0;//每次开始都==0
+for(j=0;j<=(Item_e-Item_b)+1;j++)
+{
+i=i+k;
+if(i>Item_e)i=Item_b;
+if(i<Item_b)i=Item_e;
+if(mem[i]!=0)break;
+}
+if(i==Item_b&&mem[i]==0)break;//一个道具也没有
+//获取道具号码
+Item_Use=i-Item_b;
+fseek(fp,Item_offset+Item_Use*128,0);
+fread(tItem,1,128,fp);
+ShowPic(115,1,62,1,0);
+//剩余量
+k=mem[Item_b+Item_Use];
+str(k);
+MsgPaint (12,5,"剩余:",1);
+MsgPaint (18,5,str_num,1);
+//拷贝事件量
+memcpy(EventDat,tItem+74,55);
+//显示道具名称,偷懒的方法,直接在最后补零了。
+tItem[aaa=12]=0;
+MsgPaint (2,5,tItem+2,1);
+Item_Use++;
+Refresh();
+key=KeyPause(150);
+if(key==23)
+{
+k=-1;
+}else if(key==22)
+{
+k=1;
+}else if(key==13)
+{
+//是否可以在战斗中使用
+if(Test(tItem[aaa=72],2)>0)
+{
+mem[Item_b+Item_Use-1]--;
+break;
+}else 
+{
+MsgPaint (5,5,"不能在战斗中使用",0x48);
+KeyPause(100);
+k=0;
+}
+}else if(key==27)
+{
+Item_Use=0;
+}
+}while(Item_Use!=0)
+if(Item_Use==0)
+{
+IfMenuDraw=0;//返回上级菜单
+}else 
+{
+break;//选到道具退出
+}
+}
+if(IfMenuDraw==1)
+menudraw(menuID);
+else 
+pID--;
+menuID=IDstack[pID];
+}while(pID>=pID_b)//战斗菜单循环结束
+//清空菜单的栈
+for(i=pID_b;i<=pID;i++)ENstack[i]=0;
+pID=pID_b-1;
+}
+else if(sBattle_Enemy==(aaa=1265)+(aaa=mem))
+{//怪物行动
+Damage_Fix=0;
+sBattle_Enemy=(aaa=1233)+(aaa=mem);
+sBattle_Actor=(aaa=1265)+(aaa=mem);
+rate=0;//将逃跑率设为0
+if(add16(sBattle_Actor+10)*10/add16(sBattle_Actor+14)<2)
+{//HP小于1/5
+rate=10;
+}
+if(rnd(100)<rate)
+{//选择逃跑
+Attack_Type=254;
+}else 
+{//选择某种攻击方式
+Attack_Type=tMon[aaa=26+rnd(6)];
+}
+}
+//更新屏幕
+//更新屏幕
+ClearScreen();
+ShowPic(300+mem[aaa=1153],0,0,1,0);
+ShowMon(tMon[aaa=0]*256+tMon[aaa=1],tMon[aaa=2],tMon[aaa=3],0,0);
+ShowPic(mem[aaa=1156],mem[aaa=1154],mem[aaa=1155],0,3);
+Refresh();
+GetBlock(1,0,160,80,0,tScr);
+//*****************开始动作*******************
+//徒手战斗
+if(Attack_Type==0)
+{
+//Miss鉴定60%+40%(Agl2-Agl1)/Agl1
+rate=add16(sBattle_Actor+4)-add16(sBattle_Enemy+4);
+if(rate<0)rate=0;
+if(rnd(100)<40*rate/add16(sBattle_Enemy+4)+60)
+{
+//普通攻击(Atk*2-Def)*3+附加伤害
+rate=add16(sBattle_Actor)*2-add16(sBattle_Enemy+2);
+if(rate<0)rate=0;
+i=rnd(2)+1;
+Damage=rate*3+(rnd(10)+i*5);
+//会心一击鉴定10%+40%(LUC)/100+攻击修正
+if(rnd(100)<add16(sBattle_Actor+8)*40/100+10+Damage_Fix)
+{
+Damage=Damage*3/2;
+i=3;
+}
+//攻击动画,主人公从100开始是徒手，怪物从200
+if(sBattle_Actor==(aaa=1265)+(aaa=mem))i=i+100;
+Magic(i+100,&rate,sBattle_Actor,sBattle_Enemy,tScr);
+}else 
+{//攻击失误!!
+Damage=0;
+j=*(sBattle_Enemy+30);
+for(i=10;i<72;i=i+5)
+{
+last_time=Getms();
+ShowPic(123,j,i,0,3);
+Refresh();
+WriteBlock(0,0,160,80,1,tScr);
+while(((Getms()-last_time)&0xff)<12);
+}
+WriteBlock(0,0,160,80,1,tScr);
+Refresh();
+Delay(10);
+}
+}else if(Attack_Type==255)
+{
+if(Item_b!=sItemD_b)
+{//使用普通道具
+Translate(tItem+74,0);
+//同步主角属性
+memcpy(mem+(aaa=1243),mem+(aaa=1141),4);
+memcpy(mem+(aaa=1247),mem+(aaa=1157),4);
+MsgPaint (5,5,mem+(aaa=1128),0x41);
+MsgPaint (11,5,"使用了道具",0x41);
+Damage=0;
+Delay(800);
+}else 
+{//使用法宝
+Magic(ItemD_Attack[Item_Use-1],&Damage,sBattle_Actor,sBattle_Enemy,tScr);
+}
+}else if(Attack_Type==254)
+{
+Damage=0;
+IfEscape=1;
+for(i=0;i<2;i++)
+{//逃跑字幕动画
+ShowPic(125,*(sBattle_Actor+30)+3,*(sBattle_Actor+31),0,3);
+Refresh();
+WriteBlock(0,0,160,80,1,tScr);
+Delay(100);
+ShowPic(125,*(sBattle_Actor+30)-3,*(sBattle_Actor+31),0,3);
+Refresh();
+WriteBlock(0,0,160,80,1,tScr);
+Delay(100);
+}
+ShowPic(125,*(sBattle_Actor+30),*(sBattle_Actor+31),0,3);
+Refresh();
+Delay(500);
+//逃跑鉴定25%+75%(Agl1-Agl2)/Agl2
+rate=add16(sBattle_Actor+4)-add16(sBattle_Enemy+4);
+if(rate<0)rate=0;
+if(rnd(100)>75*rate/add16(sBattle_Enemy+4)+25)
+{
+IfEscape=0;
+for(i=1;i<=4;i++)
+{//没成功字幕动画
+ShowPic(127,*(sBattle_Actor+30),20+10*i,0,3);
+Refresh();
+WriteBlock(0,0,160,80,1,tScr);
+Delay(100);
+}
+Delay(500);
+}
+}else 
+{//魔法攻击
+//REM鉴定公式30%+30%(int 2-int 1)/int 1
+Magic_Test=Magic(Attack_Type,&Damage,sBattle_Actor,sBattle_Enemy,tScr);
+if(Damage!=0)Damage=Damage+(*(sBattle_Actor+18))*5/2;
+if(Magic_Test!=0)
+{
+Pass_Test=0;
+rate=add16(sBattle_Enemy+6)-add16(sBattle_Actor+6);
+if(rate<0)rate=0;
+if(rate>add16(sBattle_Actor+6))rate=add16(sBattle_Actor+6);
+if(rnd(100)<30*rate/add16(sBattle_Actor+6)+30)Pass_Test=1;
+if(Pass_Test==1&&Magic_Test==2)
+{
+Damage=1;
+ShowPic(136,40,65,0x40,0);
+}
+if(Pass_Test==1&&Magic_Test==1)
+{
+Damage=Damage/2;
+ShowPic(138,40,65,0x40,0);
+}
+}
+Delay(800);
+}
+//得到伤害值然后显示
+if(Damage!=0)
+{
+str(Damage);
+j=(163-(strlen(str_num))*8)/2;
+ShowPic(58,j,65,0,0);
+j=j+8;
+ShowPic(47,j,65,1,0);
+j=j+8;
+for(i=0;i<strlen(str_num);i++)
+{
+ShowPic(str_num[i],j,65,1,0);
+j=j+8;
+}
+ShowPic(60,j,65,0,0);
+Refresh();
+KeyPause(100);
+}
+}while(add_bit16(sBattle_Enemy+10,-Damage)==1&&IfEscape==0)
+//////////////////////////////////战斗结束胜负处理
+IsJump=1;
+if(IfEscape==1)return 255;
+if(sBattle_Enemy==(aaa=1233)+(aaa=mem))return 254;
+ClearScreen();
+ShowSysTxt(0,65,6,1);
+//循环显示n项奖励
+for(i=0;i<4;i++)
+{
+str(tMon[aaa=22+i]);
+MsgPaint (16,i+1,str_num,1);
+}
+//奖励写回
+if(mem[aaa=1147]<100)
+{
+add_bit16(mem+(aaa=1163),tMon[aaa=22]);
+add_bit16(mem+(aaa=1145),tMon[aaa=23]);
+add_bit16(mem+(aaa=1157),tMon[aaa=24]);
+add_bit16(mem+(aaa=1159),tMon[aaa=25]);
+}
+//道具奖励
+if(rnd(100)<25)
+{
+fseek(fp,o[aaa=7]+(tMon[aaa=21]-1)*128+2,0);
+fread(tMon+32,1,10,fp);
+MsgPaint (16,5,tMon+(aaa=32),1);
+add_bit8(mem+sItemA_b+tMon[aaa=21]-1,1);
+}
+//绘制花纹
+ShowPic(140,1,0,3,0);
+Refresh();
+KeyPause(100);
+while(add16(mem+(aaa=1145))>=add16(mem+(aaa=1161))&&mem[aaa=1147]<100)
+{//升级
+//ClearScreen();
+for(i=0;i<3;i++)
+{
+ShowPic(140,1,0,1,0);
+ShowPic(131-i,30+i*5,26,3,0);
+ShowPic(134-i,130-i*5,52,3,1);
+Refresh();
+Delay(50);
+}
+tMsgPaint (56,55,"级别",0x43);
+str(mem[aaa=1147]);
+fstr(str_num,3,3,32);
+tMsgPaint (86,55,str_num,0x43);
+Delay(500);
+AnimateCircle(91,60,8,0,0);
+str(mem[aaa=1147]+1);
+fstr(str_num,3,3,32);
+tMsgPaint (86,55,str_num,0x43);
+Delay(600);
+ShowPic(140,1,0,1,0);
+ShowPic(135,68,40,1,3);
+Refresh();
+for(i=0;i<5;i++)
+{
+j=mem[aaa=1148+i]*(mem[aaa=1147]+1)/100-mem[aaa=1148+i]*mem[aaa=1147]/100;
+str(mem[aaa=1136+i]);
+fstr(str_num,3,3,32);
+tMsgPaint (60,i*13+9,str_num,3);
+add_bit8(mem+(aaa=1136)+i,j);//属性增加
+str(mem[aaa=1136+i]);
+fstr(str_num,3,3,32);
+tMsgPaint (90,i*13+9,str_num,3);
+}
+mem[aaa=1147]++;//级别增加1
+sum_bit16(mem+(aaa=1161),mem[aaa=1147]*mem[aaa=1147]*655/(aaa=100),0);
+Refresh();
+sum_bit16(mem+(aaa=1141),0,add16(mem+(aaa=1157)));
+sum_bit16(mem+(aaa=1143),0,add16(mem+(aaa=1159)));
+Delay(1500);
+}
+Refresh();
+IsJump=1;
+return 255;
+//////////////////////////////////战斗结束胜负处理
+}
+//战斗测试
+long Test_Battle()
+{//战斗模块更改～
+char i,j;
+if(mem[aaa=1297]==0)return 0;
+if(mem[aaa=1325]==0)mem[aaa=1325]=rnd(mem[aaa=1297]/2)+mem[aaa=1297]/2+1;
+mem[aaa=1320]++;
+if(rnd(100)>50&&mem[aaa=1320]>mem[aaa=1325])
+{
+for(i=0;i<3;i++)j=j+mem[aaa=1298+i];
+if(j==0)return 0;//没有怪物号码
+j=0;
+do
+{
+j=mem[aaa=1298+rnd(3)];
+}while(j==0);
+mem[aaa=1320]=0;
+mem[aaa=1325]=0;
+return j;//返回怪物号码
+}else 
+{
+return 0;
+}
+}
+//菜单模块
+void menu(char id)
+{
+char menuID,key;
+int pID_b;
+int i,j,k;
+int x,y,p;
+int elink;
+char eName[17];//装备名字
+char EqFix[6];//装备数值修正
+char tEqFix[6];//装备数值修正对比
+char tEqInfo[3];//源装备信息临时储存
+char tScr[128];//临时存屏幕，或者存道具的介绍
+char txt[79];//储存3行
+
+char IfMenuDraw;//表示是否画菜单
+char IfEquMake;//表示是否在打造
+char bLoop;//是否循环
+int Item_b;//道具起始号码
+int Item_e;//道具终止号码
+long Item_offset;//道具信息偏移
+int Equ_Kind;//装备类型手身脚配（打造用变量）
+int Equ_No;//装备号码
+
+pID++;//从1开始是ID栈
+pID_b=pID;
+IDstack[pID]=id;
+menuID=id;
+eName[aaa=16]=0;
+while(pID>=pID_b)
+{
+IfMenuDraw=1;
+wx=6;
+wy=13;
+if(menuID==0)
+{//主菜单状态，属性菜单
+ShowPic(110,1,0,1,0);
+ShowPic(add16(mem+(aaa=1000)),10,26,1,0);
+tMsgPaint (9,62,mem+(aaa=1128),3);
+InfoFix();
+for(i=0;i<3;i++)
+{
+str(add16(mem+(aaa=1141)+i*2));//各种属性
+fstr(str_num,5,1,32);
+MsgPaint (14,i+1,str_num,1);
+str(add16(mem+(aaa=1157)+i*2));
+//fstr(str_num,5,0,32);
+MsgPaint (20,i+1,str_num,1);//属性最大值
+}
+str(mem[aaa=1147]);
+MsgPaint (19,4,str_num,1);
+str(add16(mem+(aaa=1163)));
+fstr(str_num,5,3,32);
+MsgPaint (18,5,str_num,1);
+for(i=pID_b+1;i<=pID;i++)ENstack[i]=0;
+pID=pID_b;
+menuID=0;
+}else if(menuID==1)
+{//选项菜单
+ShowPic(111,1,0,1,0);
+MsgPaint (6,2,"菜单记忆是否",1);
+MsgPaint (6,3,"移动速度快慢",1);
+MsgPaint (6,4,"跑步按键",1);
+str(SpeedUpKey);
+fstr(str_num,3,3,32);
+MsgPaint (16,4,str_num,1);
+if(IsMenuMemary==1)MsgPaint (15,2,"是",9);else MsgPaint (18,2,"否",9);
+if(IsPixelMove==0)MsgPaint (15,3,"快",9);else MsgPaint (18,3,"慢",9);
+}else if(menuID==2)
+{//状态菜单
+ShowPic(112,1,0,1,0);
+memset(EqFix,0,6);//清除装备修正缓存
+for(i=0;i<4;i++)
+{
+if(mem[aaa=1321+i]!=0)
+{
+memcpy(eName,EquPerFix[i][mem[aaa=1321+i]-1],6);
+GetName(mem[aaa=1610+i]-1);
+memcpy(eName+(aaa=6),EquName+(aaa=2),10);//获得装备名字
+tMsgPaint (3*wx+1,(i+1)*wy,eName,3);//打印装备
+EqSet(EqFix,i);//加上装备修正,修正之后EqFix[aaa=1~5]就是装备属性加权
+}
+}
+for(i=0;i<5;i++)
+{
+str(mem[aaa=1136+i]+EqFix[i+1]);
+MsgPaint (23,i+1,str_num,1);
+}
+}else if(menuID==3)
+{//物品菜单
+ShowPic(111,1,0,1,0);
+menuTxt(menuID);
+}else if(menuID==5)
+{//系统菜单
+//ClearScreen();
+ShowPic(111,1,0,1,0);
+MsgPaint (7,5,GAME_VER,3);//打印版本号
+menuTxt(menuID);
+}else if(menuID==6||menuID==7||menuID==8||menuID==9)
+{//四个装备
+IfMenuDraw=0;
+Refresh();
+key=28;
+Equ_Kind=menuID-6;
+if(mem[aaa=1321+Equ_Kind]!=0)
+{//写下方文字
+ShowPic(119,1,61,0x41,0);
+GetBlock(112,5*wy,48,13,0x40,tScr);
+ShowSysTxt(5,menuID+72,1,0x41);
+WriteBlock(112,5*wy,48,13,0x41,tScr);
+ShowPic(119,1,61,0x43,0);
+for(i=0;i<3;i++)
+{
+str(mem[aaa=1620+i+Equ_Kind*3]);
+MsgPaint (4+i*6,5,str_num,0x43);
+}
+AnimateBox(38,14,40,40,0,0);
+ShowPic(120,38,14,0x41,0);
+GetName(mem[aaa=1610+Equ_Kind]-1);
+ShowEqu(EquName[aaa=0]*256+EquName[aaa=1],42,18,0x43);
+key=KeyPause(100);
+Refresh();
+}
+if(key==29)
+{//卸下装备
+if(mem[aaa=1326+Equ_Kind]>=10)
+{
+MsgPaint (8,2,"箱子满了...",0x48);
+Delay(800);
+MsgPaint (8,2,"丢弃吗(Y/N)",0x48);
+key=KeyPause(100);
+if(key==121)mem[aaa=1321+Equ_Kind]=0;
+key=29;
+}else 
+{
+j=1330+Equ_Kind*50+mem[aaa=1326+Equ_Kind]*5;
+mem[j]=mem[aaa=1610+Equ_Kind];
+mem[j+1]=mem[aaa=1321+Equ_Kind];
+memcpy(mem+j+(aaa=2),mem+(aaa=1620)+Equ_Kind*3,3);
+mem[aaa=1326+Equ_Kind]++;
+mem[aaa=1321+Equ_Kind]=0;
+mem[aaa=1610+Equ_Kind]=0;
+memset(mem+(aaa=1620)+Equ_Kind*3,0,3);
+}
+}else if(mem[aaa=1326+Equ_Kind]!=0&&key==28)
+{//防制卸载完就要求装备
+MsgPaint (8,2,"更换装备",0x48);
+Delay(300);
+//进入装备库
+p=0;
+do
+{
+ShowPic(121,1,0,1,0);
+ShowSysTxt(5,78+Equ_Kind,1,3);
+//每种装备箱子的长度现在装备信息的位置
+i=1330+Equ_Kind*50+p*5;
+Equ_No=mem[i]-1;
+k=mem[i+1];
+memcpy(eName,EquPerFix[Equ_Kind][k-1],6);
+GetName(Equ_No);
+memcpy(eName+(aaa=6),EquName+(aaa=2),10);//获得装备名字
+j=strchr(eName,32);
+if(j!=0)*j=0;
+fstr(eName,16,3,32);
+tMsgPaint (0,4*wy-3,eName,3);
+memcpy(tEqInfo,mem+(aaa=1620)+Equ_Kind*3,3);//把原来装备信息储存
+memset(tEqFix,0,6);
+memset(EqFix,0,6);//信息清零
+for(j=0;j<4;j++)EqSet(EqFix,j);//计算装备前的效果
+for(j=0;j<3;j++)
+{
+mem[aaa=1620+Equ_Kind*3+j]=mem[i+2+j];
+str(mem[i+2+j]);
+MsgPaint (4+j*6,5,str_num,3);
+}//储存并打印目前的信息
+for(j=0;j<4;j++)EqSet(tEqFix,j);//计算装备后的效果
+for(j=0;j<5;j++)
+{
+str(EqFix[j+1]+mem[aaa=1136+j]);
+fstr(str_num,3,1,32);
+MsgPaint (18,j,str_num,3);
+str(tEqFix[j+1]+mem[aaa=1136+j]);
+MsgPaint (23,j,str_num,3);
+}
+//显示装备数量
+MsgPaint (2,0,"/",1);
+str(p+1);
+fstr(str_num,2,1,32);
+MsgPaint (0,0,str_num,1);
+str(mem[aaa=1326+Equ_Kind]);
+MsgPaint (3,0,str_num,1);
+Delay(200);
+Refresh();
+AnimateBox(32,6,40,40,0,0);
+ShowPic(120,32,6,0x41,0);
+ShowEqu(EquName[aaa=0]*256+EquName[aaa=1],36,10,0x43);
+bLoop=1;
+while(bLoop==1)
+{
+key=KeyPause(100);
+memcpy(mem+(aaa=1620)+Equ_Kind*3,tEqInfo,3);//把原来装备信息还愿
+if(key==23||key==20)
+{
+if(p!=0){
+p--;
+bLoop=0;
+}
+}else if(key==22||key==21)
+{
+if(p<mem[aaa=1325+Equ_Kind]){
+p++;
+bLoop=0;
+}
+}else if(key==121)
+{//更换装备
+memcpy(mem+(aaa=1620)+Equ_Kind*3,mem+i+(aaa=2),3);
+bLoop=0;
+if(mem[aaa=1321+Equ_Kind]!=0)
+{
+mem[i]=mem[aaa=1610+Equ_Kind];
+mem[i+1]=mem[aaa=1321+Equ_Kind];
+memcpy(mem+i+(aaa=2),tEqInfo,3);
+}else 
+{
+key=29;
+}
+mem[aaa=1610+Equ_Kind]=Equ_No+1;
+mem[aaa=1321+Equ_Kind]=k;
+}
+if(key==29)
+{//删除装备
+bLoop=0;
+MsgPaint (6,2,"整理装备...",0x48);
+if(mem[aaa=1326+Equ_Kind]<10)
+memmove(mem+i,mem+i+(aaa=5),(9-p)*5);
+if(p+1==mem[aaa=1326+Equ_Kind])p--;
+mem[aaa=1326+Equ_Kind]--;
+if(mem[aaa=1326+Equ_Kind]==0)key=27;
+}
+if(key==27||key==110)
+{
+key=27;
+bLoop=0;
+}
+}//bLoop循环
+}while(key!=27)
+}//是否有装备可换
+}else if(menuID==4||menuID==10||menuID==11||menuID==12)
+{//三种道具和法术
+//ClearScreen();
+ShowPic(111,1,0,1,0);
+if(menuID==4)
+{
+Item_b=0;
+Item_e=sMagic_e;
+Item_offset=o[aaa=13];
+}else if(menuID==10)
+{
+Item_b=sItemA_b;
+Item_e=sItemA_e;
+Item_offset=o[aaa=7];
+}else if(menuID==11)
+{
+Item_b=sItemD_b;
+Item_e=sItemD_e;
+Item_offset=o[aaa=10];
+}else if(menuID==12)
+{
+Item_b=sItemB_b;
+Item_e=sItemB_e;
+Item_offset=o[aaa=8];
+}
+j=0;//计数清零
+for(i=0;i<=Item_e-Item_b;i++)
+{
+if(mem[Item_b+i]>0)
+{
+mem[aaa=880+j]=i;//把号码标到上面
+fseek(fp,Item_offset+i*128,0);
+fread(mem+(aaa=920)+j*2,1,2,fp);
+j++;//道具数量
+}
+}
+//绘制道具初始参数
+if(j==0)
+{
+IfMenuDraw=0;
+}else 
+{
+MenuData[menuID][aaa=0]=j;
+MenuData[menuID][aaa=8]=100;//起始ID
+MenuData[menuID][aaa=1]=9;
+i=0;
+x=8;
+y=16;
+wx=8;
+wy=16;
+while(i<j)
+{
+DrawPic(x,y,16,16,o[aaa=15]+mem[aaa=921+i*2]*32,3);
+x=x+wx*2;
+if(x>=152)
+{
+x=8;
+y=y+wy;
+}
+i++;
+}
+}
+}else if(menuID==13)
+{//神器显示（大图示的道具）
+//ClearScreen();
+Item_b=sItemC_b;
+Item_e=sItemC_e;
+Item_offset=o[aaa=9];//获取偏移地址
+j=0;
+for(i=0;i<=Item_e-Item_b;i++)
+{
+if(mem[Item_b+i]>0)
+{
+mem[aaa=880+j]=i;//把号码标到上面
+fseek(fp,Item_offset+i*128,0);
+fread(mem+(aaa=920)+j*2,1,2,fp);
+j++;//神器数量
+}
+}
+if(j!=0)
+{//绘制神器开始
+i=1;
+while(i!=0)
+{
+bLoop=1;
+fseek(fp,Item_offset+mem[aaa=879+i]*128,0);
+fread(tScr,1,128,fp);//读取道具信息
+ShowPic(114,1,0,1,0);//清除屏幕
+memcpy(txt,tScr+2,10);//道具名称
+txt[aaa=10]=0;
+MsgPaint (14,1,txt,3);
+memcpy(txt,tScr+12,6);//道具种类
+txt[aaa=6]=0;
+MsgPaint (14,2,txt,3);
+//str(mem[Item_b+(i-1)]);//道具数量
+//MsgPaint (21,2,str_num,0x41);
+//if(Test(tScr[aaa=73],2)>0)ShowSysTxt(3,83,1,0x41);//是否可以在地图使用
+MsgPaint (0,0,"/",9);
+str(i);fstr(str_num,2,1,32);MsgPaint (0,0,str_num,9);//号码
+str(j);fstr(str_num,2,0,32);MsgPaint (3,0,str_num,9);//上限
+memcpy(txt,tScr+18,52);//道具介绍
+txt[aaa=52]=0;
+tMsgPaint (3,45,txt,3);
+ShowEqu(mem[aaa=921+(i-1)*2],25,12,3);//绘制神器图片
+if(Test(tScr[aaa=73],2)>0)MsgPaint (19,2,"(Y)使用",3);
+Refresh();
+while(bLoop==1)
+{
+key=KeyPause(500);
+if(key==121&&Test(tScr[aaa=73],2)>0)
+{
+p=Getms();
+ShowPic(117,46,30,0x41,0);
+elink=0;
+		do
+		{
+		elink=Translate(tScr+74,elink);
+		if(mem[aaa=1232]!=0)
+		{//事件战斗
+				mem[aaa=1231]=255;//判断是不是可以逃跑
+				mem[aaa=1231]=battle(mem[aaa=1232]);
+				mem[aaa=1232]=0;
+		}
+		}while(elink!=0);
+bLoop=0;
+while(((Getms()-p)&0xff)<128);
+Refresh();
+}else if(key==23||key==22)
+{
+i=i+(key==23)-(key==22);
+bLoop=0;
+if(i==0)i=j;
+if(i>j)i=1;
+}else if(key==27)
+{
+bLoop=0;
+i=0;
+}
+}//神器按键循环
+}//神器显示循环
+}//判断是不是需要绘制神器
+IfMenuDraw=0;
+}else if(menuID==14)
+{//储存进度
+GameSub(5);
+IfMenuDraw=0;
+}else if(menuID==15)
+{//读取进度
+if(GameSub(2)==1)break;else IfMenuDraw=0;
+}else if(menuID==16)
+{//退出游戏
+GameSub(6);
+}else if(menuID>=100&&menuID<200)
+{
+IfEquMake=0;
+//ClearScreen();
+ShowPic(114,1,0,1,0);
+ShowSysTxt(1,35,2,3);//显示框架
+i=mem[aaa=780+menuID];//获得道具号码
+fseek(fp,Item_offset+i*128,0);
+fread(tScr,1,128,fp);//读取道具信息
+memcpy(txt,tScr+2,10);//道具名称
+txt[aaa=10]=0;
+MsgPaint (5,1,txt,1);
+if(Item_offset!=o[aaa=13])
+{
+memcpy(txt,tScr+12,6);//道具种类
+txt[aaa=6]=0;
+MsgPaint (5,2,txt,1);
+str(mem[Item_b+i]);//道具数量
+MsgPaint (21,2,str_num,1);
+}else 
+{
+memcpy(txt,tScr+74,6);//魔法种类
+txt[aaa=6]=0;
+MsgPaint (5,2,txt,1);//打印魔法种类
+str(tScr[aaa=80]*256+tScr[aaa=81]);
+MsgPaint (15,2,"法力:",1);
+MsgPaint (20,2,str_num,1);//打印MP
+}
+memcpy(txt,tScr+18,52);//道具介绍
+txt[aaa=52]=0;
+tMsgPaint (3,45,txt,3);
+//MsgPaint (0,3,txt,1);
+Refresh();
+if(Test(tScr[aaa=73],2)>0&&Test(tScr[aaa=72],1)>0)
+{
+ShowPic(116,159,25,3,1);//是否可以打造
+}else if(Test(tScr[aaa=72],1)>0)
+{
+ShowPic(117,159,25,3,1);//是否可以在地图使用
+}
+Refresh();
+key=KeyPause(200);//响应按键
+while(key==121&&Test(tScr[aaa=72],1)>0&&mem[Item_b+i]>0)
+{
+if(Test(tScr[aaa=73],2)>0)
+{//是装备
+//mem[Item_b+i]--;
+ShowPic(119,1,61,1,0);
+ShowSysTxt(5,tScr[aaa=74],1,3);
+IfEquMake=1;
+menuID=17;
+break;
+}else 
+{
+mem[Item_b+i]--;
+	elink=0;
+	do
+	{
+		elink=Translate(tScr+74,elink);
+		if(mem[aaa=1232]!=0)
+		{//事件战斗
+				mem[aaa=1231]=255;//判断是不是可以逃跑
+				mem[aaa=1231]=battle(mem[aaa=1232]);
+				mem[aaa=1232]=0;
+		}		
+	}while(elink!=0);
+str(mem[Item_b+i]);
+MsgPaint (21,2,"",1);
+MsgPaint (21,2,str_num,1);
+Refresh();
+key=KeyPause(500);
+}
+}
+if(IfEquMake==0)
+{
+IfMenuDraw=0;
+}////////退栈，返回上级菜单
+}else if(menuID>=210&&menuID<215)
+{//打造装备
+mem[Item_b+i]--;
+ClearScreen();
+Refresh();
+ShowPic(122,40,30,0x41,0);
+ShowPic(121,1,0,1,0);
+i=menuID-210;//获取打造号码
+Equ_Kind=tScr[aaa=75+i]-1;//装备种类
+Equ_No=tScr[aaa=78+i*4]-1;
+//ShowSysTxt(0,73,5,3);
+ShowSysTxt(5,78+Equ_Kind,1,3);
+k=rnd(6)+1;
+memcpy(eName,EquPerFix[Equ_Kind][k-1],6);
+GetName(Equ_No);
+memcpy(eName+(aaa=6),EquName+(aaa=2),10);//获得装备名字
+j=strchr(eName,32);
+if(j!=0)*j=0;
+fstr(eName,16,3,32);
+tMsgPaint (0,4*wy-3,eName,3);
+
+memcpy(tEqInfo,mem+(aaa=1620)+Equ_Kind*3,3);//把原来装备信息储存
+memset(tEqFix,0,6);
+memset(EqFix,0,6);//信息清零
+for(j=0;j<4;j++)EqSet(EqFix,j);//计算装备前效果
+for(j=0;j<3;j++)
+{
+mem[aaa=1620+Equ_Kind*3+j]=tScr[aaa=79+j+i*4]*k/6;
+str(tScr[aaa=79+j+i*4]*k/6);
+MsgPaint (4+j*6,5,str_num,3);
+}//储存目前的信息
+for(j=0;j<4;j++)EqSet(tEqFix,j);//计算装备后的效果
+for(j=0;j<5;j++)
+{
+str(EqFix[j+1]+mem[aaa=1136+j]);
+fstr(str_num,3,1,32);
+MsgPaint (18,j,str_num,3);
+str(tEqFix[j+1]+mem[aaa=1136+j]);
+MsgPaint (23,j,str_num,3);
+}
+Delay(200);
+Refresh();
+AnimateBox(22,6,40,40,0,0);
+ShowPic(120,22,6,0x41,0);
+ShowEqu(EquName[aaa=0]*256+EquName[aaa=1],26,10,0x43);
+key=KeyPause(500);
+if(key!=121)
+{//不装备
+MsgPaint (8,2,"保留吗(Y/N)",0x48);
+key=KeyPause(500);
+if(key==110)
+{
+MsgPaint (8,2,"丢弃产物...",0x48);
+}else if(mem[aaa=1326+Equ_Kind]<10)
+{
+MsgPaint (8,2,"放进了箱子.",0x48);
+//每种装备箱子的长度现在装备信息的位置
+j=1330+Equ_Kind*50+mem[aaa=1326+Equ_Kind]*5;
+mem[j]=Equ_No+1;
+mem[j+1]=k;
+memcpy(mem+j+(aaa=2),mem+(aaa=1620)+Equ_Kind*3,3);
+mem[aaa=1326+Equ_Kind]++;
+}else 
+{
+MsgPaint (8,2,"箱子满了...",0x48);
+Delay(800);
+MsgPaint (8,2,"丢弃产物...",0x48);
+}
+memcpy(mem+(aaa=1620)+Equ_Kind*3,tEqInfo,3);//把原来装备信息还愿
+}else 
+{
+MsgPaint (8,2,"获得新装备",0x48);
+Delay(800);
+if(mem[aaa=1326+Equ_Kind]<10)
+{
+if(mem[aaa=1321+Equ_Kind]!=0)
+{
+MsgPaint (8,2,"旧装备储存..",0x48);
+//每种装备箱子的长度现在装备信息的位置
+j=1330+Equ_Kind*50+mem[aaa=1326+Equ_Kind]*5;
+mem[j]=mem[aaa=1610+Equ_Kind];
+mem[j+1]=mem[aaa=1321+Equ_Kind];
+memcpy(mem+j+(aaa=2),tEqInfo,3);
+mem[aaa=1326+Equ_Kind]++;
+}
+}else 
+{
+MsgPaint (8,2,"箱子满了...",0x48);
+Delay(800);
+MsgPaint (8,2,"丢弃旧装备.",0x48);
+}
+mem[aaa=1610+Equ_Kind]=Equ_No+1;
+mem[aaa=1321+Equ_Kind]=k;
+}
+IfMenuDraw=0;
+IfEquMake=0;
+}else if(menuID>=215&&menuID<220)
+{
+IfMenuDraw=0;
+i=menuID-215;
+if(i==0)
+{
+if(IsMenuMemary==1)IsMenuMemary=0;else IsMenuMemary=1;
+}else if(i==1)
+{
+if(IsPixelMove==1)IsPixelMove=0;else IsPixelMove=1;
+}else if(i==2)
+{
+MsgPaint (8,2,"请按任意键..",0x48);
+SpeedUpKey=KeyPause(200);
+}
+}
+//选择性的绘制菜单
+if(IfMenuDraw==1)
+menudraw(menuID);
+else 
+pID--;
+menuID=IDstack[pID];
+}//菜单循环结束
+//恢复菜单栈
+for(i=pID_b;i<=pID;i++)ENstack[i]=0;
+pID=pID_b-1;
+key=0;
+IsJump=1;
+DrawMap();
+}
+
+//脚本载入程序
+void RunEvent(char eNo)
+{
+int elink,len,la;
+long offset;//事件偏移量
+//地图号变了
+if(mem[aaa=1310]!=mem[aaa=1311])
+{
+mem[aaa=1310]=mem[aaa=1311];
+getmap(mem[aaa=1311]);
+IsJump=1;
+tNo=256;
+}
+offset=o[aaa=2]+(mem[aaa=1311]-1)*8192;
+la=evtlink[aaa=0][eNo]+evtlink[aaa=1][eNo]*256;
+if(eNo<255)len=(evtlink[aaa=0][eNo+1]+evtlink[aaa=1][eNo+1]*256)-la;else len=256;
+if(len>1)
+{
+//如果有事件代码再读取
+if(len>256)len=256;
+if(tNo!=eNo)
+{
+fseek(fp,offset+la,0);
+fread(EventDat,1,len,fp);
+tNo=eNo;
+}
+elink=0;
+do
+{
+elink=Translate(EventDat,elink);
+	if(mem[aaa=1232]!=0)
+	{//事件战斗
+		mem[aaa=1231]=255;//判断是不是可以逃跑
+		mem[aaa=1231]=battle(mem[aaa=1232]);
+		mem[aaa=1232]=0;
+	}
+}while(elink!=0)
+}
+else 
+{//否则坐标恢复
+mem[aaa=1301]=mem[aaa=1307];
+mem[aaa=1302]=mem[aaa=1308];
+}
+//回车标志置零
+IsEnter=0;
+}
+//主游戏循环
+void main()
+{
+char IfMove;//是否控制移动
+char IsStop;//是否静止中
+char key;//按键值
+srand(Getms());
+do
+{
+//初始化
+if(GameInitialize()==0)GameSub(6);
+if(GameSub(0)==0)GameSub(6);
+bGame=1;
+IsJump=1;
+GetTime(b_time);
+mem[aaa=1232]=0;
+getmap(mem[aaa=1311]);
+RunEvent(map(mem[aaa=1301],mem[aaa=1302]));//开始的时候需要触发事件
+//游戏循环
+while(bGame==1)
+{
+key=CheckKey(128);
+//地图循环
+IsEnter=0;
+if(key==13)
+	{
+	IsEnter=1;
+	key=mem[aaa=1309]+20;
+	}
+	if(key==25)
+	{
+	menu(0);
+	}else if(key==20)
+	{
+	if(mem[aaa=1308]>0)IfMove=1;
+	}else if(key==21)
+	{
+	if(mem[aaa=1306]<67||mem[aaa=1308]<4)IfMove=1;
+	}else if(key==23)
+{
+if(mem[aaa=1307]>0)IfMove=1;
+	}else if(key==22)
+	{
+	if(mem[aaa=1305]<41||mem[aaa=1307]<9)IfMove=1;
+	}
+///////////////////////////////////////////////
+	//按键结束开始响应事件
+	if(IfMove==1)
+	{
+	IsStop=0;
+	if(mem[aaa=1309]==(key-20))
+	{
+	mem[aaa=1301]=mem[aaa=1301]+dect_x[mem[aaa=1309]]-1;
+	mem[aaa=1302]=mem[aaa=1302]+dect_y[mem[aaa=1309]]-1;
+	RunEvent(map(mem[aaa=1301],mem[aaa=1302]));
+	//战斗检测
+if(mem[aaa=1307]!=mem[aaa=1301]||mem[aaa=1308]!=mem[aaa=1302])mem[aaa=1232]=Test_Battle();
+	}else 
+	{
+	mem[aaa=1309]=key-20;
+	IfMove=0;
+	}
+	}
+	//连接事件
+while(IfLink==1)
+{
+IfLink=0;
+RunEvent(map(mem[aaa=1307],mem[aaa=1308]));
+DrawMap();
+}
+//普通遇敌
+if(mem[aaa=1232]!=0)
+{
+if(battle(mem[aaa=1232])==254)bGame=GameSub(11);
+mem[aaa=1232]=0;
+}
+//地图重绘
+if(bGame==1)DrawMap();
+//从运动到停止，更换图像
+	if(IsStop==0&&IfMove==0)
+	{
+	Refresh();
+	DrawPlayer(mem[aaa=1307]*16,mem[aaa=1308]*16,mem[aaa=1309],2,0x40);
+	IsStop=1;
+	}
+	//行动标志归零
+	IfMove=0;
+}//bGame游戏循环结束
+fclose(fp);
+}while(1)
+return ;
+}

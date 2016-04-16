@@ -1,0 +1,18 @@
+原型:void TextOut(int x, int y, int string, int type);
+功能:把字符串绘制到屏幕缓冲区
+说明:在屏幕的(x,y)坐标处绘制字符串,string为字符串的地址
+     type的bit7=1:大字体,bit7=0:小字体
+     bit6为1时直接在屏幕上绘图
+     bit5为1时所画图形左右反转(要求图形宽度和x坐标都必须是8的整数倍)
+     bit3为1时图形反显
+     bit2-0:1:copy 2:not 3:or 4:and 5:xor
+举例:
+void main()
+{
+ ClearScreen();
+ TextOut(2, 0, "大字体", 0x81);
+ TextOut(2, 16, "小字体", 1);
+ TextOut(2, 32, "反显", 9);
+ Refresh();
+ getchar();
+}

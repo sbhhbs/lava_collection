@@ -1,0 +1,11 @@
+1	Getsign		1
+1	Getstr		1
+1	puts		0
+1	gets		1
+1	fputs		1
+1	fgets		1
+1	sscanf		1
+1	scanf		1
+1	fprintf		1
+1	fscanf		1
+1	getw		1

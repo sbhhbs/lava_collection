@@ -1,0 +1,64 @@
+//******************************************************函数信息表******************************************************//
+#define FUN_TABLE	0x2000													//函数信息表地址
+
+#ifndef FUN_MAX
+#define FUN_MAX		255														//函数信息表长度
+#endif
+//-----------------------------------------------------------------------
+struct FUN_NODE
+{
+	char offset[3];
+	char type;																//最高位为是否有返回值，其余为参数个数
+};
+
+struct FUNTION//fun.len - > cp.fn
+{
+	struct FUN_NODE dat[FUN_MAX];
+};
+//******************************************************跳转信息表******************************************************//
+#define JMP_TABLE	FUN_TABLE + FUN_MAX * 4									//跳转信息表地址
+
+#ifndef MAP_MAX
+#define MAP_MAX		500														//跳转信息表长度
+#endif
+//-----------------------------------------------------------------------
+struct MAPPING
+{
+	char a[3];
+	char b[3];
+};
+
+struct ADDR//add.len -> cp.ln
+{
+	struct MAPPING dat[MAP_MAX];
+};
+//******************************************************堆栈信息表******************************************************//
+#define STACK_TABLE	JMP_TABLE + MAP_MAX * 6
+
+#ifndef STACK_MAX
+#define STACK_MAX	50//不能超过255
+#endif
+
+struct STACK//stack.len -> cp.ts
+{
+	char dat[STACK_MAX];
+};
+
+//-----------------------------------------------------------------------
+#ifndef TREE_MAX
+#define TREE_MAX	160//不能超过255
+#endif
+
+struct TREE_NODE
+{
+	char code;//虚拟指令
+	long num;//值
+	char child;//孩子
+	char brother;//兄弟
+};
+
+struct TREE_MEM
+{
+	char len;
+	struct TREE_NODE dat[TREE_MAX];
+};

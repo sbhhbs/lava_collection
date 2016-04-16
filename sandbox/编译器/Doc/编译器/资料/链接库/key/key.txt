@@ -1,0 +1,100 @@
+char x, y, w, h, sb;
+long speed;
+int delay;
+char con;
+char skey;
+char key;
+
+char getkey()
+{
+	long i, j;//计数器
+	char tkey;
+
+	for (i = j = 0;;)
+	{
+		if (sb)
+		{
+			if (!i) Box(x, y, x + w, y + h, 1, 2);
+			if ((i++) == speed) i = 0;
+		}
+		tkey = key;
+		key = CheckKey(128);
+		Inkey();
+		if (skey == key || !key)
+		{
+			skey = key;
+			continue;
+		}
+		if (key == tkey)
+		{
+			if (++j >= delay || con)
+			{
+				con = 1;
+				break;
+			}
+			Delay(20);
+			i = 1;
+		}
+		else
+		{
+			con = 0;
+			break;
+		}
+	}
+	return(key);
+}
+
+void setcursor(char width, char height, char ison)
+{
+	w = width;
+	h = height;
+	sb = ison;
+}
+void setseat(char tx, char ty)
+{
+	x = tx;
+	y = ty;
+}
+void setspeed(long sp)
+{
+	speed = sp;
+}
+void setdelay(int dey)
+{
+	delay = dey;
+}
+void clearkey()
+{
+	skey = CheckKey(128);
+}
+void main()
+{char tx,ty;
+ char tkey;
+ 
+ char type,tmp;
+ char numkey[10];
+ int i,len;
+ char s[10000];
+ setcursor(8,1,1);setspeed(1000);setdelay(60);clearkey();
+ for(tkey=0;tkey!=13;)
+  {SetScreen(0);printf("%s",s);tx=((len=strlen(s))%20)<<3;ty=(len/20)<<4;if(ty>64){ty=64;if(!tx)printf(" ");}
+   setseat(tx,ty+14);
+   tkey=getkey();
+   if(isprint(key))
+    {if((type&1)==0)//英文
+      {//if(key=='0'){tmp=Getsign();if(!tmp)continue;}
+       //else 
+       if(type&2)tmp=toupper(key);
+       else tmp=key;
+      }
+     else if(strchr(numkey,key))tmp=strchr(numkey,key)-numkey+'1';//数字
+     else tmp=key;//小字母,数字
+     *(s+i++)=tmp;*(s+i)=0;
+     if(!isalnum(tmp)){clearkey();}
+    }
+   else if(key==0x1d||key==0x17){if(i)*(s+(--i))=0;}
+   else if(key==0x14||key==0x1b){i=0;*s=0;}
+   else if(key==0x1a)type=type^1;
+   else if(key==0x12)type=type^2;
+  }
+}

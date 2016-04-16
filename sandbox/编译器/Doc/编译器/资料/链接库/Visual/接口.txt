@@ -1,0 +1,9 @@
+0	Boxes		0
+0	Lines		0
+1	MyBox		0
+1	DrawFrame	0
+1	DrawCommand	0
+1	Tool		0
+1	DrawForm	0
+1	DrawLabel	0
+1	DrawScrollBar	0

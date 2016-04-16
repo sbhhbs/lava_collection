@@ -1,0 +1,17 @@
+原型:long abs(long x);
+功能:求x的绝对值
+说明:计算|x|,当x为负数时返回-x,否则返回x
+举例:
+void main()
+{
+ int x;
+
+ SetScreen(0);
+ x = -5;
+ printf("|%d|=%d\n", x, abs(x));
+ x = 0;
+ printf("|%d|=%d\n", x, abs(x));
+ x = 5;
+ printf("|%d|=%d\n", x, abs(x));
+ getchar();
+}

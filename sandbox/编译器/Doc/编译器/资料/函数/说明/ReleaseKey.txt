@@ -1,0 +1,17 @@
+原型:void ReleaseKey(char key);
+功能:释放按键
+说明:把指定的按键状态改为释放状态(即使该键正按下).
+     getchar和Inkey对于持续按下的键只产生一个键值,使用ReleaseKey可以产生连续按键.
+注意:当key>=128时,释放所有按键.
+举例:
+void main()
+{
+ SetScreen(0);
+ printf("请按键：");
+ for (;;)
+ {
+  putchar(getchar());
+  ReleaseKey(128);
+  Delay(50);
+ }
+}

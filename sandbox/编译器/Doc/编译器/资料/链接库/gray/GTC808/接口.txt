@@ -1,0 +1,5 @@
+1	SetBgColor	0
+1	SetFgColor	0
+1	SetGraphMode	0
+1	SetBrightness	0
+1	GetBrightness	1

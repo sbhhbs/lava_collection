@@ -1,0 +1,138 @@
+作者:yoYohenry
+功能:与文本字符在屏幕显示的相关函数。
+
+原型:void TextOut2(int x, int y, char &str[], int type)
+功能:类似TextOut的字符串显示函数。
+说明:type的bit7=1:大字体,bit7=0:小字体
+ bit6为1时直接在屏幕上绘图，否则在缓冲区作图
+ ★bit5为1时显示镂空字体
+ ★bit4为1时显示加粗字体
+ [荐]可以同时镂空加粗哟
+ bit3为1时图形反显
+ bit2-0:1:copy 2:not 3:or 4:and 5:xor
+
+原型:void msg(char &str[], int type)
+功能:弹出信息框，字符串中支持换行符'\n'，信息框居中显示，type含义见TextOut2。
+******分***隔***线******
+以下为文段显示函数
+原型:void TXTrange(int x0, int y0, int x1, int y1, int type)
+功能:设置文段在屏幕显示的区域和文字显示参数，type含义见TextOut2。
+说明:默认参数为(0, 0, 159, 79, 0x41)
+
+原型:void Setlbreak(char lbreak, char len_lb)
+功能:设置段落标记的第一字符和段落标记占的字节长度。
+说明:默认参数为('\n',1)。常见的段落标记还有0x0D0A（如文本文件），可设为(0x0d,2)。
+ps:字符(串)中的 \n会被编译为0x0A，占一个字节长度，如果要在文本中显示\n，应写为\\n。
+
+原型:int TXTload(char &TXTbuf[], long TXTlen, int &lip[])
+说明:载入要显示的文段信息，TXTbuf为文段信息开始地址，TXTlen为文本长度，lip[]用来存每行首文字的指针，函数返回文段总行数。
+
+原型:void TXTout(int lCur)
+功能:在区域(x0,y0,x1,y1)内以type类型从lCur行开始显示TXT文本信息。
+
+举例:
+#include <TXTout.y>
+
+#define ESC_KEY		0x1b
+#define UP_KEY		0x14
+#define	DOWN_KEY	0x15
+#define UU_KEY		0x13
+#define DD_KEY		0x0e
+
+char fn[] = "/LibData/TXTout.y";
+int lip[1024];
+void main()
+{
+ char txtbuf[1268];
+ int len, n, i, k;
+ char key, fp;
+ len = 1268;
+ fp = fopen(fn, "r");
+ if (!fp) return;
+ fseek(fp, 6, 0);
+ fread(txtbuf, 1, len, fp);
+ fclose(fp);
+ ClearScreen();
+ Refresh();
+ TXTrange(0, 0, 159, 79, 0x31);
+ Setlbreak(0x0d, 2);
+ n = TXTload(txtbuf, len, lip);
+ k = 0;
+ for (;;)
+ {
+  msg("页面载入中", 0x71);
+  TXTout(k);
+  Refresh();
+  for (;;)
+  {
+   key = getchar();
+   if (key == UU_KEY)
+   {
+    if (!k)
+    {
+     msg("已经到顶了！", 0x71);
+     Delay(1000);
+     Refresh();
+     continue;
+    }
+    else
+    {
+     k = k - 6;
+    }
+   }
+   else if (key == UP_KEY)
+   {
+    if (!k)
+    {
+     msg("已经到顶了！", 0x71);
+     Delay(1000);
+     Refresh();
+     continue;
+    }
+    else
+    {
+     k--;
+    }
+   }
+   else if (key == DOWN_KEY)
+   {
+    if (k == n - 6)
+    {
+     msg("已经底页了！", 0x71);
+     Delay(1000);
+     Refresh();
+     continue;
+    }
+    else
+    {
+     k++;
+    }
+   }
+   else if (key == DD_KEY)
+   {
+    if (k == n - 6)
+    {
+     msg("已经底页了！", 0x71);
+     Delay(1000);
+     Refresh();
+     continue;
+    }
+    else
+    {
+     k = k + 6;
+    }
+   }
+   else if (key == ESC_KEY)
+   {
+    exit(0);
+   }
+   else
+   {
+    continue;
+   }
+   if (k > n - 6) k = n - 6;
+   if (k < 0) k = 0;
+   break;
+  }
+ }
+}

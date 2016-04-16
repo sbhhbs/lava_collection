@@ -1,0 +1,28 @@
+原型:int fwrite(int pt, int size, int n, char fp);
+功能:写文件
+说明:把pt所指向的n个字节输出到句柄为fp的文件中
+     返回写到fp文件中的字节数
+     注意:fread和fwrite的参数size会被忽略,实际读写的字节数是参数n.之所以保留size是为了与c兼容.建议size值取1　 
+举例:
+char s[]="www.ggv.com.cn";
+
+void main()
+{
+ char fp;
+ char t[20];
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!"); 
+ }
+ else
+ {
+  printf("创建文件成功!");
+  fwrite(s, 1,strlen(s) + 1, fp);
+  rewind(fp);
+  fread(t, 1, strlen(s) + 1, fp);
+  printf("\n%s", t);
+  fclose(fp); 
+ }
+ getchar();
+}

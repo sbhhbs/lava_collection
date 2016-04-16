@@ -1,0 +1,9 @@
+1	CloseVnt	0
+0	DecodeVnt	0
+1	RestartVnt	0
+1	RepeatVnt	0
+1	SetVntStart	0
+1	GetVntCurrent	1
+1	GetVntEnd	1
+1	GetVntTime	0
+1	PlayVnt		1

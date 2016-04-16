@@ -1,0 +1,17 @@
+原型:void Line(int x0, int y0, int x1, int y1, int type);
+功能:在屏幕上画直线
+说明:(x0,y0)和(x1,y1)指定直线的两个端点坐标.type决定划线的模式
+     type值的含义:
+     0:清除方式
+     1:正常方式
+     2:取反方式
+     type的bit6=1时向图形缓冲区作图,否则直接在屏幕作图
+举例:
+void main()
+{
+ Box(20, 10, 100, 40, 1, 1);
+ Line(1, 1, 111, 47, 1);//from top left to bottom right
+ Line(1, 47, 111, 1, 0);//from bottom left to top right
+ Line(112 / 2, 1, 112 / 2, 47, 2);//line vertically at the middle of the LCD
+ getchar();
+}

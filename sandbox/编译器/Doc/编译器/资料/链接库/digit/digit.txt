@@ -1,0 +1,168 @@
+char digmode[] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
+
+void digset(char &digbuf[], char heigh)
+{
+	char i, j, mode, h1, h2;
+	int tmp, t;
+
+	h1 = (heigh >> 1) - 1;
+	h2 = heigh - 2;
+	memset(digbuf, i = 0, heigh * 10);
+	while (i < 10)
+	{
+		tmp = i * heigh;
+		mode = digmode[i];
+		if (mode&1)
+		{
+			digbuf[tmp] = digbuf[tmp]|0x7c;
+			digbuf[tmp + 1] = digbuf[tmp + 1]|0xfe;
+		} 
+		if (mode&2)
+		{
+			j = 1;
+			while (j < h1)
+			{
+				digbuf[tmp + j] = digbuf[tmp + j]|0x06;
+				j++;
+			}
+			digbuf[tmp] = digbuf[tmp]|0x04;
+			digbuf[tmp + h1] = digbuf[tmp + h1]|0x04;
+		} 
+		if (mode&4)
+		{
+			j = h1 + 2;
+			while (j <= h2)
+			{
+				digbuf[tmp + j] = digbuf[tmp + j]|0x06;
+				j++;
+			}
+			digbuf[tmp + h1 + 1] = digbuf[tmp + h1 + 1]|0x04;
+			digbuf[tmp + h2 + 1] = digbuf[tmp + h2 + 1]|0x04;
+		} 
+		if (mode&8)
+		{
+			digbuf[(t = tmp + h2) + 1] = digbuf[t + 1]|0x7c;
+			digbuf[t] = digbuf[t]|0xfe;
+		} 
+		if (mode&32)
+		{
+			j = 1;
+			while (j < h1)
+			{
+				digbuf[tmp + j] = digbuf[tmp + j]|0xc0;
+				j++;
+			}
+			digbuf[tmp] = digbuf[tmp]|0x40;
+			digbuf[tmp + h1] = digbuf[tmp + h1]|0x40;
+		} 
+		if (mode&16)
+		{
+			j = h1 + 2;
+			while (j <= h2)
+			{
+				digbuf[tmp + j] = digbuf[tmp + j]|0xc0;
+				j++;
+			}
+			digbuf[tmp + h1 + 1] = digbuf[tmp + h1 + 1]|0x40;
+			digbuf[tmp + h2 + 1] = digbuf[tmp + h2 + 1]|0x40;
+		} 
+		if (mode&64)
+		{
+			digbuf[(t = tmp + h1) + 1] = digbuf[t + 1]|0x7c;
+			digbuf[t] = digbuf[t]|0x7c;
+		}
+		i++;
+	}
+}
+
+void digout(int x, int y, int width, int heigh, int num, char type)
+{
+	char n, x1, x2, x3, y1, y2, y3, y4, y5, y6, y7, type1;
+
+	n = digmode[num % 10];
+	x1 = x + 1;
+	x2 = x + width - 2;
+	x3 = x2 + 1;
+	y1 = y + 1;
+	y2 = y + (heigh >> 1) - 2;
+	y3 = y2 + 1;
+	y4 = y3 + 1;
+	y5 = y4 + 1;
+	y6 = y + heigh - 2;
+	y7 = y6 + 1;
+	type1 = (type << 6) + 1;
+	if (!type)
+	{
+		Box(x, y, x3, y7, 1, 0);
+	}
+	else
+	{
+		Block(x, y, x3, y7, 0);
+	}
+	if (n&1)
+	{
+		Line(x1, y, x2, y, type1);
+		Line(x, y1, x3, y1, type1);
+	}
+	if (n&2)
+	{
+		Line(x2, y, x2, y3, type1);
+		Line(x3, y1, x3, y2, type1);
+	}
+	if (n&4)
+	{
+		Line(x2, y4, x2, y7, type1);
+		Line(x3, y5, x3, y6, type1);
+	}
+	if (n&8)
+	{
+		Line(x1, y7, x2, y7, type1);
+		Line(x, y6, x3, y6, type1);
+	}
+	if (n&16)
+	{
+		Line(x1, y4, x1, y7, type1);
+		Line(x, y5, x, y6, type1);
+	}
+	if (n&32)
+	{
+		Line(x1, y, x1, y3, type1);
+		Line(x, y1, x, y2, type1);
+	}
+	if (n&64)
+	{
+		Line(x1, y3, x2, y3, type1);
+		Line(x1, y4, x2, y4, type1);
+	}
+}
+
+void digout2(int x, int y, char heigh, char &digbuf[], char num, char type)
+{
+	WriteBlock(x, y, 8, heigh, type, digbuf + num * heigh);
+}
+
+void main() 
+{
+	int i;
+	char buf[10][20];
+
+	ClearScreen();
+	Refresh();
+	digset(buf, 20);//生成数字字模数据
+	for (i = 0; i < 10; i++)
+	{
+		digout(15, 5, 7, 20, i, 0);//屏幕 矢量作图
+		digout2(25, 5, 20, buf, i, 0x41);//屏幕 向量作图
+		Delay(500);
+	}
+	getchar();
+	ClearScreen();
+	for (i = 0; i < 10; i++)
+	{
+		digout(15, 5, 7, 20, i, 1);//缓存区 矢量作图
+		digout2(25, 5 ,20, buf, i, 0x01);//缓存区 向量作图
+		Refresh();
+		Delay(500);
+	}
+	getchar();
+}

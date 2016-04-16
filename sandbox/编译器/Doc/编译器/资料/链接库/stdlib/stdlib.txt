@@ -1,0 +1,131 @@
+/* 该代码只能由yan的编译器编译，且不能优化 */
+
+int addrs;
+
+long atoi(int s)
+{
+	long num;
+	int sign;
+	char ch;
+	char radix;
+
+	while (!(*s == '-' || isdigit(*s)) && *s) s++;
+	num = 0;
+	sign = 1;
+	if (*s == '-')
+	{
+		sign = -1;
+		s++;
+	}
+	if (*s == '0' && tolower(*(s + 1)) == 'x')
+	{
+		radix = 16;
+		s = s + 2;
+	}
+	else
+	{
+		radix = 10;
+	}
+	if (!(*s)) return (0);
+	do {
+		if (isdigit(ch = *s++)) num = num * radix + (ch&0xf);
+		else if (isalpha(ch)) num = num * radix + tolower(ch) - 87;
+	} while (ch);
+	return(sign * num);
+}
+
+void itoa(long num, int s, char radix)
+{
+	char i, ch, neg;
+	neg = 0;
+	memset(s, 0, strlen(s));
+	if (num < 0)
+	{
+		num = -num;
+		neg = 1;
+	}
+	else if(!num) strcpy(s, "0");
+	while (num)
+	{
+		i = num % radix;
+		num = num / radix;
+		if (i <= 9)
+		{
+			ch = i|'0';
+		}
+		else
+		{
+			ch = i + 55;
+		}
+		memmove(s + 1, s, strlen(s) + 1);
+		*s = ch;
+	}
+	if (radix == 16)
+	{
+		memmove(s + 2, s, strlen(s) + 1);
+		*s = '0';
+		*(s + 1) = 'x';
+	}
+	if(neg)
+	{
+		memmove(s + 1, s, strlen(s) + 1);
+		*s = '-';
+	}
+}
+
+char crotr(char n,char c)//将一个char数右循环移位的函数[将n向右循环移动c位]
+{
+	char i;
+
+	i = 0;
+	while (i < c)
+	{
+		n = (n >> 1)|((n&1) << 7);
+		i++;
+	}
+	return(n);
+}
+
+char crotl(long n,char c)//将一个char形数左循环移位的函数[将n向左循环移动c位]
+{
+	char i;
+
+	i = 0;
+	while (i < c)
+	{
+		n = (n << 1)|((n&0x80) >> 7);
+		i++;
+	}
+	return(n);
+}
+
+void setjmp()
+{
+	//char add;
+
+	//addrs = &add - 5;
+	#code{0x03,0x00,0x20,0x02,0x00,0x19,0x00,0x00,0x35,0x38};
+}
+
+int checkjmp()
+{
+	return(addrs);
+}
+
+void change()
+{
+	//char add;
+
+	//memcpy(&add - 2, &addrs, 2); //error!
+	#code{0x19,0x03,0x00,0x01,0x00,0x17,0x00,0x20,0x01,0x02,0xad};
+}
+
+void longjmp()
+{
+	change();
+	addrs = 0;
+}
+
+void main()
+{
+}

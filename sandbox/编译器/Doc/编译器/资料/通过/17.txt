@@ -1,0 +1,202 @@
+
+/**
+* @flm2.0播放代码(嵌入汇编for NC3000)
+* @by eastsun
+* @参考资料: 见汇编区lee发布的NC3000SYS-TOOLS的源代码
+* @通过LAVA ALL认证,目前已知全平台适用
+*/#define GVMIDE 0x0001
+#define LAVAX  0x0002
+#define NC3000 0x0004
+#define TC800  0x0008
+long aaa;
+char bmpBuf[1600],cutBuf[1600],fileHead[16];
+char flags;
+char asmCode[] ={//这段代码在6502机型上通用
+                 0xA9,0x40,0x85,0x80,0xA9,0x26,0x85,0x81,0xA9,0x00,0x85,0x82,0xA9,0x20,0x85,0x83,
+                 0xAD,0x90,0x2C,0xD0,0x1D,0xA2,0x06,0xA0,0x00,0xB1,0x80,0x91,0x82,0xC8,0xD0,0xF9,
+                 0xE6,0x81,0xE6,0x83,0xCA,0xD0,0xF2,0xA2,0x40,0xB1,0x80,0x91,0x82,0xC8,0xCA,0xD0,
+                 0xF8,0x60,0xC9,0x03,0x90,0x01,0x60,0xC9,0x01,0xD0,0x1F,0xA2,0x06,0xA0,0x00,0x98,
+                 0x91,0x82,0xC8,0xD0,0xFB,0xE6,0x83,0xCA,0xD0,0xF6,0xA2,0x40,0x91,0x82,0xC8,0xCA,
+                 0xD0,0xFA,0xA9,0x00,0x85,0x82,0xA9,0x20,0x85,0x83,0xA0,0x00,0xB1,0x80,0xC9,0x40,
+                 0xB0,0x1E,0x29,0x3F,0xD0,0x02,0xA9,0x40,0x18,0x65,0x82,0x85,0x82,0x90,0x02,0xE6,
+                 0x83,0xE6,0x80,0xD0,0x02,0xE6,0x81,0xA0,0x00,0xB1,0x80,0xC9,0xC1,0xD0,0xDB,0x60,
+                 0xC9,0x80,0xB0,0x28,0x29,0x3F,0xD0,0x02,0xA9,0x40,0xAA,0xA0,0x00,0x18,0xB1,0x82,
+                 0x69,0xFF,0x91,0x82,0xE6,0x82,0xD0,0x02,0xE6,0x83,0xCA,0xD0,0xF0,0xE6,0x80,0xD0,
+                 0x02,0xE6,0x81,0xA0,0x00,0xB1,0x80,0xC9,0xC1,0xD0,0xAF,0x60,0xC9,0xC0,0xB0,0x27,
+                 0x29,0x3F,0xD0,0x02,0xA9,0x40,0xAA,0xA0,0x00,0xE6,0x80,0xD0,0x02,0xE6,0x81,0x18,
+                 0xB1,0x80,0x71,0x82,0x91,0x82,0xE6,0x80,0xD0,0x02,0xE6,0x81,0xE6,0x82,0xD0,0x02,
+                 0xE6,0x83,0xCA,0xD0,0xEA,0xF0,0xCC,0x29,0x3F,0xD0,0x02,0xA9,0x40,0xAA,0xE6,0x80,
+                 0xD0,0x02,0xE6,0x81,0xA0,0x00,0xB1,0x80,0x85,0x84,0x18,0xB1,0x82,0x65,0x84,0x91,
+                 0x82,0xE6,0x82,0xD0,0x02,0xE6,0x83,0xCA,0xD0,0xF0,0xE6,0x80,0xD0,0x02,0xE6,0x81,
+                 0xA9,0x00,0xF0,0x9F
+                };
+int jmpAddr;
+
+//**************************机型判断代码**********************************
+
+char test[]="Eastsun";
+int type[] = {GVMIDE,LAVAX,NC3000,TC800};
+char str[][20]={"GVmaker IDE..",
+                "LAVAX   IDE..",
+                "NC3000 GVM..",
+                "TC800  GVM..",
+                "其他平台.."
+               };
+long _jiXing(){
+     int tag,n;
+     printf("Eastsun");
+     tag = 1;
+     for(n=0;n<7;n++) if(*(0x1400+n)!=test[n]){ tag = 0; break;}
+     if(tag) return LAVAX;
+     tag = 1;
+     for(n=0;n<7;n++) if(*(0x01c0+n)!=test[n]) { tag = 0; break;}
+     if(tag) return GVMIDE;
+     tag = 1;
+     for(n=0;n<7;n++) if(*(0x0f1a+n)!=test[n]) {tag = 0; break;}
+     if(tag) return TC800;
+     return 0;
+}
+
+long jiXing(){ 
+     int t;
+     SetScreen(0);
+     t=_jiXing();
+     SetScreen(0);
+     if(t) return t;
+     else if(*(0x8189)==0xb0&&*(0x818a)==0x88&&*(0x818c)==0x95) return NC3000;
+     else  return 0;
+}
+//***********************************************************************
+void setAsmMode(int f){
+	if(f){
+		//进入汇编模式,修改GVmaker解释器中指令ClearScreen的跳转地址并保存之
+		jmpAddr =*(0x8974)|(*(0x8975)<<8);
+		*(0x8974) =asmCode&0xff;
+		*(0x8975) =(asmCode>>8)&0xff;
+	}
+	else{
+		//恢复ClearScreen的跳转地址
+		*(0x8974)  =jmpAddr&0xff;
+		*(0x8975) =(jmpAddr>>8)&0xff;
+	}
+}	
+void decode(){
+	//调用嵌入的汇编代码
+	ClearScreen();
+}
+int playFlm2(int fn){
+	char fp,high,low,ms,t,byte;
+	int frame,count,length,process,speed,n,m,deta;
+	t =(jiXing()==NC3000);
+	if(!(fp=fopen(fn,"r"))) return 0;
+	fread(fileHead,1,16,fp);
+	if(fileHead[aaa=0]!='F'||fileHead[aaa=1]!='L'||fileHead[aaa=2]!='M'||fileHead[aaa=3]!=0x10){
+		//不是有效的FLM文件
+		fclose(fp);
+		return 0;  
+	}
+	if(fileHead[aaa=4]){//压缩格式的flm文件
+		frame =fileHead[aaa=5]+(fileHead[aaa=6]<<8); //祯数
+		speed =fileHead[aaa=7]; //速度(延迟tick数)
+		process =0;
+		if(t) setAsmMode(1);
+		for(;;){
+			ms =Getms();
+			low =getc(fp);
+			high =getc(fp);  
+			length =low + ((high&0xf)<<8) -2;
+			fread(cutBuf,1,length,fp);//读取压缩数据
+			cutBuf[length] =0xc1; //设置结束标记
+			flags =high>>4;
+			if(t) decode(); //如果是NC3000,调用汇编解码
+			else{
+			     if(!flags) memcpy(bmpBuf,cutBuf,1600);
+			     else if(flags==1||flags==2){		
+				      if(flags==1) memset(bmpBuf,0,1600);
+				      n =0; m=0;  //n ->cutBuf,m ->bmpBuf
+				      do{
+				          	byte =cutBuf[n];
+					          if(byte<0x40){
+					          	if(byte) count =byte;
+					          	else     count =0x40;
+					          	m =m+count;
+					          	n ++;
+				          	}			
+					          else if(byte<0x80){
+					           	if(byte&0x3f) count =byte&0x3f;
+						          else          count =0x40;
+					          	do{
+					          		bmpBuf[m]--;
+						          	m ++;
+						          	count --;
+						          }while(count);
+						          n ++;
+					          }
+					          else if(byte<0xc0){
+						          if(byte&0x3f) count =byte&0x3f;
+						          else          count =0x40;
+					          	n ++;
+						          do{
+						          	bmpBuf[m] =bmpBuf[m] +cutBuf[n];
+						           	m ++;
+						          	n ++;
+						          	count --;
+					          	}while(count);	
+					         }
+					         else{
+					           	if(byte&0x3f) count =byte&0x3f;
+						          else          count =0x40;
+						          deta =cutBuf[++n];
+					          	do{
+					          		bmpBuf[m] =bmpBuf[m] +deta;
+					           		m ++;
+						           	count --;
+					          	}while(count);
+					           	n ++;
+				          }
+				      }while(cutBuf[n]-0xc1);
+			     }
+		  }
+			WriteBlock(0,0,160,80,0x41,bmpBuf);
+			if(speed){//延时
+				while(((Getms()-ms)&0xff)<speed);
+				ms =Getms();
+			}
+			if(process>=frame||Inkey()==0x1b) break; //播放结束
+			process++;
+		}//for(;;)
+	}
+	else{//flm1.0
+	}
+	fclose(fp);
+	if(t) setAsmMode(0);
+	return 1;
+}
+void main(){
+	  char fn[60];
+	  int n,t;
+	  t =jiXing();
+	  if(!t) n=4;
+	  else{
+	  	n=0;
+	  	while(t!=type[n]) n++;
+	  }
+	  ClearScreen();
+	  TextOut(20,16,str[n],0x81);
+	  Refresh();
+	  Delay(1000);
+	  ChDir("/");
+    for (;;) {
+        if (!FileList(fn)) {
+            ChDir("..");
+            continue;
+        }
+        if (ChDir(fn)) continue;
+        playFlm2(fn);
+        ChDir("/");
+    }
+}
+				
+				
+			
+		

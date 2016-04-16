@@ -1,0 +1,24 @@
+原型:int isupper(char c);
+功能:判断字符c是否为大写英文字母
+说明:当c为大写英文字母(A-Z)时,返回非零值,否则返回零
+举例:
+void upper(char c)
+{
+ if (isupper(c))
+ {
+  printf("%c:是大写英文字母\n", c);
+ }
+ else
+ {
+  printf("%c:不是大写英文字母\n", c);
+ }
+}
+
+void main()
+{
+ SetScreen(0);
+ upper('a');
+ upper('A');
+ upper('7');
+ getchar();
+}

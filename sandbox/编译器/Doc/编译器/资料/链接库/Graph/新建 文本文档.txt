@@ -1,0 +1,155 @@
+cpoint:
+ lda $f0
+ tax
+ clc
+ adc $f3
+ sta $f4
+ sta $03c7
+ txa
+ sec
+ sbc $f3
+ sta $f5
+ txa
+ clc
+ adc $f2
+ sta $f6
+ txa
+ sec
+ sbc $f2
+ sta $f7
+ lda $f1
+ tax
+ clc
+ adc $f3
+ sta $f8
+ txa
+ sec
+ sbc $f3
+ sta $f9
+ txa
+ clc
+ adc $f2
+ sta $fa
+ sta $03c8
+ txa
+ sec
+ sbc $f2
+ sta $fb
+ lda $44
+ bne c_line
+ jsr point_draw
+ lda $fb
+ sta $03c8
+ jsr point_draw
+ lda $f5
+ sta $03c7
+ jsr point_draw
+ lda $fa
+ sta $03c8
+ jsr point_draw
+ lda $f6
+ sta $03c7
+ lda $f8
+ sta $03c8
+ jsr point_draw
+ lda $f9
+ sta $03c8
+ jsr point_draw
+ lda $f7
+ sta $03c7
+ jsr point_draw
+ lda $f8
+ sta $03c8
+ jsr point_draw
+ rts
+c_line:
+ lda $f5
+ sta $03c3
+ lda $f4
+ sta $03c5
+ lda $fa
+ sta $03c4
+ sta $03c6
+ jsr $acf9
+ lda $fb
+ sta $03c4
+ sta $03c6
+ jsr $acf9
+ lda $f7
+ sta $03c3
+ lda $f6
+ sta $03c5
+ lda $f8
+ sta $03c4
+ sta $03c6
+ jsr $acf9
+ lda $f9
+ sta $03c4
+ sta $03c6
+ jsr $acf9
+ rts
+circle:;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;circle
+ lda $03c9
+ tax
+ and #$40
+ eor #$40
+ sta $7824
+ txa
+ and #$03
+ sta $03c9
+ lda $03c3
+ sta $f0
+ lda $03c4
+ sta $f1
+ lda $03d6
+ sta $f2
+ lda #0
+ sta $f3
+ jsr cpoint
+ sec
+ lda #1
+ sbc $f2
+ sta $fc
+ lda #0
+ sbc #0
+ sta $fd
+c_loop:
+ lda $f3
+ cmp $f2
+ bcc c_next
+ rts
+c_next:
+ inc $f3
+ lda #$ff
+ bit $fd
+ bpl c_loop_next
+ lda $f3
+ sta $f4
+ lda #$00
+ sta $f5
+ beq c_loop_next2
+c_loop_next:
+ dec $f2
+ lda $f3
+ sec
+ sbc $f2
+ sta $f4
+ lda #$00
+ sbc #$00
+ sta $f5
+c_loop_next2:
+ asl $f4
+ rol $f5
+ lda $f4
+ clc
+ adc $fc
+ sta $fc
+ lda $f5
+ adc $fd
+ sta $fd
+ inc $fc
+ bne c_loop_1
+ inc $fd
+c_loop_1:
+ jsr cpoint
+ jmp c_loop

@@ -1,0 +1,917 @@
+NC2600内存特殊地址{peek}官方表
+
+define  地址个数,地址作用,地址{hex}
+
+
+
+;硬件配置:
+;LCD 160*80         ;CPU(max)3.7M       ROSC 27k     62k
+;OSC 7.3728M                  3.7M
+;XTYPE 0        1  ;CKV OSC/128   OSC/128
+--------------------;tapeout value
+mon   equ 0 ; 0
+dvp   equ 0 ; 0 
+idleout_active  equ 1 ; 1 in nmi.s
+watch_dog_timer_active equ 1 ; 1 in nmi.s
+scode   equ 1 ; 0
+test_flag  equ 0 ;    0
+check_battery  equ 1 ; 1
+have_pid  equ 1 ; 1 
+mon_test  equ 0 ; 0
+test_load  equ 0 ; 0
+DEBUG   equ 0 ; 0
+SIZE16KPSECTOR  equ 1 ; 1 for ngffs.s 每个SECTOR 为16k
+HOTLINK_TEST  equ 0 ; 0
+GRAY_ON   equ 0 ; 1
+LCD_803   equ 1 ; 1 ;1: LCD_803
+HAVE_IRDA  equ 1 ; 0 有线
+; 1 带红外
+NEW_LCD_803  equ 1 ; 0 lcd start addr 19c0 在LCD_803=1时有效
+; 1 lcd start addr 1830 在LCD_803=1时有效
+AUTO_CONVERT_DICT equ 1 ;;=1切换; =0不切; 在输入单词时若当前字典无此词但另一个字典中有时是否自动切换。切换后不回来
+-------------------
+WATCH_DOG_TIME  equ 8 ; 8
+true   equ 255 ; 255
+false   equ 0 ; 0
+PASSWD   equ 1 ; 1
+nand16m   equ 0 ; 0
+NAND32M   equ 1 ; 0
+NAND64M   equ 0 ; 0
+;------------------
+;--------------  文件系统常量 ---------
+if NAND16M
+BNUM equ 1024  ;16K ,1024块=16MB 
+endif
+if NAND32M
+BNUM equ 2048  ;16K ,2048块=32MB
+endif
+if NAND64M
+BNUM equ 4096  ;16K 4096块=64MB
+endif
+;SWAPNUM   equ 4 ;交换块数目
+
+
+
+if SIZE16KPSECTOR
+SECTORSIZE  equ 16384 ;簇大小 
+else
+SECTORSIZE  equ 2048 ;簇大小
+endif  
+PAGESIZE  equ 512 ;页大小
+DIRSIZE   equ 16 ;每一目录项大小(2+14)
+NORBSIZE  equ 2048 ;NOR FLASH 块大小
+NANDBSIZE  equ 16384 ;NAND FLASH 块大小
+NANDSSIZE  equ 16 ;NAND SPARE 大小
+SECTORNUM  equ BNUM*NANDBSIZE/SECTORSIZE ;共有多少SECTOR 16384
+MAXINODE  equ 998 ;Inode 最大数目
+INODESIZE  equ 32 ;Inode 每个占32B
+MAXOPENFILE  equ 3 ;同时打开文件数
+MAXOPENDIR  equ 1 ;同时打开的目录数
+DIRNAME_LEN  equ 14 ;目录项长度
+MAX_PATH  equ 57 ;最大完整路径长度(minix255);4级
+ROOT   equ 0 ;ROOT 定制 Inode
+INODEBLOCKNUM  equ 17 ;Inode 区共占据 NOR 多少个2K BLOCK
+MAXDIRLEVEL  equ 4
+WORKINGBUFLEN  equ 160
+;-------------------
+include /host/wyj1/tapeout/nc2600C/src/h/6502.mac
+include /host/wyj1/tapeout/nc2600C/src/h/break.mac
+;BANK 0 :combf
+__base  equ 40h
+  define 64,combf
+bank0_end equ __base
+
+
+
+
+;BANK 4:200h--240h
+__base  equ 40h
+  define 64,zp_combf4
+bank4_end equ __base;BANK 5:240h--280h
+__base  equ 40h
+  define 64,zp_combf5
+bank5_end equ __base__base  equ 80h
+  define 2,a1
+  define 2,a2
+  define 2,a3
+  define 2,a4
+  define 2,a5
+  define 2,a6
+  define 2,a7
+  define 2,a8
+  define 2,a9
+a1h  equ a1+1
+a2h  equ a2+1
+a3h  equ a3+1
+a4h  equ a4+1
+a5h  equ a5+1
+a6h  equ a6+1
+a7h  equ a7+1
+a8h  equ a8+1
+a9h  equ a9+1
+binbuf  equ a1 ;2 used in bin2bcd,ax2bin(in scr.s)
+bcdbuf  equ a2 ;5 used in bin2bcd,ax2bin(in scr.s)
+Bufbin  equ a1 ;zxy(3bytes)
+Bufbcd  equ a3 ;(8bytes) (ascii码)
+menu_set equ a4 
+
+
+
+  define 1,fccode
+utf_buf equ fccode   ;gtm for utf8 interchange
+  define 1,sccode
+  define 2,intc
+  define 14,ccgbuf
+
+
+
+  define 2,data_buf ;trans ptr, other val at below
+
+
+
+  define 2,HelpPtr
+  define 2,menu_ptr
+
+
+
+;-------音乐--------
+define 2,tonea_ptr ; address pointer of song 
+define 2,alarm_ptr
+define 2,volume_ptr ; base volume of sound 
+;---music val end --define 1,close_sound_flag
+----部分零页变量----  define 2,bank_ptr
+  define 2,block_ptr 
+  define 2,ram_bank_ptr  ;xfang 
+;for demo
+  define 2,demo_ptr
+  define 1,demo_flag  ;可移至非零页
+;for irq
+define 1,irq_asave
+define 1,irq_ysave 
+define 1,irq_xsave
+define 1,irq_cx
+define 1,irq_status
+define 8,kbd_matrix
+define 1,key
+define 1,kbdrow
+random  equ kbdrow
+define 2,brkptr
+define 1,onoff_bak  ;可移至非零页
+define 1,fccode_bak ;for database xfang
+define 1,sccode_bak  ;for database xfangdefine 1,key_make
+define 1,io_porta
+define 1,down_time  ;可移至非零页
+define 2,bank_data_ptr  ;跨BANK取数据用指针
+define 2,menu_end_addr  ;菜单结束地址
+define 2,index_menu_addr ;索引菜单的地址define 2,sound_begin_addr ;for time voice
+define 2,tmp_addr  ;for get txt_pointer
+dmenu_f2_ptr equ tmp_addr  ;动态菜单f2_prog地址指针
+dmenu_txt_ptr equ bank_data_ptr  ;动态菜单菜单名地址指针
+dmenu_cr_ptr equ menu_end_addr  ;动态菜单cr_prog地址指针
+dmenu_space_ptr equ index_menu_addr  ;动态菜单space_prog地址指针
+tran_point equ demo_ptr  ;zmh 2000.1.14 
+dmenu_shift_ptr equ demo_ptr
+
+
+
+ram_Buf_Ptr     equ     demo_ptr        ;zjh for ram ptr
+Buf_Ptr  equ sound_begin_addr ;需调整??
+ram_Buf_Ptr2 equ index_menu_addr
+Ph_ptr  equ menu_end_addr
+
+
+
+  define 2,NORbufptr  ; BUSflash读写指针
+  define 2,DataBufPtr  ; 用户数据读写指针
+  define 16,ngffstmpptr  ; 不用文件系统可用来定义变量
+define 2,TempIndex  define 2,R0
+define 1,eor_sum_valif key=0c7h
+else
+key address ERROR!!!!!!!!
+endif
+zp_end  equ __base
+cursor_pos equ ngffstmpptr  ;;zhd for 在字典中单词列表时闪烁光标位置
+cursor_siz equ ngffstmpptr+2  ;;zhd for 在字典中单词列表时闪烁光标大小
+
+
+
+;..........................................................
+StackTop equ 0f8h
+_end_stack equ StackTop
+
+
+
+;...............显示缓冲区...........
+patbuf  equ 280h   ;用户程序在不调用显示例程时, 可以有
+      ;一个长度为 patbuf,ScreenBuffer, ccgbuf
+      ;fccode, sccode, intc 之和的缓冲区
+NandFrameData equ patbuf
+;--------------------------------------------------
+__base  equ 2c0h
+;---------------显示用-----------------;
+  define 200,ScreenBuffer 02c0-0387
+scrbuf  equ ScreenBuffer 
+  define 10,IconBuffer  0388-0391 
+  define 1,disp_size_flag        ;=0 大字体
+      ;=1 小字体 0392
+  define 1,large_size_flag ;=1 强制大字体 0393
+  define  1,curr_CPR  ;当前的CPR值 zxy 0394
+   define  1,curr_RPS  ;当前的RPS值 zxy 0395
+BYTE_OF_CharAttr equ 25
+  define BYTE_OF_CharAttr,CharAttr  ;25*8=200 某字节反白
+      ;bitx=1 此字节反白
+      ;bitx=0 此字节不反白
+      ;................... 0396-03AE
+  define 2,lcd_mode  ;设置大小行 03af 03B0
+      ;bit15,bit14,bit13...bit6
+      ;1行  ,2行  ,3行,... 10行
+      ;bitx=1 大行(8x16或16x16)
+      ;bitx=0 小行(8x8)
+      ;......................
+  define 2,line_mode  ;更新任意行 03B1 03B2
+      ;bit15,bit14,bit13...bit6
+      ;1行  ,2行  ,3行  ...10行
+      ;bitx=1 不更新此行
+      ;bitx=0 更新此行
+      ;分大小写
+      ;.......................
+  define 1,cursor_mode  ;..................... 03B3
+      ;bit3=1 下划线光标
+      ;bit3=0 块状光标
+      ;bit2 1 0
+      ;   0 0 0 8x8 点或8x1点
+      ;   0 0 1 8x16点或16x1点
+      ;   0 1 0 16x16 或16x1
+      ;   1 0 0 24x24 或24x1
+      ;.........................
+  define 1,cursor_posx  ;ch 03B4
+  define 1,cursor_posy  ;cv 03B5
+ch equ cursor_posx
+cv equ cursor_posy
+      ;.......................
+  define 1,cursor_status  ;注:一般应用程序只读不写 03B6
+      ;READKEY 时
+      ;bit7=1   jsr flash_curr_app
+      ;bit7=0 notjsrflash_curr_app
+                                                ;b3b2b1b0=0000b 8x8 or 8
+                                                ;b3b2b1b0=0001b 8x16 or 16
+                                                ;b3b2b1b0=0010b 16x16 or 16
+                                                ;b3b2b1b0=0100b 8x10
+                                                ;b3b2b1b0=0101b 6x12
+                                                ;b3b2b1b0=0110b 12x12
+      ;........................
+  define 1,char_mode  ;任意位置写一字符或汉字 03B7
+      ;bit7=1 反显 bit7=0 正显
+      ;bit3 2 1 0
+      ;   0 0 0 0  8x8点阵扩展
+      ;   0 0 0 1  8x16点阵
+      ;   0 0 1 0  16x16点阵
+      ;   1 X X X  特殊类型
+  define 2,mode_buffer   03B8 03B9;lcd.s 临时变量
+  define 2,line_buffer   03BA 03BB;lcd.s 临时变量
+                define  1,scr_mode           ;lcd.s 03BD
+;=0:lcd_mode方式
+;=1:8x10 8行
+;=2:2行8x10+5行6x12 or 12x12
+;=3:1行16x16+5行6x12 or12x12
+define 1,underline_cursor 03BE
+  define 2,Scr_Ptr 03Bf 03c0
+  define 1,lcdch 03c1
+  define 1,lcdcv 03c2
+  define 1,scrncv 03c3
+scr_end  equ __base
+;...............画图用(graph.s)..................
+  define 30,graph_buf 03c4-03e1
+graph_end equ __base
+;------------------系统用-----------------------
+  define  1,wakeup_flag           ;每天的按ON/OFF开机次数 03e2
+  define 1,music_no  ;qah basic music 03e3
+  define 1,curr_function 03e4
+  define 2,power_up_flag 03e5 03e6
+  define 1,sys_flag   03e7
+      ;b7=1 have dsp
+      ;b6=1 充电中
+      ;b5=1 电池电压达最值后回落
+      ;b4=1 电压达最大值
+      ;b3=1 充电时间延长30分钟
+      ;b2=1 插着充电插座,但未充电
+;for font 
+  define 1,kanji_disp_flag ;03e8 繁简转换
+      ;=0 繁显
+      ;=1 简显
+  define 1,uni_flag   03e9 ;bit7=1 unicode 码值;bit7=0 other code
+      ;bit6=1 简体汉字
+      ;bit5=1 繁体汉字     
+      ;bit4=1 韩字
+;for lcd
+  define 1,bright_level 03ea
+  define 1,volume_level  ;for 音量设置 03eB
+  define 1,readkey_flash  ;0 flash_cursor(system) 03ec
+      ;1 time.s
+      ;2 wnl.s
+      ;3 版权字典
+  define 1,down_time1 03ed
+  define 1,eat_one_key 03ef
+  define 1,repeat_key_flag 03f0
+      ;................................
+      ;bit7=1 
+      ;jsr  repeat_key
+      ;Areg<--key&7fh or 0ffh(no key press
+      ;bit7=0
+      ;jsr repeat_key
+      ;if no key pressed 在repeat_key 内部
+      ;     等键按下
+      ;if have key pressed Areg<--key&7fh
+      ;.................................
+  define 1,curr_speed  03f1
+;for kbd
+  define 1,key_click_flag ;bit7=1 key_click_bell 03f2
+      ;bit6=0 eat_one_key
+  define 1,sharp_bell_flag      ;bit6=1俄罗斯模块,重新定义键盘 03f3
+            ;bit7=1 有整点闹钟
+            ;bit7=0 无整点闹铃
+;for irq
+  define 1,TIMERB_ID  ;单词发音;报时;计算器发音 03f4
+  define 2,timerb_ser_ptr ;for timerb ser 03f5 03f6
+  define 1,brk_bank
+;for nmi 03f7
+  define 1,watch_dog_timer_flag 03f8
+  define 1,hour   ;b4-0 is hour(0-23) 039
+  define 1,minute 03fa
+  define 1,second  ;RTC second * 2 03fB
+      ;为适应程序,表示为半秒
+  define 1,year   ;current_year-1881;03Fc
+  define 1,month 03fd
+  define 1,month_day  ;b4-0 is mday (0-30) 03fe
+  define 1,week_day
+; 03ff
+  define 1,second_m2 0400 
+  define 1,hundred  ;1/256hz second
+0401
+  define 1,idleout_second 0402
+  define 1,idlesec 0403
+   define 1,alarm_minute  0404;for 闹铃
+  define 1,alarm_hour  ;for 闹铃 0405
+  define 1,alarm_type         ;B7=0, from sleep 0406
+      ;   =1 from NMI
+  define 1,alarm_on
+;for sound 0407
+   define 1,fourch_active 0408
+  define 1,sound_flag 0409
+  define 1,sound_in_flag  ;for check_stop_sound
+      ;b7=1 语音中 b7=0 
+      ;b6=1 没结束 b6=0 结束 040a
+  define 1,idlesec_tr 040B
+;for setting
+  define 1,low_power_flag ;000h: default power OK 040a
+      ;0ffh: Very Low Power to sleep
+  define 1,onpic_flag  ;040b
+      ;0 闹钟
+      ;1 自定义开机画面
+  define 1,_24hour_mode 040c 
+  define 1,cjj_sec_m2  ;for  time.s
+      ;for timing(定时器) 040d
+  define 12,host_name  ;开机题词;len=12 040e-0419
+
+
+
+  define 1,Ch0Phase0  ; calculate index of low_frequence 041a
+  define 1,Ch0Phase1  ; index of high_frequence byte 041b
+  define 1,Ch0Freq0  ; deal with in 4ch.s , it's equal to
+  define 1,Ch0Freq1  ;Ch0Phase;041c
+  define 1,Ch0Volume0  ; calculate original volume in kbd.s  041d
+  define 1,Ch0Volume1  ; deal with volume in 4ch.s 041e
+  define 1,Ch0Mode
+Ch1Mode  equ Ch0Mode   ; for game check end of music 041f
+  define 1,lengtha  ; length of 4ms ;0420
+  define 1,alarm_length 0421
+  define 1,game_second_m2 0422
+
+
+
+;--------------------定时器timing.s-------------------------
+  define 2,ding_shi  ;for _timing 0423,0424 
+      ;BYTE1 b7: 0:走 1:停 
+      ;By1:hour By2:minute
+  define 1,ding_shi_second ;for timing 0426
+  define 1,ding_hour_set  ;for timing 0427
+  define 1,ding_min_set  ;for timing 0428
+                define  6,ding_alarm_time       ;0429-042e
+                define  1,ding_shi_flag
+ding_alarm_year  equ     ding_alarm_time
+ding_alarm_mon  equ     ding_alarm_time+1
+ding_alarm_day  equ     ding_alarm_time+2
+ding_alarm_hour equ     ding_alarm_time+3
+ding_alarm_min  equ     ding_alarm_time+4
+ding_alarm_sec  equ     ding_alarm_time+5
+;--------------------------------------------------
+sys_end  equ __base 
+;------------------zp bakup------------------------
+  define 1,zp_int_enable  ;sys 0430
+  define 1,zp_clock_ctrl  ;sys 0431
+  define 1,zp_port_config ;sys 0432
+  define 1,zp_general_ctrl ;sys 0433
+  define 1,zp_io_port3  ;sys lity 0434
+  define 1,zp_io_port4 0435
+  define 1,zp_zp_bsw 0436
+  define 1,zp_timer01_ctrl 0437
+  define 1,zp_ckv_select 0438
+  define 1,zp_bios_bsw 0439
+  define 1,zp_port6_dir 043a
+  define 1,zp_io_port6  ; 043b
+;----------------for sw.s---------------------;
+  define 5,sw_base_time  ;for sw, david ；043c-0440
+sw_base_hour  equ sw_base_time 043c
+sw_base_minute 043d equ sw_base_time+1 
+sw_base_second_m2 equ sw_base_time+2 043e
+sw_base_hundred  equ sw_base_time+3 043f
+sw_reload  equ sw_base_time+4 ;for sw, david 0440
+
+
+
+  define 4,StopWatchBuf 0441-0444
+s_hour  equ StopWatchBuf  ;david for stopwatch 0441
+s_minute equ StopWatchBuf+1  ;david for stopwatch 0442
+s_second_m2 equ StopWatchBuf+2  ;david for stopwatch 0443
+s_hundred equ StopWatchBuf+3  ;david for stopwatch 0444
+init_flaga equ StopWatchBuf  ;zmh for trans.s  0441
+init_flagb equ StopWatchBuf+1  ;zmh for trans.s  0442
+
+
+
+;----------------------输入法用----------------------
+  define  1,inputmode  ;中英数标志
+      ;0--英
+      ;1--数
+      ;2--中 0445
+  define 1,chinese_mode  ;输入法标志(当前值为:) 0446
+      ;bit7 bit6=默认输入法类型
+      ;     00英文,01数字,02中文
+      ;bit5=1 Cap锁定
+      ;bit4-bit0: 00--拼音输入法
+      ;       01--双拼输入法
+      ;       02--五笔输入法
+      ;       03--笔划输入法
+      ;       04--部首输入法
+      ;       05--图形输入法
+      ;       X6--下载输入法(用之死机)
+
+
+
+  define  1,func_key              ;for Cewait_key rts 0447
+  define  1,inp_hint  ;显示输入法状态行用 0448
+  define 1,prevkey  ;输入法调用次数 0449
+  define 2,double_hira  ; 044a 044b
+  define 1,py_inplen  044c;
+  define 1,set_fc  ;反查标志 044d
+  define 1,yd_val  044e;
+  define 8,fc_key  ;反查键值 044f-0456
+  define 1,mh_py_flag  ;模糊音设置标志 0457
+  define 4,py_buf  ;0458-045b
+  define 1,gb_flag  ;045c
+  define 1,lxinp_mode  ;0 有联想
+      ;1 无联想 045d
+  define 1,pid_status_flag ;b7=1 have pid 045e
+  define 1,curr_dict_flag ;=0 版权字典
+      ;=1 文曲星字典
+      ;=2 汉英字典 045f
+  define 2,scr_max_off  ;屏幕取字程序用 0460,0461
+  define 1,dict_fun_flag  ;=1 字典功能; =0 其它热键,; 用于切字典时处理输入的 0462
+  define 1,is_wd_win ;是否在wordnet中的标识 
+单词缓冲区 0463
+;--------------------for 计算器--------------------
+  define 1,cal_mode 0464
+  define 1,fix_flag  ;for sc.s 0465
+  define 1,vat_flag  ;for sc.s 's VAT 0466
+  define 2,vat   ;for vat 0467,0468
+  define 1,num_mode_flag 0469
+  define 15,cal_memory 046a-0478
+;----------------------数据库用----------------------
+  define 1,fName 0479
+  define 2,rSize 047a,047b
+  define 2,dirAddr 047c,047d
+  define 2,recordNo 047e,047f
+  define 8,warn_buf              ;一个月内有约会提醒的标记 0480-0487
+  define 1,check_secret_flag 0488
+  define 1,passwd_ok_flag 0489        ;
+
+
+
+
+----------------------------------------------
+偶是QIQI~  
+ 
+ 2004-9-11 22:51:18 BBSer全面推出免费邮箱服务！          
+ 
+  QIQI     
+  
+  
+  等级：管理员 
+  威望：+ 79791 [荣誉]
+  经验：
+  魅力：
+  现金：
+  文章：157
+  积分：79835
+  注册：2004-7-3
+               第 2 楼  
+ 
+ 
+
+ 
+
+  define 1,dbase_flag            ;enter dbase_system flag 048a
+  define 1,noise_file            ;last alarm record file 048b
+  define 1,noise_clear_flag ;look last sch 048c
+  define 2,noise_recordNo        ;last alarm record recordNo048d 048e
+  define 1,next_noise_file       ;next alarm record file 048f
+  define 2,next_noise_recordNo   ;next alarm record recordNo 0490 0491
+  define 1,db_alarm_min 0492
+  define 1,db_alarm_hour 0493
+  define 1,clock_day             ;system set for date_alarm 0494
+  define 3,case_buf
+case_buf_addr ;0495 -0497  equ     case_buf+1
+  define 2,nc_rec 0498 0499 
+  define 2,RecBuf_Ptr 049a 049b
+  define 1,temp_line_num         ;;yxq for nclcd.s 049c
+  define 1,search_curr_item      ;;yxq for find_inp.s nc_init.s 049d
+  define 2,RecordSize  ;xfang 确认 049e 049f
+  define 2,record_no  ;for nc 04a0 04a1
+;----------------------提醒用--------------------------
+  define 1,next_alarm_off 04a2
+  define 1,alarm_num 04a3
+  define 10,Alarm_Update_Buf 04a4-04ad
+  define 256,Day_Alarm_Buf 0 04ae-05ad
+  define  30h,db_io_buffer         ;for db_io (dbase) 05ae 05dd
+dbase_buf_end equ __base
+;-----------------------保存值---------------------
+  define 2,poker_bob05de 05df
+  define 4,item_sign  ;for 营养素选定 无资料 05e0-05e3
+  define 2,range   ;取均匀随机数 lil 98.7.13 05e4 05e5
+  define 2,radom_seed  ;取均匀随机数 lil 98.7.13 05e6 05e7
+  define 30,ram_exec 
+;brick.s 05e8-0605
+  define 1,speed 0606
+  define 1,level 0607
+   define 2,hi_score 0608 0609
+  define 6,hi_name
+;guess.s 060a-060f
+  define 1,docu1 0610  ;猜数字对错次数
+  define 1,docu2 0611
+;goods.s
+  define 1,goods_step  ;记关数 0612
+  define 1,goods_step_bak 0613
+;------ 菜单用------
+define 1,menu_offset  ;menu ;sys 0614
+  define 1,menu_item  ;menu ;sys 0615
+  define 1,menu_flag  ;menu ;sys 0616
+  define 1,m_start_show_item ;通用菜单 gmenu.s 0617
+  define 1,m_current_item ;通用菜单 gmenu.s 0618
+  define 1,key_word  ;保存关键字 0619
+  define 1,line_form  ;每一行显示选项的个数 061a
+  define 1,program_num  ;菜单选项对应的程序数/一 061b
+  define 1,s_posi  ;保存栈值 061c
+  define 1,stack_bak 061d
+  ;
+   define 1,bank_no  ;for lil bios取数据 061e
+  define 1,bank_data  ;切BANK取数据暂存 061f
+define  2,block_no 0620 0621
+                define  2,block_offset 0622 0623
+io_start        equ     block_offset
+
+;...................Nandflash 用.................
+MAXHOTBANK  equ 16
+  define 1,NandRamBank  ;xfang  0624
+  define MAXHOTBANK*2,HotBank ;xfang 0625-0634
+  define 1,formatflag 0635
+nand_data equ bank_data 0636
+;-----报时用.计算器发音------------
+define 3,pcm_begin_addr ;for time voice 0637-0639
+define 1,Flag0 063a
+define 1,data_nibble 063B
+define 1,stepsize 063c
+  define 3,pcm_end_addr  ;for wyj 063d-063f
+define 1,play_ptr_cnt  ;for wyj 0640
+  define  1,pvoice  ;for wyj 0641
+  define 16,PcmBlock  ;for wyj 0642-0651
+define  1,brithy ;lxp 99.11.15 0652
+define  1,brithm ;lxp 99.11.15 0653
+define  1,brithd ;lxp 99.11.15 0654
+;----------for win.sdefine 1,win_layer  ;窗口层数计数<2 0655
+;--------------------for until.s--------------------    
+  define 4,until_date_buf ;zxy for 倒计时 0656-0659
+until_year equ until_date_buf
+until_month equ until_date_buf+1
+until_day equ until_date_buf+2
+until_date_flag equ until_date_buf+3
+      ;0      初次输入
+      ;1 时间未到
+      ;2 当天
+      ;3 时间已过 
+;--------------------
+define 40,PLAY_OFFSET  ;40 for time_speak(32) 065a-0681
+define 1,celp_tmp  ;中间变量,celp 0682
+  define 1,dataL   ;for dsp 0683
+  define 1,dataH   ;for dsp 0684
+;----GFFS专用-------define 2,BusStartBlock 0685 0686
+define  2,BusMaxBlock 0687 0688
+  define 2,CurrBlkForNCDB ;;名片/数据库申请空间时从指定块号处开始 0689 068a
+define  1,IrdaModeStatus ;Tommy 2000-11-30 068B
+;16个FileBuffer
+define  2,RecordNumber ;记录号(2 byte) 068C 068d
+define  2,CountRecord ;返回文件记录总数( 2 byte) 068f 0690
+define 2,BusFlash_WorkBuf ;operate bus flash 0691 0692
+;----名片画头像(draw.s)--;
+  define 20,status_buf  ;头像 0693-06A6
+;---------tts 发音 --;不调word speak时
+  define 63,VARADDR  ;以下连续缓冲区可临时用 06a7-06BD
+define 1,block_no_used 06Be
+  define 1,block_no_empty 06BF
+  define 4,NandFlashAddr  ;for nand flash 06c0-06c3
+  define 1,NandFlashCmd  ;for nand flash 06c4
+define 2,Nbyte_count  ;for nand flash 06c5
+;----其它变量------
+DEfine 1,RTC_IER_map   ;1 byte 06c6
+  define 1,Brui_int_temp  ;for Brui interrupt 06c7
+define 4,irda_irq 06c8-06cB
+define  1,TimerMark ; Timer mark 06cc
+define  1,TimerMark1;timer mark 06cd
+  define  1,TimerCNT;timer counter,1 bytes 06ce
+  define  1,TimerCNT1;timer counter,1 bytes 06cf
+define  1,IconFlashFlag ;wp 5.17 FlashIcon xfang 06d0
+;-----充放电用------define  1,max_time ;fhua for change battery 06d1
+define  1,step_time 06d2
+define  1,pwm_data 06d3
+DefinE  1,batt_detect_bd 06d4
+define  1,min_3 ;fhua for change battery 06d5
+define  1,max_time_backuP;fhua充电 06d6
+;-----名片系统------define 1,edit_scan_flag 06d7
+;bit7=1
+; get record from nc_database
+;bit7=0
+; get record from nc_templete
+define 1,scan_flag 06d8
+define 2,history 06d9  06da
+HISTORY_BUF_LEN equ 40
+  define HISTORY_BUF_LEN,HISTORY_BUF 06dB-0702
+define 1,touxiang_flag 0703
+define  2,NC_TblPtr ;名片块号表地址 0704 0705
+define  2,NC_DataBlkCount       ;名片块总数 0706 0707
+define  2,NC_OwnerAddr ;机主记录地址 0708 0709
+define  2,NC_RecordAddr ;当前记录地址,读记录后返回;新插入后返回新记录地址 070a 070B
+define  2,NC_RecCount;名片所有记录总数 070c 070d
+define  2,NC_DelRecCount ;名片删除记录总数 070e 070f
+define  2,NC_DiscardRecCount    ;名片彻底删除记录总数 0710 0711
+define  2,NC_NameRoot  ;姓名根节点 0712 0713
+define  2,NC_CompRoot  ;公司根节点 0713 0714
+define  2,NC_NewRec  ;新记录要写入逻辑地址 0715 0716
+define  1,NC_RecordSort  ;排序索引 0717
+define  1,MoveFlag ;0:从当前位置  1:从左节点  2:从右节点  3:从根节点 0718
+define 2,RecordBuffer 0719 071a
+define 1,NC_RecordClass ;名片类型 071B
+define  1,sort_type  ;排序方式,exp 姓名+电话,姓名+公司 .. 071c
+define 2,NC_RecordCount ;名片当前组记录总数 071d 071e
+define 1,NC_GroupFlag   ;for tommy 071f
+define 2,save_block_no 0720 0721
+define 1,nc_code_flag  ;0: 简体拼音->国标 0722
+define 1,NC_BRANCH  ;名片入口分支 0723
+define 3,comp_year   ;yxq 0724-0726
+comp_month equ comp_year+1
+comp_day equ comp_year+2
+DataBuffer equ RecordBuffer
+
+  define 2,shy_tbl_len 0727 0728
+define 1,portrait_index 0729
+;  define 1,peidui_flag  ;0无配对
+NCSYS_RAM_end   equ     __base
+;-----for downexec.s---;
+  define 1,ram_bank_bak  ;for downram exec 072a
+define 2,down_bank_ptr  ;for run downexec 072B 072c
+define 1,a_down_tmp  ; 072d
+define 15,down_ram_set  ;byte1,curr_function 072e-073c
+;14 byte 文件名
+define 1,NmiMask  ;litao for xgc 1.14
+073d
+;......................................
+  define 3,check_sum  ;for trans 073e-0740
+  define 3,get_sum 0741-0743
+  define 1,data_size 0744
+  define 1,data_tmp 0745
+  define 1,err_counter  ;for trans 0746
+;---for 单词测验---- define 1,voc_default_grp ;exam_flag;exam 0747
+define  10,exam_buff 0748-0751
+exam_speed_bak equ exam_bufF; 背诵速度
+exam_gap_bak equ exam_buff+1; 间隔
+exam_level_bak equ exam_buff+2; 册数
+exam_range_bak equ exam_buff+3 ; 个数
+exam_start_bak equ exam_buff+4 ; 起始ID
+exam_self_term_bak equ exam_buff+7 ;生字组号备份( 1 byte)
+exam_mode_flag equ Exam_buff+8;
+flag_unknown_word equ exam_buff+9;for exam
+;0  普通测验
+;1  记忆测验
+;2  ESC 返回
+;3  唤醒测验
+;4  背诵
+;0ff字典
+define  4,wakeup_exam_buff 0752-0755
+wakeup_start_bak eq wakeup_exam_buff;唤醒记忆起始ID(3 bytes)
+wakeup_range_bak equ wakeup_exam_buff+3 ; 唤醒记忆个数(1 byte)
+define 15,guide_buf 0756-0764
+define  2,VocOffset  0765 0766
+define  2,VocBlock  ;moses 6-18 0767 0768
+;------汉字学习----
+define 90,hzstudy_buf 0769-07c2
+define  1,WritePoint;写指针 07c3
+define  1,PlayPoint ;放音指针 07c4
+define 1,Dict_in_flag;是否需要建立字典索引 07c5
+;---- 文件系统非零页变量(Pub) -----
+NGFFSVAR equ __base
+
+define 128,CorpseBitMap  ; 创建没有close的文件 cold start produce 07c6-0845
+define 1,ActiveSBpos   ;1 活动的超级块位置, 0846
+define 5,sbbank   ;5 超级块的bank号 0847-084B
+define 10,sbaddr   ;10 超级块的addr 084c-0855
+define INODEBLOCKNUM,inodebank  ;17 inode的bank号  
+define INODEBLOCKNUM*2,inodeaddr ;34 inode的addr
+define 1,plbadlist   ;1 运行中产生的坏块数 0856
+define 1,Phase    ;1 Sector Reclaim 入口(进度) 0857
+define 2,reclaim_block_num  ;2待整理块数目 0858 0859
+define 2,reclaimed_block_num  ;2已整理的块数目 085a 085B
+define 4,nd_addr_reg;for ndflash 085c-085f
+define 1,nd_status_reg 0860
+define 2,nd_id_reg   ;nandflashid(厂商,设备号) 0861 0862
+define 2,nd_data_cnt 0863 0864
+define 2,nd_data_len 0865 0866
+define 2,W_FlashTime 0867 0868
+define 2,phy_sectorslot 0869 086a
+define 3,phy_sector_offset 086B-086d
+NGFFSSYSVAR_end equ __base
+
+define MAX_PATH,FileName  ;57 带全路径的文件名 08d6-090e
+define 2,DataCount   ;2 数据缓冲大小 090f 0910
+define 1,FileHandle   ;1 文件句柄 0911
+define 1,FileOpenMode   ;1 文件打开方式 0912
+define 2,FileAttr   ;2 文件属性,创建文件时用 0913 0914
+define 1,FileErrorCode   ;1 错误码 0915
+define 4,SeekOffset   ;4 lseek时文件偏移大小 0916-0919
+define 1,SeekOrigin   ;1  091a
+      ;bit7 lseek时偏移方向
+      ;bit0-2 lseek时起始偏移位置
+define 2,WorkingDir   ;2 091B 091c
+define 32,inode_buf   ;32 为了寻址快 091d-093c
+define 2,inodeslot   ;2  InodeTbl的位置 l:inode blockno 093d 093e
+define 2,inodenum   ;2 Inode 序号 093f 0940
+define 2,sectorslot   ;2 Sector的号 0941 0942
+define 1,FDnum    ;1 打开文件的数目 0943
+  define 4,filesize   ;4 文件大小 0944-0947
+define 1,filemode   ;1 文件模式 0948
+  define 1,filestate   ;1 文件状态 0949
+define 2,dirnode   ;2 目录的Inode{up_dir} 094a 094B
+define 4,Dirptr   ;4 2 byte 目录inode, 2byte direnty 序号 094c-094f
+define 17,Dirent   ;1 2 byte D_inode, 14byte D_name 0950-0960
+define 2,sector_offset   ;2 0961 0962
+define 15,NewName   ;15 0963-0972
+define WORKINGBUFLEN+20,NGFFS_BUFFER ;bus flash读写用buf及部分零时变量区 0973-0a27 
+NGFFSVAR_end equ __base
+
+define 16,skin_filename  ;for 开机动画
+0a28-0a37
+define 2,DataSize   ;暂时定义zdc 2002/3/29 0a38 0a39
+define 1,curr_battery   ;fhua 电池检测 0a40
+define 50,backup_lcd_buf  ;fhua for 充电提示保存屏幕 0a41-0a73
+
+define 1,hour2   ;lity 世界城市 0a74
+define 1,minute2  ;lity 0a75
+define 1,mv_num 0a76
+define 1,bf_mv_num  ;backup mv_num 0a77
+define 1,bd_value_bak  ;fhua 2002/8/7 for 充电 0a78
+define 1,stop_time_count 0a79
+define 45,CatNum 0a7a-0aa6
+define 1,zp_CFCInx  ;保存充电状态 0aa7
+;---------------
+SYS_RAM_end equ __base
+if __base>0b00h
+  ERROR!!
+endif
+;--------------------------------------------------
+;;;;;;;;;;;;名片分支常量
+SINGLE_ITEM_BROWSE equ 0
+RESTORENC equ 1
+SELECT_GROUP equ 2
+INIT_NC_FUNC equ 3
+FINISH_NC_FUNC equ 4
+IRL_NC_FUNC equ 5
+IRS_NC_FUNC equ 6
+SHOW_NC_BAR equ 7
+GET_GRP_NAME equ 8
+POLY_NAME_SAVE equ 9
+RECORDREAD equ 10
+COMM_BROW_NC equ 11
+OWNER_FINISH equ 12
+HAVE_SEX_BB equ 13
+NC_LOWPOWER equ 14
+TRANS_CLEANUP equ 15
+NC_FILE  equ 16
+;..................缓冲区...........
+;RecBuf 与 _2_RecBuf 连续
+__base  equ 0b00h
+recbuf_start equ __base
+  define 256,RecBuf  ;256
+  define 256,_2_RecBuf  ;256
+RECBUF_LEN equ __base-recbuf_start
+
+rec_buf  equ RecBuf
+HALF_REC_BUF equ 128
+rec_buf2 equ RecBuf+HALF_REC_BUF
+press_buf1 equ rec_buf   ;should del
+
+if __base>0d00h
+  ERROR!!
+endif
+;----------------------------------------------------------------------
+;用户在不调用红外通信时可临时使用以下变量区(unicode-big5转码缓冲区,红外通信区)
+;unicode-big5 转码缓冲区
+
+Convert_Buf equ 0d00h  ;512 byte(256+256)
+DictFC_Buf equ Convert_Buf ;除字典和通讯转码,其它模块不许用
+MUSIC_BUFFER equ 0f00h  ;for music.s 64bytes
+;----------------------------------------------------------------------
+;红外通信
+__base  equ 0f00h
+define 1,IrdaModeMark   ;see note.s  ;0f00
+define 1,IrdaDataType   ;see note.s  ;0f01
+define 1,IrdaCodeMark   ;see note.s  ;0f02
+define 1,IrdaDeviceType  ;see note.s  ;0f03
+define 1,IrdaBankNum   ;see note.s  ;0f04
+define 1,IrdaCallMark   ;See note.s  ;0f05
+define 1,IrdaCheckMark   ;See note.s  ;0f06
+define 1,IrdaComStatus   ;See note.s  ;0f07
+define 1,HandsetModel   ;wp 0f08
+define 1,GroupName 0f09
+
+define 2,IrlapFCS 0f0a 0f0B  ;save self_calculated FCS,
+define 1,Received_ADD 0f0c
+define 1,Received_CMD 0f0d
+define 2,Received_FCS   ;save received FCS,2 bytes 0f0e 0f0f
+define 7,TestCount
+0f10-0f16   ;0~3: error counter ;
+       ;4~6: send counter
+define 1,TempByte 0f17
+define 1,TempByte1 0f18
+define 2,TempCount 0f19
+define 1,SendCredit 0f1a
+define 1,RecvCredit 0f1B
+define 1,SendCounT 0f1c
+define 1,RecvCount 0f1d
+define 2,TempLength0f1e 0f1f 
+define 2,LeftLength0f20 0f21 
+define 2,SendLength 0f22 0f23
+define 2,RecvLength 0f24 0f25
+define 1,Brui_int_map   ;1 byte 0f26
+define 1,UART_IER_map   ;1 byte 0f27
+define 1,Nr 0f28
+define 1,Ns 0f29
+define 1,Vr 0f2a
+define 1,Vs 0f2B
+define 1,Dlsapsel 0f2c
+define 1,Slsapsel 0f2d
+define 1,RetryCount 0f2e
+define 1,VsIncrease 0f2f
+define 1,FoundDevice   ;0a 0f30
+define 1,DeviceCount   ;0b 0f31
+define 1,SimuMark   ;0c 0f32
+define 1,BaudRate   ;0d 0f33
+define 2,IRDA_DataSize   ;0e rename 00/10/16 0f34 0f35
+define 1,AXU_Command 0f36
+define 1,UAFormat 0f37
+define 1,MediaBusy 0f38
+define 1,DiscovFlag 0f39
+define 1,SlotCount   ;number of slot 0f3a
+define 1,SlotNumber   ;current number of slot 0f3B
+define 1,ResponseReady 0f3c
+define 1,ReturnCode 0f3d
+define 4,SourceAddress 0f3e-0f41
+define 4,DestAddress 0f42-0f45
+define 1,ConnectAddress 0F46
+define 10,ConnectTable 0f46-0f4f
+define 80,DeviceLog 0f50-0f9f
+define 1,MenuNumber 0fa0
+define  1,NameLength 0fa1
+define  1,TelLength 0fa2
+;++++++++++++++++++++++++++++++++++++++++
+define 1,LapBaudRate 0fa3 
+define  1,DeviceModel 0fa4
+define  1,ObjectID 0fa5
+define  1,RemoteCredit 0fa6
+define 1,front_save_temp 0fa7
+define 1,BruiBug 0fa8
+define  1,TtpSendCredit 0fa9
+define  1,TtpAvailCredit 0faa
+define  1,TtpRemoteCredit 0faB
+define  1,TempTtpCredit 0fac
+define 1,send_success 0fad
+define 1,RepeatSend 0fae
+define 1,IrdaDataTypeBak 0faf
+;-----------------------
+define 1,hotkey 0fB0

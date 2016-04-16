@@ -1,0 +1,49 @@
+#define TABLE_CLR	0													//表格初始化
+#define TABLE_SEK	2													//表格查找
+#define TABLE_INS	4													//表格插入
+#define TABLE_DEL	6													//表格删除
+#define TABLE_RED	8													//表格读取
+#define TABLE_SAV	10													//表格保存
+//******************************************************资源偏移量******************************************************//
+#define DAT_MACRO	0													//宏数据
+#define DAT_CONCAT	1													//设置目录
+#define DAT_CONMSG	2													//设置说明
+#define DAT_HLPCAT0	3													//帮助目录0
+#define DAT_HLPCAT1	4													//帮助目录1
+#define DAT_HLPCAT2	5													//帮助目录2
+#define DAT_HLPCRT	6													//版权声明
+#define DAT_HLPBYX	7													//编译系统
+#define DAT_HLPYCL	8													//预处理系统
+#define DAT_HLPHCL	9													//宏处理系统
+#define DAT_HLPHBX	10													//汇报系统
+#define DAT_HLPSJL	11													//数据类型
+#define DAT_HLPYJU	12													//语句
+#define DAT_HLPHSH	13													//函数
+#define DAT_HLPYLI	14													//预处理
+#define DAT_EVERY	15													//每日提示
+#define DAT_SIMPLE	16													//简单程序(不能改变)
+#define DAT_HELLO	17													//hello world程序(不能改变)
+#define DAT_DIFFC	18													//复杂程序(不能改变)
+#define DAT_ERROR	19													//错误
+//-----------------------------------------------------------------------
+#define JUMP_SIZE	20													//跳转表大小[资源器－变]
+//*******************************************************目录表格*******************************************************//
+#define CATAL_TABLE 0x2000												//目录地址
+//-----------------------------------------------------------------------
+#define CAT_N_LEN	11													//名称长度
+#define CAT_E_LEN	15													//解释长度
+#define CAT_C_SIZE	4													//目录长度
+
+#define CAT_HELP	1													//帮助目录
+#define CAT_SET		2													//设置目录
+//======================================================================================================================//
+struct CATUNIT															//基本结构
+{
+	char name[CAT_N_LEN];												//名称
+	char msg[3][CAT_E_LEN];												//解释[3行]
+};
+
+struct CATTABLE
+{
+	struct CATUNIT dat[CAT_C_SIZE];										//数据域
+};

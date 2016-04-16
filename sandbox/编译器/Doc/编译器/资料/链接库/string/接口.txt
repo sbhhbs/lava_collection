@@ -1,0 +1,17 @@
+1	isascii		1
+1	strlwr		0
+1	strupr		0
+1	strset		0
+1	strnset		0
+1	memccpy		0
+1	strncpy		0
+1	memchr		1
+1	strrchr		1
+1	memcmp		1
+1	memicmp		1
+1	stricmp		1
+1	strncmp		1
+1	strnicmp	1
+1	strncat		0
+1	strrev		0
+1	strpbrk		1

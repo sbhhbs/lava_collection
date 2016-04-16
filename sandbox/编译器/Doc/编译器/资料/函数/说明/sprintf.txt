@@ -1,0 +1,15 @@
+原型:void sprintf(int str, int format,...);
+功能:把一个格式字符串输出str所指内存区域
+说明:与printf不同的是，输出到字符串而不是屏幕
+举例:
+char s[] = "Hello";
+
+void main()
+{
+ char t[20];
+
+ SetScreen(0);
+ sprintf(t, "%s有%d个字符\n", s, strlen(s));
+ printf(t);
+ getchar();
+}

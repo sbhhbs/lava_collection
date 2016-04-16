@@ -1,0 +1,184 @@
+原型:int InitStack(int s, int len, int es, long fullErrAdd, long nullErrAdd);
+功能:初始化堆栈并设置相关堆栈环境。
+说明:在内存地址为s，长度位len的空间里建立一个堆栈，成功则返回堆栈最大深度，否则返回-1。堆栈元素大小为es，fullErrAdd为堆栈溢出处理函数地址，其原型为:void fullErr();，nullErrAdd为堆栈空处理函数地址，其原型为:void nullErr();
+注意:该函数可以对不同的地址建立堆栈，该函数隐含调用了SwitchStack函数。
+
+原型:int SwitchStack(int s);
+功能:切换当前堆栈环境。
+说明:使得以下函数的操作都针对堆栈s。可以在内存中建立多个堆栈，通过该函数切换堆栈。
+
+原型:int StackFull();
+功能:判断当前堆栈是否满。
+说明:满则返回非0，否则返回0。
+
+原型:int StackEmpty();
+功能:判断当前堆栈是否空。
+说明:空则返回非0，否则返回0。
+
+原型:int StackDepth();
+功能:获取当前堆栈深度。
+说明:也就是当前堆栈里已有的元素个数。
+
+原型:void GetTop(int e);
+功能:获取当前堆栈顶的元素。
+说明:e为要保存栈顶元素的地址，如果堆栈空则会调用nullErrAdd所指的函数。
+
+原型:void Push(int e);
+功能:往当前堆栈压入元素。
+说明:e为元素地址，如果堆栈满则会调用fullErrAdd所指的函数。
+
+原型:void Pop(int e);
+功能:从当前堆栈弹出元素。
+说明:e为保存元素的地址，如果堆栈空则会调用nullErrAdd所指的函数。
+
+举例:
+/* 计算器 */
+/* 如:4+2*3-10/5*(10-1)=-8*/
+#include <adt/stack.y>
+
+/* 优先级判断 */
+char Precede(char a, char b)
+{
+ if (b == '(') return '<';
+ if (a == '+' || a == '-')
+ {
+  if (b == '*' || b == '/' || b == '%') return '<';
+  return '>';
+ }
+ if (a == '*' || a == '/' || a == '%') return '>';
+ if (a == '(')
+ {
+  if (b == ')') return '=';
+  return '<';
+ }
+ if (a == ')') return '>';
+ if (b == '=') return '=';
+ return '<';
+}
+
+/* 输入数据 */
+char getch()
+{
+ char key;
+ char num[10];
+
+ strcpy(num, "bnmghjtyu");
+ do {
+  key = getchar();
+  if (strchr(num, key)) return(strchr(num, key) - num + '1');
+  if (isdigit(key)) return key;
+  if (key == 0x15) return '+';
+  if (key == 0x14) return '-';
+  if (key == 'l') return '*';
+  if (key == 'o') return '/';
+  if (key == 'i') return '%';
+  if (key == 'z') return '(';
+  if (key == 'a') return ')';
+ } while (key != 13);
+ return '=';
+}
+
+void fullE1()
+{
+ printf("\n运算符栈溢出");
+ getchar();
+ exit(0);
+}
+
+void fullE2()
+{
+ printf("\n运算数栈溢出");
+ getchar();
+ exit(0);
+}
+
+void nullE1()
+{
+ printf("\n运算符栈为空");
+ getchar();
+ exit(0);
+}
+
+void nullE2()
+{
+ printf("\n运算数栈为空");
+ getchar();
+ exit(0);
+}
+
+/* 运算 */
+long Operate(long a, char op, long b)
+{
+ if (op == '+') return a + b;
+ if (op == '-') return a - b;
+ if (op == '*') return a * b;
+ if (op == '/') return a / b;
+ return a % b;
+}
+
+/* 计算 */
+long EvaluateExpr()
+{
+ char c, t;
+ long m, n;
+ char optr[500];
+ char opnd[500];
+
+ InitStack(opnd, sizeof(opnd), 4, fullE2, nullE2);
+ InitStack(optr, sizeof(optr), 1, fullE1, nullE1);
+ t = '=';
+ Push(&t);
+ for (;;)
+ {
+  c = getch();
+  printf("%c", c);
+  if (isdigit(c))//运算数
+  {
+   SwitchStack(opnd);//切换到运算数栈
+   n = 0;
+   do {
+    n = n * 10 + c - '0';
+    c = getch();
+    printf("%c", c);
+   } while (isdigit(c));
+   Push(&n);
+   SwitchStack(optr);//切换到运算符栈
+  }
+START:
+  GetTop(&t);
+  if (c == '=' && t == '=')
+  {
+   SwitchStack(opnd);//切换到运算数栈
+   GetTop(&n);
+   return n;
+  }
+  t = Precede(t, c);
+  if (t == '<')
+  {
+   Push(&c);
+  }
+  else if (t == '=')
+  {
+   Pop(&t);
+  }
+  else
+  {
+   Pop(&t);
+   SwitchStack(opnd);//切换到运算数栈
+   Pop(&m);
+   Pop(&n);
+   n = Operate(n, t, m);
+   Push(&n);
+   SwitchStack(optr);//切换到运算符栈
+   goto START;
+  }
+ }
+}
+
+void main()
+{
+ SetScreen(1);
+ printf("输入表达式:\n");
+ printf("%d\n", EvaluateExpr());
+ getchar();
+}

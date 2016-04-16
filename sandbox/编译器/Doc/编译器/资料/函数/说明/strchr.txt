@@ -1,0 +1,23 @@
+原型:int strchr(int str, char c)
+功能:查找str所指字符串中首次出现字符c的位置
+说明:返回首次出现c的位置，如果s中不存在c则返回NULL
+举例:
+char s[30] = "Golden Global View";
+
+void main()
+{
+ int p;
+
+ SetScreen(0);
+ printf("%s\n", s);
+ p = strchr(s, 'V');
+ if (p)
+ {
+  printf("%s", p);
+ }
+ else
+ {
+  printf("Not Found!");
+ }
+ getchar();
+}

@@ -1,0 +1,286 @@
+NC2K：
+
+BIOS函数表{官方资料}
+
+BELOW IS AT BIOS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+E006 bin2digit ;转1BYTE数据为字符模式
+E009 enter_sleep ;进入休眠
+E00C enter_sleepz  
+E00F start_4ch
+E012 stop_4ch
+E015 bell ;响铃 
+E018 key_click_bell ;按键音
+E01B mspeed4 ;延时
+E01E speed5 ;关timer1
+E021 speed5 ;关timer1
+E024 cspeed 
+E027 mspeed 
+E02a delay_time ;延时
+E02D delay_time1 ;延时
+E030 wait_1_sec ;等待1秒
+E033 wait_160_ms ;等待160毫秒
+E036 isdigit ;判断是否为数字
+E039 enable_dac_out
+E03C disable_dac_out  
+
+E03F start_sound  ;打开声音
+E042 stop_sound  ;关闭声音
+E045 out_celp_data
+E048 TTS_Sleep
+E04B TTS_Wakeup 
+E04E TTS_Reset
+e051 Adj_Volume  ;增加音量
+E054 wait_dsp1_ready  ;等待DSP1准备
+e057 move_to_ram ;复制子程序至RAM
+E05A get_8x8_font ;获取8x8大小字体至$0280开始的地址
+E05D ProcKey ;按键选择
+E060 Proc_Key ;按键选择2
+E063 case ;选择
+E066 TwoHz ;读系统时间入时间映射地址
+E069 gysdata ;跨页读取数据
+E06C playdt ;pc喇叭播放音乐
+E06F set_alarm_on ;设置闹铃开
+E072 get_next_data ;no use
+E075 getunicode ;获取UNICODE码(nand)
+E078 log_to_ph
+E07B oldmon ;系统debug
+E07E ChargeManager ;电源管理
+E081 spe_exe_file ;执行热键文件
+E084 move_rbuf_databuf ;移动读nand缓冲入数据缓冲
+E087 move_databuf_wbuf ;移动数据缓冲入写nand缓冲
+E08A phyWrite_512B ;写入512B nand
+E08D phyWrite_16B ;写入16B nand
+E090 phyRead_16B ;读取16B nand
+E093 phyRead_512B ;读取512B nand
+E096 phyRead_byte ;读取1B nand
+E099 NgffsMoveData
+E09C disp_icon ;显示符号
+E09F downexec 执行bin file
+E0A2 proc_menuI  ;图形化菜单程序
+
+
+
+
+
+
+
+
+NC2K：
+
+I/O用法总结！
+nc2k io port
+$00 set_rompage
+$02 timer1
+$03 timer2
+$04 lcd/read & close timer1
+$05 set_lcdmode/read & exe timer1
+$06 set_lcd_light/read & close timer2
+$07 read & exe timer2
+$08 get_keypress
+$09 set_keyrow
+$0a set_flashchange
+$0d set_ramchange
+$15 set_toreadkey
+$18 porc_io
+$1b power_manger
+$1c power_read
+$20 set_voice
+$29 nand_data/command
+$30 dsp1_status
+$3a com_data
+$3b com_checksum
+$3c com_status
+$3d com_control
+$3e set_com/set_time
+$3f com_bautrate/time 
+
+
+
+
+
+
+
+
+
+NC2K：
+
+全新的162个完全系统函数！官方资料！
+
+所有的CXXX函数列表！
+;--------------------------------------------
+;-----------------------------------------
+INT$C001 _Breset ;重启
+INT$C002  _Bdo_clear_memory ;清空特殊地址
+INT$C003  _Binit_port ;初始化io端口
+INT$C004   _Bopen_lcd ;打开lcd
+INT$C005   _Bopen_803_lcd ;打开803lcd
+INT$c006   _Bdelay_2fp ;延时2fp(no use in nc2600)
+INT$C007   _Bclose_lcd ;关闭lcd
+INT$C008   _Bis_dsp_exist ;检测dsp是否存在
+INT$C009   _Bwait_key ;按键停顿
+INT$C00a   _Brepeat_key ;键盘延迟
+INT$C00B   _Bunputkey ;
+INT$C00c   _Bproc_sys_event ;通用系统事件
+INT$C00d  _Bif_pushed ;
+INT$C00e   _Bsys_key_proc 
+INT$C00f   _Bexe_down ;
+INT$C010   _BReadByte ;读1 bytes nor flash
+INT$C011   _BWriteByte ;写1 bytes nor flash
+INT$C012   _BReadBytes ;读nor flash
+INT$C013   _BWriteBytes ;写nor flash
+INT$c014   _BRead4K ;读4k nor flash
+INT$c015   _BWrite4K ;写4k nor flash
+INT$C016   _BB4KAddrConvert ;4k地址转换
+INT$C017   _BToBlockForDB ;找出数据库的物理块
+int$c018   _BBusGetAllBlock ; ;;找出名片的物理块表
+int$c019   _BBlkReqForNCDB ;
+int$c01a   _BRawBlkReqForNCDB ;
+int$c01b   _BFormatNCDB ;格式化数据库区块
+int$c01c   _BGetFreeBlkCount ;获取数据库的可用块数; 
+int$c01d   _BBlockErase ;擦除块
+int$c01e   _BSysBlockErase ;系统块擦除
+int$c01f   _Bio_chk_same ;判断ram和flash块是否相同
+int$c020   _BFL1Read ;读flash
+int$c021   _BFL1Write ;写flash
+int$c022   _BFLBytesRead ;
+int$c023   _BFLBytesWrite ;
+int$c024   _BInf_ReadBytes 读取nor flash的出厂信息;
+int$c025   _Blcd_bright ; 屏幕亮度
+int$c026   _Bmy_check_bout ;初始化检查
+      
+--------------------------
+int$c701   _Bwrite_word ;
+int$c702   _Bccg ;
+int$c703   _Bget_8x10_font ;获取8x10字库
+int$c704   _Bget_8x16_font ;获取8x16字库
+int$c705   _Bget_12x12_font ;获取12x12字库
+int$c706   _Bget_6x12_font ;获取6x12字库int$c707      _Bflash_cursor ;闪动光标
+int$c708   _Bwrite_8x8_font ;写8x8字库
+int$c709   _Bwrite_8x16_code ;写8x16字库
+int$c70a   _Bwrite_8x16_font ;写8x16字库
+int$c70b   _Bwrite_16x16_font ;写16x16字库
+int$c70c   _Bwrite_16x16_code ;写16x16码
+int$c70d   _Bwrite_6x12_font ;写16x12字库
+int$c70e   _Bwrite_6x12_code ;写6x12字库
+int$c70f   _Bwrite_6x12_lable ;写8x12标号
+int$c710   _Bwrite_12x12_code1 ;写12x12码
+int$c711   _Bwrite_8x10_lable ;写8x10标号
+int$c712   _Bwrite_8x10_font ;写8x10字库
+int$c713   _Bwrite_ascii ;写ascll码
+int$c714   _Bwrite_one_char ;写一个字符
+int$c715   _Bwrite_chi_code ;写中文码
+int$c716   _Bwrite_ascii_tiny ;
+int$c717   _Bupdate_one_line ;更新一行
+int$c718   _Bupdate_lcd ;更新lcd
+int$c719   _Bupdate_lcd_0 ;更新lcd
+int$c71a   _Bupdate_Icon ;更新lcd
+int$c71b   _Bwefont ;写英文
+int$c71c   _Bwcfont ;写中文
+int$c71d   _Bconvert_scr ;转换
+int$c71e   _Bconvert_nline_ser ;
+int$c71f   _Bconvert_part ;
+int$c720   _Bget_char_index ;
+int$c721   _Bget_char_posi ;
+int$c722   _Bcal_curr_CPR_RPS ;
+int$c723   _Bmove_CharAttr_0 ;
+int$c724   _Bclear_line ;清除一行
+int$c725   _Bget_large_char_index ;
+int$c726   _Bcheck_attr ;
+int$c727   _Bget_small_char_index ;
+int$c728   _Bwrite_12x12_font ;写12x12字库
+int$c729   _Bclrscreen ;清屏幕
+int$c72a   _Bclear_screen ;清屏幕
+int$c72b   _Bclear_nline_ser ;清某一行屏幕
+int$c72c   _Bset_disp_bar ;
+int$c72d   _Bdisp_bcd ;显示bcd码
+int$c72e   _Bint2trf ;int<->trf
+int$c72f   _Bgb_int2trf ;
+int$c730   _Btrf2int ;
+int$c731   _Bgb_trf2int ;
+int$c732   _Bto_number ;转为数字
+int$c733   _Bbin2bcd ;
+int$c734   _Bbcd4bin ;
+int$c735   _Brecover_Icon ;
+int$c736   _Bbin3bcd ;
+int$c737   _Bclr_but_icon ;
+--------------  
+--------------------------
+int$c801   _Bcal_days ;
+int$c802   _Bcal_s_year ;
+int$c803   _Bcal_week ;
+int$c804   _Bcal_year_hl ;
+int$c805   _Bcal_l_year ;
+int$c806   _Bcal_yearbuf ;
+int$c807   _Bcal_week_day ;
+int$c808   _Bget_sys_buf ;
+int$c809   _Bcal_max_monthday ;
+--------------- 
+--------------------------
+int$c901  _Bdate_field_input ;
+int$c902   _Bwrite_to_lcd ;
+int$c903   _Bcreat_date_string ;
+int$c904   _Bproc_Dmenu ;
+int$c905     _Bsearch_namecard ;
+int$c906   _Bcont_search ;
+int$c907   _Bget_next_node ;
+int$c908   _BLoadChk_NextRec ;
+int$c909   _BChkCurrRec ;
+int$c90a   _Bget_bank_index ;
+int$c90b  _Bnc_count ;
+int$c90c  _Bph_disp ;
+int$c90d   _BCountRecord ;
+int$c90e   _Bcheck_flash_node ;
+int$c90f   _Bsearch_peidui ;
+int$c910   _Bscan_same_rec ;
+int$c911   _BLocatePrevNode ;
+int$c912   _BLocateNextNode ;
+int$c913   _BLReadBytes ;
+int$c914   _BIfTheRecIsWanted ;
+int$c915   _Bconvert_addr ;
+int$c916  _Bremote_init1 ;
+int$c917   _Bremote_finish1 ;
+int$c918   _Bremote_load1 ;
+int$c919   _Bremote_save1 ;
+---------------------------------------
+int$ca01   _Bto_ascii ;
+int$ca02   _Bint_divd ;
+int$ca03   _Bmul_ax ;
+int$ca04   _Bput_dot ;
+int$ca05   _Bget_dot ;
+int$ca06   _BDr_squre ;
+int$ca07   _BDr_block ;
+int$ca08   _BDr_line ;
+int$ca09   _Bw_block ;
+int$ca0a   _Bblock_draw ;方块
+int$ca0b   _Bline_draw ;线
+int$ca0c   _Bsqure_draw ;方快
+int$ca0d   _Bwrite_block ;
+int$ca0e   _Bcircle_draw ;圆
+int$ca0f   _Bellipse_draw ;椭圆
+int$ca10   _Bfill_circle ;填充圆
+int$ca11   _Bfill_ellipse ;填充椭圆
+int$ca12   _BOpen_win ;仿win信息框
+int$ca13   _BRefresh_win ;
+int$ca14   _Brollmenu ;等级棒
+int$ca15   _Bproc_menu1 ;通用菜单
+int$ca16   _Bshow_in_find ;正在查找
+int$ca17   _Bshow_no_find ;没有找到
+----------------------------------------int$cb01  _Bbbs_oldmon ; debug;
+int$cb02  _Bdata_view ;
+int$cb03   _Bproc_menu ;
+int$cb04   _Boffset_next_item ;
+int$cb05   _Bget_key_word ;
+int$cb06   _Bfloat ;int$cb07   _Binput ;输入法
+int$cb08   _Binputz int$cb09   _Bshow_help ;显示帮助
+int$cb0a   _Barrow_2 ;
+int$cb0b   _BNCWholeToPC ;
+int$cb0c   _BNCWholeFromPC ;
+
+
+
+
+
+
+
+

@@ -1,0 +1,66 @@
+struct TIME
+{
+	int year;
+	char month;
+	char day;
+	char hour;
+	char minute;
+	char second;
+	char week;
+};
+
+void setn(char &str[], char n)
+{
+	if (n < 10)
+	{
+		sprintf(str,"0%d", n);
+	}
+	else
+	{
+		sprintf(str, "%d", n);
+	}
+}
+
+void gettime(char &str[])
+{
+	struct TIME time;
+	char s[3][3];
+
+	GetTime(time);
+	setn(s[0], time.hour);
+	setn(s[1], time.minute);
+	setn(s[2], time.second);
+	sprintf(str, "%s:%s:%s", s[0], s[1], s[2]);
+}
+
+void getdate(char &str[])
+{
+	struct TIME time;
+
+	GetTime(time);
+	sprintf(str, "%d年%d月%d日", time.year, time.month, time.day);
+}
+
+long difftime(struct TIME &t1,struct TIME &t2)
+{
+	return((abs(t1.hour - t2.hour) * 60 + abs(t1.minute - t2.minute)) * 60 + abs(t1.second - t2.second));
+}
+
+void main()
+{
+	struct TIME t1, t2;
+	char str[30];
+	int d;
+
+	SetScreen(1);
+	getdate(str);
+	printf("日期：%s\n", str);
+	gettime(str);
+	printf("时间：%s\n", str);
+	GetTime(t1);
+	Delay(5 * 1000);
+	GetTime(t2);
+	d = difftime(t1, t2);
+	printf("时间差为：%d\n", d);
+	getchar();
+}

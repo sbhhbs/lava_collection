@@ -1,0 +1,9 @@
+1	ComOpen		1
+1	ComClose	0
+1	ComPutc		1
+1	ComWrite	1
+1	ComGetc		1
+1	ComRead		1
+1	ComWaitReady	1
+1	ComPutData	1
+1	ComGetData	1

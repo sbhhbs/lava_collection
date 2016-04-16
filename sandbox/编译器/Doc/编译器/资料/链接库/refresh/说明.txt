@@ -1,0 +1,72 @@
+作者:yoYohenry
+原型:void RefreshPoint(int x,int y);
+功能:以缓存区数据为背景画点刷新。
+原型:void RefreshLine(int x0,int y0,int x1,int y1);
+功能:以缓存区数据为背景画线刷新。
+原型:void RefreshBox(int x0,int y0,int x1,int y1,int fill);
+功能:以缓存区数据为背景画矩形刷新。
+原型:RefreshShutt(int x0,int y0,int x1,int y1,int n,int type);
+功能:以缓存区数据为背景在屏幕(x0,y0,x1,y1)范围内以百叶窗形式刷新。
+说明:n为百叶窗每页宽度；type=0为纵向百叶窗，type=1为横向百叶窗。
+举例:
+#include <refresh.y>
+void LCD()  //屏幕直接作图---黑底疏网格
+{
+ int i;
+
+ Box(1, 0, 159, 79, 1, 1);
+ for (i = 0; i < 20; i++) 
+ {
+  Line(i * 8, 0, i * 8, 79, 0);
+  if (i < 10) Line(0, i * 8, 159, i * 8, 0);
+ }
+ TextOut(1, 1, "屏幕直接作图", 0x41);
+} 
+
+void demo1()
+{
+ int i;
+
+ for (i = 0; i < 80; i++)
+ {
+  RefreshBox(i, i / 2, 159 - i, 79 - i / 2, 0);
+  Delay(50);
+ }
+}
+
+void demo2()
+{
+ int i;
+
+ for (i = 79; i >= 0; i--)
+ {
+  RefreshBox(i, i / 2, 159 - i, 79 - i / 2, 1);
+  Delay(50);
+ }
+}
+
+void main()
+{
+ int i;
+
+ ClearScreen();
+ for (i = 1; i < 40; i++) 
+ {
+  Line(i * 4, 0, i * 4, 79, 0x41);
+  if (i < 20) Line(1, i * 4, 159, i * 4, 0x41);
+ }
+ TextOut(1, 1, "缓存区作图", 0x01);//缓存区作图---白底密网格
+ LCD();
+ getchar();
+ demo1();
+ getchar();
+ LCD();
+ demo2();
+ getchar();
+ LCD();
+ RefreshShutt(10, 10, 150, 70, 15, 1);
+ getchar();
+ LCD();
+ RefreshShutt(10, 10, 150, 70, 12, 0);
+ return;
+}

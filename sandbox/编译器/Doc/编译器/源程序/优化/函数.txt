@@ -1,0 +1,2890 @@
+void switch(long case)
+{
+	long switch_add;
+
+	switch_add = 0;
+	memcpy(&switch_add, &case - 5, 3);
+	switch_add = switch_add + (case << 2);
+	memcpy(&case - 5, &switch_add, 3);
+}
+//*******************************************************堆栈系统*******************************************************//
+int mallocTreeNode()
+{
+	if (tree.len >= STACK_MAX) Error(0, E_TNODE);
+	return(tree.len++);
+}
+
+void Push(struct TREE_NODE &e)
+{
+	if (cp.ts >= STACK_MAX | tree.len >= TREE_MAX)//cp.ts -> stack.len
+	{
+		if (cp.ts >= STACK_MAX) Error(0, E_YSTACK);
+		Error(0, E_TNODE);
+	}
+	memcpy(tree.dat[tree.len], e, sizeof(struct TREE_NODE));
+	*(STACK_TABLE + cp.ts++) = tree.len++;
+}
+
+int Pop()
+{
+	if (!cp.ts) Error(ftell(in.fp), E_STACK);
+	return *(--cp.ts + STACK_TABLE);
+}
+
+/* n > 2 */
+int linkBrother(char n)
+{
+	char i;
+	int rt, p;
+	struct TREE_NODE e[11];
+
+	memset(e, 0, sizeof(struct TREE_NODE) * 11);
+	p = Pop();
+	for (i = n - 1; i > 0; i--)
+	{
+		e[i].child = Pop();
+	}
+	rt = tree.len;
+	for (i = 1; i < n; i++)
+	{
+		e[i].brother = rt + i;
+	}
+	e[i - 1].brother = p;
+	memcpy(tree.dat[tree.len], e[1], (n - 1) * sizeof(struct TREE_NODE));
+	tree.len = tree.len + n - 1;
+	return rt;
+}
+//*******************************************************写入系统*******************************************************//
+void WriteCode(int p);
+/* n > 2 */
+void writeBrother(char n, int p)
+{
+	char i;
+	int q;
+
+	WriteCode(tree.dat[q = tree.dat[p].child].child);
+	for (i = n - 2; i; i--)
+	{
+		WriteCode(tree.dat[q = tree.dat[q].brother].child);
+	}
+	WriteCode(tree.dat[q].brother);
+}
+
+void write3d(int p)
+{
+	char size;
+
+	size = (tree.dat[p].num >> 24)&0x7f;
+	if (size > 2)
+	{
+		writeBrother(size, p);
+	}
+	else if (size)
+	{
+		WriteCode(tree.dat[p].child);
+		if (size == 2)
+		{
+			WriteCode(tree.dat[p].brother);
+		}
+	}
+	putc(0x3d, out.fp);
+	fwrite(&tree.dat[p].num, 1, 3, out.fp);
+}
+
+void write41(long newadd)
+{
+	long offset;
+	int _add, _size;
+	char buf[256];
+
+	offset = ftell(in.fp);
+	fseek(in.fp, newadd, 0);
+	fread(&_add, 1, 4, in.fp);
+	fwrite(&_add, 1, 4, out.fp);
+	while (_size)
+	{
+		if (_size >= 256)
+		{
+			_add = 256;
+		}
+		else
+		{
+			_add = _size;
+		}
+		_size = _size - _add;
+		fread(buf, 1, _add, in.fp);
+		fwrite(buf, 1, _add, out.fp);
+	}
+	fseek(in.fp, offset, 0);
+}
+
+void write0d(long newadd)
+{
+	long offset;
+
+	offset = ftell(in.fp);
+	fseek(in.fp, newadd, 0);
+	do {} while (putc(getc(in.fp), out.fp) ^ strMask);
+	fseek(in.fp, offset, 0);
+}
+
+void WriteCode(int p)
+{
+	if (tree.dat[p].code < 0x80)
+	{
+		switch(tree.dat[p].code);
+		goto code_00;
+		goto code_01;
+		goto code_02;
+		goto code_03;
+		goto code_04;
+		goto code_05;
+		goto code_06;
+		goto code_07;
+		goto code_08;
+		goto code_09;
+		goto code_0a;
+		goto code_0b;
+		goto code_0c;
+		goto code_0d;
+		goto code_0e;
+		goto code_0f;
+		goto code_10;
+		goto code_11;
+		goto code_12;
+		goto code_13;
+		goto code_14;
+		goto code_15;
+		goto code_16;
+		goto code_17;
+		goto code_18;
+		goto code_19;
+		goto code_1a;
+		goto code_1b;
+		goto code_1c;
+		goto code_1d;
+		goto code_1e;
+		goto code_1f;
+		goto code_20;
+		goto code_21;
+		goto code_22;
+		goto code_23;
+		goto code_24;
+		goto code_25;
+		goto code_26;
+		goto code_27;
+		goto code_28;
+		goto code_29;
+		goto code_2a;
+		goto code_2b;
+		goto code_2c;
+		goto code_2d;
+		goto code_2e;
+		goto code_2f;
+		goto code_30;
+		goto code_31;
+		goto code_32;
+		goto code_33;
+		goto code_34;
+		goto code_35;
+		goto code_36;
+		goto code_37;
+		goto code_38;
+		goto code_39;
+		goto code_3a;
+		goto code_3b;
+		goto code_3c;
+		goto code_3d;
+		goto code_3e;
+		goto code_3f;
+		goto code_40;
+		goto code_41;
+		goto code_42;
+		goto code_43;
+		goto code_44;
+		goto code_45;
+		goto code_46;
+		goto code_47;
+		goto code_48;
+		goto code_49;
+		goto code_4a;
+		goto code_4b;
+		goto code_4c;
+		goto code_4d;
+		goto code_4e;
+		goto code_4f;
+		goto code_50;
+		goto code_51;
+		goto code_52;
+		goto code_53;
+		goto code_54;
+		goto code_55;
+		goto code_56;
+		goto code_57;
+		goto code_58;
+		goto code_59;
+		goto code_5a;
+		goto code_5b;
+		goto code_5c;
+		goto code_5d;
+		goto code_5e;
+		goto code_5f;
+		goto code_60;
+		goto code_61;
+		goto code_62;
+		goto code_63;
+		goto code_64;
+		goto code_65;
+		goto code_66;
+		goto code_67;
+		goto code_68;
+		goto code_69;
+		goto code_6a;
+		goto code_6b;
+		goto code_6c;
+		goto code_6d;
+	}
+	else
+	{
+		switch(tree.dat[p].code - 0x80);
+		goto code_80;
+		goto code_81;
+		goto code_82;
+		goto code_83;
+		goto code_84;
+		goto code_85;
+		goto code_86;
+		goto code_87;
+		goto code_88;
+		goto code_89;
+		goto code_8a;
+		goto code_8b;
+		goto code_8c;
+		goto code_8d;
+		goto code_8e;
+		goto code_8f;
+		goto code_90;
+		goto code_91;
+		goto code_92;
+		goto code_93;
+		goto code_94;
+		goto code_95;
+		goto code_96;
+		goto code_97;
+		goto code_98;
+		goto code_99;
+		goto code_9a;
+		goto code_9b;
+		goto code_9c;
+		goto code_9d;
+		goto code_9e;
+		goto code_9f;
+		goto code_a0;
+		goto code_a1;
+		goto code_a2;
+		goto code_a3;
+		goto code_a4;
+		goto code_a5;
+		goto code_a6;
+		goto code_a7;
+		goto code_a8;
+		goto code_a9;
+		goto code_aa;
+		goto code_ab;
+		goto code_ac;
+		goto code_ad;
+		goto code_ae;
+		goto code_af;
+		goto code_b0;
+		goto code_b1;
+		goto code_b2;
+		goto code_b3;
+		goto code_b4;
+		goto code_b5;
+		goto code_b6;
+		goto code_b7;
+		goto code_b8;
+		goto code_b9;
+		goto code_ba;
+		goto code_bb;
+		goto code_bc;
+		goto code_bd;
+		goto code_be;
+		goto code_bf;
+		goto code_c0;
+		goto code_c1;
+		goto code_c2;
+		goto code_c3;
+		goto code_c4;
+		goto code_c5;
+		goto code_c6;
+		goto code_c7;
+		goto code_c8;
+		goto code_c9;
+		goto code_ca;
+		goto code_cb;
+		goto code_cc;
+		goto code_cd;
+		goto code_ce;
+		goto code_cf;
+		goto code_d0;
+		goto code_d1;
+		goto code_d2;
+		goto code_d3;
+		goto code_d4;
+		goto code_d5;
+		goto code_d6;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+code_3f:// 0 Byte
+code_40:
+		if (tree.dat[p].num)
+		{
+			if (tree.dat[p].num > 2)
+			{
+				writeBrother(tree.dat[p].num, p);
+			}
+			else
+			{
+				WriteCode(tree.dat[p].child);
+				if (tree.dat[p].num == 2)
+				{
+					WriteCode(tree.dat[p].brother);
+				}
+			}
+		}
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_01:// 1 Byte
+		putc(0x01, out.fp);
+		putc(tree.dat[p].num, out.fp);
+		return;
+code_43:// 1 Byte
+		putc(0x43, out.fp);
+		putc(tree.dat[p].num, out.fp);
+		return;
+code_3c:// 2 Byte
+		putc(0x3c, out.fp);
+		fwrite(&tree.dat[p].num, 1, 2, out.fp);
+		return;
+code_02:// 2 Byte
+code_04:
+code_05:
+code_06:
+code_0e:
+code_0f:
+code_10:
+code_19:
+		putc(tree.dat[p].code, out.fp);
+		fwrite(&tree.dat[p].num, 1, 2, out.fp);
+		return;
+code_45:// 2 Byte
+code_46:
+code_47:
+code_48:
+code_49:
+code_4a:
+code_4b:
+code_4c:
+code_4d:
+code_4e:
+code_4f:
+code_50:
+code_51:
+code_07:
+code_08:
+code_09:
+code_0a:
+code_0b:
+code_0c:
+code_11:
+code_12:
+code_13:
+code_14:
+code_15:
+code_16:
+code_17:
+code_18:
+		WriteCode(tree.dat[p].child);
+		putc(tree.dat[p].code, out.fp);
+		fwrite(&tree.dat[p].num, 1, 2, out.fp);
+		return;
+code_39:// 3 Byte
+code_3a:
+code_3b:
+code_3e:
+		putc(tree.dat[p].code, out.fp);
+		fwrite(&tree.dat[p].num, 1, 3, out.fp);
+		return;
+code_3d:
+		write3d(p);
+		return;
+code_03:// 4 Byte
+		putc(0x03, out.fp);
+		fwrite(&tree.dat[p].num, 1, 4, out.fp);
+		return;
+code_41:// size Byte
+		putc(0x41, out.fp);
+		write41(tree.dat[p].num);
+		return;
+code_0d:// n Byte
+		putc(0x0d, out.fp);
+		write0d(tree.dat[p].num);
+		return;
+code_1d://1个参数
+code_1e:
+code_1f:
+code_20:
+code_25:
+code_29:
+code_36:
+code_37:
+code_52:
+code_53:
+code_54:
+code_55:
+code_56:
+code_57:
+code_58:
+code_59:
+code_5a:
+code_5b:
+code_5c:
+code_5d:
+code_5e:
+code_5f:
+code_60:
+code_61:
+code_62:
+code_63:
+code_64:
+code_65:
+code_66:
+code_67:
+code_68:
+code_69:
+code_6a:
+code_6b:
+code_6c:
+code_6d:
+code_84:
+code_8f:
+code_9b:
+code_9c:
+code_9d:
+code_9e:
+code_9f:
+code_a0:
+code_a1:
+code_a2:
+code_a3:
+code_a4:
+code_a5:
+code_aa:
+code_ab:
+code_b3:
+code_b4:
+code_b6:
+code_b9:
+code_ba:
+code_bc:
+code_c0:
+code_c1:
+code_c4:
+code_c8:
+code_c9:
+code_1c:
+code_80:
+code_85:
+code_86:
+code_87:
+code_8d:
+code_91:
+code_af:
+code_b5:
+code_c2:
+code_c3:
+code_c5:
+code_c6:
+code_38:
+code_cb:
+code_cc:
+code_cd:
+code_cf:
+code_d2:
+code_d6:
+		WriteCode(tree.dat[p].child);
+code_44://0个参数
+code_00:
+code_1a:
+code_1b:
+code_42:
+code_81:
+code_90:
+code_93:
+code_bb:
+code_89:
+code_8e:
+code_9a:
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_21://2个参数
+code_22:
+code_23:
+code_24:
+code_26:
+code_27:
+code_28:
+code_2a:
+code_2b:
+code_2c:
+code_2d:
+code_2e:
+code_2f:
+code_30:
+code_31:
+code_32:
+code_33:
+code_34:
+code_35:
+code_83:
+code_92:
+code_a6:
+code_95:
+code_a7:
+code_a8:
+code_a9:
+code_ae:
+code_b7:
+code_be:
+code_ce:
+		WriteCode(tree.dat[p].child);
+		WriteCode(tree.dat[p].brother);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_94://3个参数
+code_ac:
+code_ad:
+code_bd:
+code_bf:
+code_b2:
+code_ca:
+code_d0:
+code_d1:
+code_d5:
+		writeBrother(3, p);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_8a://4个参数
+code_b0:
+code_b1:
+		writeBrother(4, p);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_8b://5个参数
+code_8c:
+code_96:
+code_98:
+		writeBrother(5, p);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_88://6个参数
+code_97:
+code_99:
+code_c7:
+		writeBrother(6, p);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_82://n个参数
+code_b8:
+		if (tree.dat[p].num > 2)
+		{
+			writeBrother(tree.dat[p].num, p);
+		}
+		else
+		{
+			WriteCode(tree.dat[p].child);
+			if (tree.dat[p].num == 2)
+			{
+				WriteCode(tree.dat[p].brother);
+			}
+		}
+		putc(0x01, out.fp);
+		putc(tree.dat[p].num, out.fp);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_d3:
+		cp.sf = tree.dat[p].num;
+		if (cp.sf == 1 | cp.sf == 6 | cp.sf == 8 | cp.sf == 0x16)//1个参数
+		{
+			WriteCode(tree.dat[p].child);
+		}
+		else if (cp.sf == 9 | cp.sf == 0xa | cp.sf == 0xb | cp.sf == 0xf | cp.sf == 0x10)//2个参数
+		{
+			WriteCode(tree.dat[p].child);
+			WriteCode(tree.dat[p].brother);
+		}
+		else if (cp.sf == 0xc | cp.sf == 0x14 | cp.sf == 0x15)//3个参数
+		{
+			writeBrother(3, p);
+		}
+		putc(0x01, out.fp);
+		putc(tree.dat[p].num, out.fp);
+		putc(tree.dat[p].code, out.fp);
+		return;
+code_d4:
+		WriteCode(tree.dat[p].child);
+		putc(0x01, out.fp);
+		putc(tree.dat[p].num, out.fp);
+		putc(tree.dat[p].code, out.fp);
+		return;
+	}
+}
+//*******************************************************优化系统*******************************************************//
+long calc(long a, long b, char cmd)
+{
+	if (strchr(sig, cmd))				return a + b;
+	else if (strchr(sig + 3, cmd))		return a - b;
+	else if (strchr(sig + 6, cmd))		return a * b;
+	else if (strchr(sign26, cmd))
+	{
+		if (!b) Error(0, E_DIV);
+		return a / b;
+	}
+	else if (strchr(sign25, cmd))
+	{
+		if (!b) Error(0, E_DIV);
+		return a % b;
+	}
+	else if (strchr(sign25 + 3, cmd))	return a << b;
+	else if (strchr(sign24, cmd))		return a >> b;
+	else if (strchr(sign23, cmd))		return a == b;
+	else if (strchr(sign22, cmd))		return a != b;
+	else if (strchr(sign21, cmd))		return a > b;
+	else if (strchr(sign20, cmd))		return a < b;
+	else if (strchr(sign19, cmd))		return a >= b;
+	else if (strchr(sign18, cmd))		return a <= b;
+	else if (cmd == 0x23)				return a & b;
+	else if (cmd == 0x24)				return a | b;
+	else if (cmd == 0x26)				return a ^ b;
+	else if (cmd == 0x27)				return a && b;
+	else if (cmd == 0x28)				return a || b;
+}
+
+char getNumSize(long a)
+{
+	if (a < -32768 | a >= 32768)
+	{
+		return 3;
+	}
+	else if (a >> 8)
+	{
+		return 2;
+	}
+	return 1;
+}
+
+char chgMulLeft(long a)
+{
+	long b;
+	char i;
+
+	b = 1;
+	for (i = 0; i < 32; i++)
+	{
+		if (b == a) break;
+		b = b << 1;
+	}
+	return i;
+}
+
+long chgLeftMul(char n)
+{
+	long b;
+	char i;
+
+	b = 1;
+	for (i = 0; i < n; i++)
+	{
+		b = b << 1;
+	}
+	return b;
+}
+
+int changeTree(int p);
+/* n > 2 */
+void seekBrother(char n, int p)
+{
+	char i;
+	int q;
+
+	changeTree(tree.dat[q = tree.dat[p].child].child);
+	for (i = n - 2; i; i--)
+	{
+		changeTree(tree.dat[q = tree.dat[q].brother].child);
+	}
+	changeTree(tree.dat[q].brother);
+}
+
+void seek3d(int p)
+{
+	char num;
+
+	num = (tree.dat[p].num >> 24)&0x7f;
+	if (num > 2)
+	{
+		seekBrother(num, p);
+	}
+	else if (num)
+	{
+		changeTree(tree.dat[p].child);
+		if (num == 2)
+		{
+			changeTree(tree.dat[p].brother);
+		}
+	}
+}
+
+void minusMul1(int p)// (-x * m) -> (x * -m)
+{
+	int q;
+
+	if (tree.dat[q = tree.dat[p].child].code == 0x1c)
+	{
+		tree.dat[p].num = -tree.dat[p].num;
+		tree.dat[p].child = tree.dat[q].child;
+	}
+}
+
+void minusMul2(int p)// (-x * m) -> (x * -m)
+{
+	int q, r;
+
+	if (tree.dat[q = tree.dat[p].child].code == 0x1c)
+	{
+		tree.dat[r = tree.dat[p].brother].num = -tree.dat[r].num;
+		tree.dat[p].child = tree.dat[q].child;
+	}
+}
+
+/*
+ * tree.dat[p].code:
+ * +  -  *  /  %  << >> == != >  <  >= <=
+ * 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51
+ */
+int checkTreeNum1(int p)//优化常量1
+{
+	int r;//右子树指针
+	char s, t;
+
+	s = tree.dat[p].code;
+	if (!tree.dat[p].num)
+	{
+		if (strchr(sign17, s))// / %
+		{
+			Error(0, E_DIV);
+		}
+		if (s == 0x47)// *
+		{
+			tree.dat[p].code = 1;
+			tree.dat[p].num = 0;
+			return(2);
+		}
+		if (s <= 0x4b)// + - << >>
+		{
+			memcpy(tree.dat[p], tree.dat[r = tree.dat[p].child], sizeof(struct TREE_NODE));
+			return(changeTree(r));//可以更改
+		}
+		//可以添加对 != == 优化代码
+		return(1);
+	}
+	if (strchr(sign16, s))//乘法为左移,除法为右移
+	{
+		t = chgMulLeft(tree.dat[p].num);
+		if (t < 31)
+		{
+			tree.dat[p].code = s + 0x03;
+			tree.dat[p].num = t;
+			return(1);
+		}
+		if (s == 0x47)// * (-x * m) -> (x * -m)
+		{
+			minusMul1(p);
+		}
+	}
+	if (getNumSize(tree.dat[p].num) == 3)
+	{
+		tree.dat[p].code = code[s - 0x45];
+		tree.dat[r = tree.dat[p].brother = mallocTreeNode()].code = 3;
+		tree.dat[r].num = tree.dat[p].num;
+	}
+	return(1);
+}
+/*
+ * tree.dat[p].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ */
+int checkTreeNum2(int p)//优化常量2
+{
+	int r;//右子树指针
+	char s, t;
+
+	r = tree.dat[p].brother;
+	s = tree.dat[p].code;
+	if (!tree.dat[r].num)
+	{
+		if (strchr(sign14, s))// / %
+		{
+			Error(0, E_DIV);
+		}
+		if (strchr(sign15, s))// & && *
+		{
+			tree.dat[p].code = 1;
+			tree.dat[p].num = 0;
+			return(2);
+		}
+		if (s <= 0x2e && s != 0x28)// + - | ^ << >>
+		{
+			r = tree.dat[p].child;
+			memcpy(tree.dat[p], tree.dat[r], sizeof(struct TREE_NODE));
+			return(changeTree(r));//可以更改
+		}
+		//可以添加对 != == || 优化代码
+	}
+	else if (strchr(sign13, s))//乘法为左移,除法为右移
+	{
+		t = chgMulLeft(tree.dat[r].num);
+		if (t < 31)
+		{
+			tree.dat[p].code = s + 0x20;
+			tree.dat[p].num = t;
+			return(1);
+		}
+		if (s == 0x2a)// * (-x * m) -> (x * -m)
+		{
+			minusMul2(p);
+		}
+	}
+	if (getNumSize(tree.dat[r].num) != 3)
+	{
+		tree.dat[p].code = grad[s - 0x21];
+		tree.dat[p].num = tree.dat[r].num;
+	}
+	return(1);
+}
+/* ◆: 常量1
+ * ▲: 常量2
+ * ■: 常量3
+ * ①: 子树
+ * ○: 运算符1
+ * ◎: 运算符2
+ * ⊙: 运算符3
+ *
+ * tree.dat[p].code:
+ * +  -  *  /  %  << >> == != >  <  >= <=
+ * 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51
+ *
+ * tree.dat[q].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ * 45 46                47 48 49 4a 4b 4c 4d 51 50 4e 4f
+ *
+ *     p           p
+ *     ↓         ↓
+ *  q  ○      q  ⊙
+ *  ↓/  \  → ↓/  \
+ *   ◎  ▲    ①   ■
+ *  /  \
+ * ①  ◆
+ */
+int linkT1(int p)//常量合并1
+{
+	int q, r;//左子树指针 右子树指针
+	long num;
+	char s, t;
+
+	t = tree.dat[q = tree.dat[p].child].code;
+	s = tree.dat[p].code;
+	if (s <= 0x46)// + -
+	{
+		if (t <= 0x22)// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[p].num = calc(tree.dat[tree.dat[q].brother].num, tree.dat[p].num, abs(s - t - 0x24) + 0x21);
+			tree.dat[p].child = tree.dat[q].child;
+			return(checkTreeNum2(p));
+		}
+		if (strchr(sign13 + 3, t))// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[p].num = calc(tree.dat[q].num, tree.dat[p].num, abs(s - t) + 0x21);
+			tree.dat[p].child = tree.dat[q].child;
+		}
+	}
+	else if (s == 0x47)// *
+	{
+		if (t <= 0x22)// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[q].code = 0x47;
+			tree.dat[q].num = tree.dat[p].num;
+			tree.dat[r = tree.dat[p].brother = tree.dat[q].brother].num = tree.dat[r].num * tree.dat[p].num;
+			minusMul1(q);
+			return(checkTreeNum2(p));
+		}
+		if (t == 0x2a)// *
+		{
+			tree.dat[p].num = tree.dat[tree.dat[q].brother].num * tree.dat[p].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (t == 0x2d)// <<
+		{
+			tree.dat[p].num = chgLeftMul(tree.dat[tree.dat[q].brother].num) * tree.dat[p].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (strchr(sign13 + 3, t))// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[q].code = 0x47;
+			tree.dat[p].num = (num = tree.dat[p].num) * tree.dat[q].num;
+			tree.dat[q].num = num;
+			minusMul1(q);
+		}
+		else if (t == 0x47)// *
+		{
+			tree.dat[p].num = tree.dat[q].num * tree.dat[p].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (t == 0x4a)// <<
+		{
+			tree.dat[p].num = chgLeftMul(tree.dat[q].num) * tree.dat[p].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+	}
+	else if (s <= 0x49) return(checkTreeNum1(p));//跳过 / %
+	else if (s <= 0x4b)// << >> 如: (x >> m >> n) -> (x >> (n + m))
+	{
+/*
+ * 注意:以下表达式不等!!!
+ * ((x +/- m) >>/<< n) != (x >>/<< n +/- m >>/<< n)
+ * (x >>/<< m) >>/<< n != x >>/<< (m +/- n)
+ */
+		if (s == t + 0x1d)
+		{
+			tree.dat[p].num = tree.dat[tree.dat[q].brother].num + tree.dat[p].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (s == t)
+		{
+			tree.dat[p].num = tree.dat[q].num + tree.dat[p].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+	}
+	//以下优化 == != <= >= > <
+	//如: (x +/- m != n) -> (x != n -/+ m)
+	else if (t <= 0x22)// + -
+	{
+		tree.dat[p].num = calc(tree.dat[p].num, tree.dat[tree.dat[q].brother].num, 0x43 - t);
+		tree.dat[p].child = tree.dat[q].child;
+	}
+	else if (strchr(sign13 + 3, t))// + -
+	{
+		tree.dat[p].num = calc(tree.dat[p].num, tree.dat[q].num, 0x8b - t);
+		tree.dat[p].child = tree.dat[q].child;
+	}
+	return(checkTreeNum1(p));
+}
+/* ◆: 常量1
+ * ▲: 常量2
+ * ■: 常量3
+ * ①: 子树
+ * ○: 运算符1
+ * ◎: 运算符2
+ * ⊙: 运算符3
+ *
+ * tree.dat[p].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ *
+ * tree.dat[q].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ * 45 46                47 48 49 4a 4b 4c 4d 51 50 4e 4f
+ *
+ *     p           p
+ *     ↓         ↓
+ *  q  ○  r   q  ⊙  r
+ *  ↓/  \↓→ ↓/  \↓
+ *   ◎  ▲    ①   ■
+ *  /  \
+ * ①  ◆
+ */
+int linkT2(int p)//常量合并2
+{
+	int q, r;//左子树指针 右子树指针
+	long num;
+	char s, t;
+
+	t = tree.dat[q = tree.dat[p].child].code;
+	s = tree.dat[p].code;
+	if (s <= 0x22)// + -
+	{
+		if (t <= 0x22)// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[r = tree.dat[p].brother].num =
+				calc(tree.dat[tree.dat[q].brother].num, tree.dat[r].num, abs(s - t) + 0x21);
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (strchr(sign13 + 3, t))// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[p].num = calc(tree.dat[q].num, tree.dat[tree.dat[p].brother].num, abs(s - t + 0x24) + 0x21);
+			tree.dat[p].child = tree.dat[q].child;
+			return(checkTreeNum1(p));
+		}
+	}
+	else if (s <= 0x2a)// & | ^ && || *
+	{
+		if (s == t)// & | ^ && || *
+		{
+			tree.dat[r = tree.dat[p].brother].num = calc(tree.dat[tree.dat[q].brother].num, tree.dat[r].num, s);
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (s == 0x2a)// *
+		{
+			if (t <= 0x22)// + - ((x +/- m) * n)  ->  (x * n +/- m * n)
+			{
+				tree.dat[p].code = t;
+				tree.dat[q].code = 0x2a;
+				num = tree.dat[r = tree.dat[p].brother].num;
+				tree.dat[r].num = tree.dat[tree.dat[q].brother].num * tree.dat[r].num;
+				tree.dat[tree.dat[q].brother].num = num;
+				minusMul2(q);
+			}
+			else if (t == 0x2d)// <<
+			{
+				tree.dat[r = tree.dat[p].brother].num = chgLeftMul(tree.dat[tree.dat[q].brother].num) * tree.dat[r].num;
+				tree.dat[p].child = tree.dat[q].child;
+			}
+			else if (strchr(sign13 + 3, t))// + -
+			{
+				tree.dat[p].code = t;
+				tree.dat[q].code = 0x2a;
+				tree.dat[p].num = tree.dat[q].num * tree.dat[tree.dat[q].brother = tree.dat[p].brother].num;
+				minusMul2(q);
+				return(checkTreeNum1(p));
+			}
+			else if (t == 0x47)// *
+			{
+				tree.dat[r = tree.dat[p].brother].num = tree.dat[q].num * tree.dat[r].num;
+				tree.dat[p].child = tree.dat[q].child;
+			}
+			else if (t == 0x4a)// <<
+			{
+				tree.dat[r = tree.dat[p].brother].num = chgLeftMul(tree.dat[q].num) * tree.dat[r].num;
+				tree.dat[p].child = tree.dat[q].child;
+			}
+		}
+	}
+	else if (s <= 0x2c) return(checkTreeNum2(p));//跳过 / %
+	else if (s <= 0x2e)// << >> 如: (x >> m >> n) -> (x >> (n + m))
+	{
+/*
+ * 注意:以下表达式不等!!!
+ * ((x +/- m) >>/<< n) != (x >>/<< n +/- m >>/<< n)
+ * (x >>/<< m) >>/<< n != x >>/<< (m +/- n)
+ */
+		if (s == t)
+		{
+			tree.dat[r = tree.dat[p].brother].num = tree.dat[tree.dat[q].brother].num + tree.dat[r].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+		else if (s == t - 0x1d)
+		{
+			tree.dat[r = tree.dat[p].brother].num = tree.dat[q].num + tree.dat[r].num;
+			tree.dat[p].child = tree.dat[q].child;
+		}
+	}
+	//以下优化 == != <= >= > <
+	//如: (x +/- m != n) -> (x != n -/+ m)
+	else if (t <= 0x22)// + -
+	{
+		tree.dat[r = tree.dat[p].brother].num = calc(tree.dat[r].num, tree.dat[tree.dat[q].brother].num, 0x43 - t);
+		tree.dat[p].child = tree.dat[q].child;
+	}
+	else if (strchr(sign13 + 3, t))// + -
+	{
+		tree.dat[r = tree.dat[p].brother].num = calc(tree.dat[r].num, tree.dat[q].num, 0x8b - t);
+		tree.dat[p].child = tree.dat[q].child;
+	}
+	return(checkTreeNum2(p));
+}
+/* ◆: 常量
+ * ①: 子树1
+ * ②: 子树2
+ * ○: 运算符1
+ * ◎: 运算符2
+ *
+ * tree.dat[p].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ *
+ *    p              p
+ *    ↓             ↓
+ *    ○  r        r ◎  
+ *   /  \↓   →  ↓/  \
+ * ①   ◎         ○  ◆
+ *     /  \       /  \
+ *   ②   ◆     ①  ②
+ */
+int upRT(int p)//右子树常量上升
+{
+	int r;//右子树指针
+	char s, t;
+
+	s = tree.dat[p].code;
+	if (s <= 0x22)// + -
+	{
+		t = tree.dat[r = tree.dat[p].brother].code;
+		if (t <= 0x22)// + -
+		{
+			tree.dat[r].code = s;
+			tree.dat[p].code = abs(s - t) + 0x21;
+JUMP_1:
+			tree.dat[p].brother = tree.dat[r].brother;
+			tree.dat[r].brother = tree.dat[r].child;
+			tree.dat[r].child = tree.dat[p].child;
+			tree.dat[p].child = r;
+			return(checkTreeNum2(p));
+		}
+		if (strchr(sign13 + 3, t))// + -
+		{
+			if (s == 0x22)
+			{
+				t = 0x8b - t;//同上
+			}
+JUMP_2:
+			tree.dat[p].num = tree.dat[r].num;
+			tree.dat[r].brother = tree.dat[r].child;
+			tree.dat[r].child = tree.dat[p].child;
+			tree.dat[p].child = r;
+			tree.dat[p].code = t;
+			tree.dat[r].code = s;
+			return(checkTreeNum1(p));
+		}
+	}
+	else if (s <= 0x2a)// & | ^ && || *
+	{
+		t = tree.dat[r = tree.dat[p].brother].code;
+		if (s == t)// & | ^ && || *
+		{
+			goto JUMP_1;
+		}
+		if (s == 0x2a && t == 0x47)// * *
+		{
+			goto JUMP_2;
+		}
+	}
+}
+/* ◆: 常量
+ * ①: 子树1
+ * ②: 子树2
+ * ○: 运算符1
+ * ◎: 运算符2
+ *
+ * tree.dat[p].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ *
+ *     p           p
+ *     ↓          ↓
+ *  q  ○  r    q  ◎  r
+ *  ↓/  \↓ → ↓/  \↓
+ *   ◎  ②      ○  ◆
+ *  /  \        /  \
+ * ①  ◆      ①  ②
+ */
+int upLT(int p)//左子树常量上升
+{
+	int q, r;//左子树指针 右子树指针
+	char s, t;
+
+	s = tree.dat[p].code;
+	if (s <= 0x22)// + -
+	{
+		t = tree.dat[q = tree.dat[p].child].code;
+		if (t <= 0x22)// + -
+		{
+			tree.dat[p].code = t;
+			tree.dat[q].code = s;
+JUMP_1:
+			r = tree.dat[p].brother;
+			tree.dat[p].brother = tree.dat[q].brother;
+			tree.dat[q].brother = r;
+			return(checkTreeNum2(p));
+		}
+		if (strchr(sign13 + 3, t))// + -
+		{
+JUMP_2:
+			tree.dat[p].num = tree.dat[q].num;
+			tree.dat[q].brother = tree.dat[p].brother;
+			tree.dat[p].code = t;
+			tree.dat[q].code = s;
+			return(checkTreeNum1(p));
+		}
+	}
+	else if (s <= 0x2a)// & | ^ && || *
+	{
+		t = tree.dat[q = tree.dat[p].child].code;
+		if (s == t)// & | ^ && || *
+		{
+			goto JUMP_1;
+		}
+		if (s == 0x2a && t == 0x47)// * *
+		{
+			goto JUMP_2;
+		}
+	}
+}
+/* ◆: 常量1
+ * ▲: 常量2
+ * ①: 子树
+ * ○: 负号运算符
+ * ◎: 运算符1
+ *
+ * tree.dat[q].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ * 45 46                47 48 49 4a 4b 4c 4d 51 50 4e 4f
+ *
+ *    p          p          p
+ *    ↓         ↓         ↓
+ *    ○         ◎         ◎
+ *    |    →   /  \  或   /  \
+ *    ◎       ○  ◆     ①  ▲
+ *   /  \      |
+ *  ①  ◆     ①
+ */
+int changeMinus(int p)
+{
+	int q;//子树指针
+	char t;
+
+	t = tree.dat[q = tree.dat[p].child].code;
+	if (t <= 0x22)// + -
+	{
+		tree.dat[p].code = 0x43 - t;
+		tree.dat[q].code = 0x1c;//负号
+		tree.dat[p].brother = tree.dat[q].brother;
+		return(checkTreeNum2(p));
+	}
+	if (t == 0x2a)// *
+	{
+		tree.dat[p].code = 0x2a;
+		tree.dat[p].child = tree.dat[q].child;
+		q = tree.dat[p].brother = tree.dat[q].brother;
+		tree.dat[q].num = -tree.dat[q].num;
+		return(checkTreeNum2(p));
+	}
+	if (strchr(sign13 + 3, t))// + -
+	{
+		tree.dat[p].code = 0x8b - t;
+		tree.dat[q].code = 0x1c;//负号
+		tree.dat[p].num = tree.dat[q].num;
+		return(checkTreeNum1(p));
+	}
+	if (t == 0x47)// *
+	{
+		tree.dat[p].code = 0x47;
+		tree.dat[p].child = tree.dat[q].child;
+		tree.dat[p].num = -tree.dat[q].num;
+		return(checkTreeNum1(p));
+	}
+}
+/*
+ * tree.dat[p].code:
+ * +  -  *  /  %  << >> == != <= >= >  <
+ * 45 46 47 48 49 4a 4b 4c 4d 51 50 4e 4f
+ */
+int changeT1(int p)
+{
+	char s;
+
+	if ((s = changeTree(tree.dat[p].child)) == 2)
+	{
+		tree.dat[p].num = calc(tree.dat[tree.dat[p].child].num, tree.dat[p].num, tree.dat[p].code);
+		tree.dat[p].code = getNumSize(tree.dat[p].num);
+		return(2);
+	}
+	if (s)
+	{
+		return(linkT1(p));
+	}
+	return(checkTreeNum1(p));
+}
+/*
+ * tree.dat[p].code:
+ * +  -  &  |  ^  && || *  /  %  << >> == != <= >= >  <
+ * 21 22 23 24 26 27 28 2a 2b 2c 2d 2e 2f 30 31 32 33 34
+ */
+int changeT2(int p)
+{
+	int q, r;//左子树指针 右子树指针
+	char s, t;
+
+	s = changeTree(tree.dat[p].child);
+	t = changeTree(tree.dat[p].brother);
+	if (s == 2)
+	{
+		if (t == 2)//左右子树均为常量
+		{
+			tree.dat[p].num = calc(tree.dat[tree.dat[p].child].num, tree.dat[tree.dat[p].brother].num, tree.dat[p].code);
+			tree.dat[p].code = getNumSize(tree.dat[p].num);
+			return(2);
+		}
+		if (strchr(sign12, s = tree.dat[p].code))//无法优化: / % << >>
+		{
+			return(t);
+		}
+		if (s == 0x22)// -
+		{
+			tree.dat[p].code = 0x21;
+			q = mallocTreeNode();
+			tree.dat[q].code = 0x1c;//负号运算符
+			tree.dat[q].child = tree.dat[p].brother;
+			tree.dat[p].brother = tree.dat[p].child;
+			tree.dat[p].child = q;
+			if (t)
+			{
+				if (changeMinus(q))
+				{
+					return(linkT2(p));
+				}
+			}
+		}
+		else
+		{
+			r = tree.dat[p].child;//交换左右子树
+			tree.dat[p].child = tree.dat[p].brother;
+			tree.dat[p].brother = r;
+			if (s >= 0x31)//符号变换
+			{
+				if (s >= 0x33)
+				{
+					tree.dat[p].code = 67 - s;
+				}
+				else
+				{
+					tree.dat[p].code = 63 - s;
+				}
+			}
+			if (t)
+			{
+				return(linkT2(p));
+			}
+		}
+		return(checkTreeNum2(p));
+	}
+	if (t == 2)
+	{
+		if (s)
+		{
+			return(linkT2(p));
+		}
+		return(checkTreeNum2(p));
+	}
+	if (s)
+	{
+		if (t)
+		{
+			if (upLT(p))
+			{
+				if (upRT(tree.dat[p].child))
+				{
+					if (tree.dat[p].code >= 0x45)
+					{
+						return(linkT1(p));
+					}
+					else
+					{
+						return(linkT2(p));
+					}
+				}
+				return(0);
+			}
+			return(upRT(p));
+		}
+		return(upLT(p));
+	}
+	if (t)
+	{
+		return(upRT(p));
+	}
+}
+
+int changeTree(int p)//0:树无常量,1:树有常量,2:树只有常量
+{
+	if (tree.dat[p].code < 0x80)
+	{
+		switch(tree.dat[p].code);
+		goto code_00;
+		goto code_01;
+		goto code_02;
+		goto code_03;
+		goto code_04;
+		goto code_05;
+		goto code_06;
+		goto code_07;
+		goto code_08;
+		goto code_09;
+		goto code_0a;
+		goto code_0b;
+		goto code_0c;
+		goto code_0d;
+		goto code_0e;
+		goto code_0f;
+		goto code_10;
+		goto code_11;
+		goto code_12;
+		goto code_13;
+		goto code_14;
+		goto code_15;
+		goto code_16;
+		goto code_17;
+		goto code_18;
+		goto code_19;
+		goto code_1a;
+		goto code_1b;
+		goto code_1c;
+		goto code_1d;
+		goto code_1e;
+		goto code_1f;
+		goto code_20;
+		goto code_21;
+		goto code_22;
+		goto code_23;
+		goto code_24;
+		goto code_25;
+		goto code_26;
+		goto code_27;
+		goto code_28;
+		goto code_29;
+		goto code_2a;
+		goto code_2b;
+		goto code_2c;
+		goto code_2d;
+		goto code_2e;
+		goto code_2f;
+		goto code_30;
+		goto code_31;
+		goto code_32;
+		goto code_33;
+		goto code_34;
+		goto code_35;
+		goto code_36;
+		goto code_37;
+		goto code_38;
+		goto code_39;
+		goto code_3a;
+		goto code_3b;
+		goto code_3c;
+		goto code_3d;
+		goto code_3e;
+		goto code_3f;
+		goto code_40;
+		goto code_41;
+		goto code_42;
+		goto code_43;
+		goto code_44;
+		goto code_45;
+		goto code_46;
+		goto code_47;
+		goto code_48;
+		goto code_49;
+		goto code_4a;
+		goto code_4b;
+		goto code_4c;
+		goto code_4d;
+		goto code_4e;
+		goto code_4f;
+		goto code_50;
+		goto code_51;
+		goto code_52;
+		goto code_53;
+		goto code_54;
+		goto code_55;
+		goto code_56;
+		goto code_57;
+		goto code_58;
+		goto code_59;
+		goto code_5a;
+		goto code_5b;
+		goto code_5c;
+		goto code_5d;
+		goto code_5e;
+		goto code_5f;
+		goto code_60;
+		goto code_61;
+		goto code_62;
+		goto code_63;
+		goto code_64;
+		goto code_65;
+		goto code_66;
+		goto code_67;
+		goto code_68;
+		goto code_69;
+		goto code_6a;
+		goto code_6b;
+		goto code_6c;
+		goto code_6d;
+	}
+	else
+	{
+		switch(tree.dat[p].code - 0x80);
+		goto code_80;
+		goto code_81;
+		goto code_82;
+		goto code_83;
+		goto code_84;
+		goto code_85;
+		goto code_86;
+		goto code_87;
+		goto code_88;
+		goto code_89;
+		goto code_8a;
+		goto code_8b;
+		goto code_8c;
+		goto code_8d;
+		goto code_8e;
+		goto code_8f;
+		goto code_90;
+		goto code_91;
+		goto code_92;
+		goto code_93;
+		goto code_94;
+		goto code_95;
+		goto code_96;
+		goto code_97;
+		goto code_98;
+		goto code_99;
+		goto code_9a;
+		goto code_9b;
+		goto code_9c;
+		goto code_9d;
+		goto code_9e;
+		goto code_9f;
+		goto code_a0;
+		goto code_a1;
+		goto code_a2;
+		goto code_a3;
+		goto code_a4;
+		goto code_a5;
+		goto code_a6;
+		goto code_a7;
+		goto code_a8;
+		goto code_a9;
+		goto code_aa;
+		goto code_ab;
+		goto code_ac;
+		goto code_ad;
+		goto code_ae;
+		goto code_af;
+		goto code_b0;
+		goto code_b1;
+		goto code_b2;
+		goto code_b3;
+		goto code_b4;
+		goto code_b5;
+		goto code_b6;
+		goto code_b7;
+		goto code_b8;
+		goto code_b9;
+		goto code_ba;
+		goto code_bb;
+		goto code_bc;
+		goto code_bd;
+		goto code_be;
+		goto code_bf;
+		goto code_c0;
+		goto code_c1;
+		goto code_c2;
+		goto code_c3;
+		goto code_c4;
+		goto code_c5;
+		goto code_c6;
+		goto code_c7;
+		goto code_c8;
+		goto code_c9;
+		goto code_ca;
+		goto code_cb;
+		goto code_cc;
+		goto code_cd;
+		goto code_ce;
+		goto code_cf;
+		goto code_d0;
+		goto code_d1;
+		goto code_d2;
+		goto code_d3;
+		goto code_d4;
+		goto code_d5;
+		goto code_d6;
+//////////////////////////////////////////////////////////无优化//////////////////////////////////////////////////////////
+code_3f:
+code_40:
+		if (tree.dat[p].num)
+		{
+			if (tree.dat[p].num > 2)
+			{
+				seekBrother(tree.dat[p].num, p);
+			}
+			else
+			{
+				changeTree(tree.dat[p].child);
+				if (tree.dat[p].num == 2)
+				{
+					changeTree(tree.dat[p].brother);
+				}
+			}
+		}
+		return(0);
+code_1d://1个参数
+code_1e:
+code_1f:
+code_20:
+code_36:
+code_37:
+code_38://还可以优化，去除无用表达式
+code_52:
+code_53:
+code_54:
+code_55:
+code_56:
+code_57:
+code_58:
+code_59:
+code_5a:
+code_5b:
+code_5c:
+code_5d:
+code_5e:
+code_5f:
+code_60:
+code_61:
+code_62:
+code_63:
+code_64:
+code_65:
+code_66:
+code_67:
+code_68:
+code_69:
+code_6a:
+code_6b:
+code_6c:
+code_6d:
+code_80:
+code_84:
+code_85:
+code_86:
+code_87:
+code_8d:
+code_8f:
+code_91:
+code_9b:
+code_9c:
+code_9d:
+code_9e:
+code_9f:
+code_a0:
+code_a1:
+code_a2:
+code_a3:
+code_a4:
+code_a5:
+code_aa:
+code_ab:
+code_af:
+code_b3:
+code_b4:
+code_b5:
+code_b6:
+code_b9:
+code_ba:
+code_bc:
+code_c0:
+code_c1:
+code_c2:
+code_c3:
+code_c4:
+code_c5:
+code_c6:
+code_c8:
+code_c9:
+code_cb:
+code_cc:
+code_cd:
+code_cf:
+code_d2:
+code_d4:
+code_d6:
+		changeTree(tree.dat[p].child);
+code_3c://无参数
+code_43:
+code_44:
+code_00:
+code_1a:
+code_1b:
+code_42:
+code_81:
+code_90:
+code_93:
+code_bb:
+code_89:
+code_8e:
+code_9a:
+code_04:
+code_05:
+code_06:
+code_0e:
+code_0f:
+code_10:
+code_19:
+code_39:
+code_3a:
+code_3b:
+code_3e:
+code_41:
+code_0d:
+		return(0);
+code_3d:
+		seek3d(p);
+		return(0);
+code_35://2个参数
+code_83:
+code_92:
+code_a6:
+code_95:
+code_a7:
+code_a8:
+code_a9:
+code_ae:
+code_b7:
+code_be:
+code_ce:
+		changeTree(tree.dat[p].child);
+		changeTree(tree.dat[p].brother);
+		return(0);
+code_94://3个参数
+code_ac:
+code_ad:
+code_bd:
+code_bf:
+code_b2:
+code_ca:
+code_d0:
+code_d1:
+code_d5:
+		seekBrother(3, p);
+		return(0);
+code_8a://4个参数
+code_b0:
+code_b1:
+		seekBrother(4, p);
+		return(0);
+code_8b://5个参数
+code_8c:
+code_96:
+code_98:
+		seekBrother(5, p);
+		return(0);
+code_88://6个参数
+code_97:
+code_99:
+code_c7:
+		seekBrother(6, p);
+		return(0);
+code_82://n个参数
+code_b8:
+		if (tree.dat[p].num > 2)
+		{
+			seekBrother(tree.dat[p].num, p);
+		}
+		else
+		{
+			changeTree(tree.dat[p].child);
+			if (tree.dat[p].num == 2)
+			{
+				changeTree(tree.dat[p].brother);
+			}
+		}
+		return(0);
+code_d3:
+		cp.sf = tree.dat[p].num;
+		if (cp.sf == 1 | cp.sf == 6 | cp.sf == 8 | cp.sf == 0x16)//1个参数
+		{
+			changeTree(tree.dat[p].child);
+		}
+		else if (cp.sf == 9 | cp.sf == 0xa | cp.sf == 0xb | cp.sf == 0xf | cp.sf == 0x10)//2个参数
+		{
+			changeTree(tree.dat[p].child);
+			changeTree(tree.dat[p].brother);
+		}
+		else if (cp.sf == 0xc | cp.sf == 0x14 | cp.sf == 0x15)//3个参数
+		{
+			seekBrother(3, p);
+		}
+		return(0);
+//////////////////////////////////////////////////////////优化区//////////////////////////////////////////////////////////
+code_01:
+code_02:
+code_03:
+		return(2);
+code_07:
+code_08:
+code_09:
+code_11:
+code_12:
+code_13://可以继续优化！
+		if (changeTree(tree.dat[p].child) == 2)
+		{
+			tree.dat[p].num = tree.dat[p].num + tree.dat[tree.dat[p].child].num;
+			tree.dat[p].code = tree.dat[p].code - 3;
+		}
+		return(0);
+code_0a:
+code_0b:
+code_0c://可以继续优化！
+		if (changeTree(tree.dat[p].child) == 2)
+		{
+			tree.dat[p].num = (tree.dat[p].num + tree.dat[tree.dat[p].child].num)|((tree.dat[p].code - 0x09) << 16);
+			tree.dat[p].code = 3;
+		}
+		return(0);
+code_14:
+code_15:
+code_16://可以继续优化！
+		if (changeTree(tree.dat[p].child) == 2)
+		{
+			tree.dat[p].num = (tree.dat[p].num + tree.dat[tree.dat[p].child].num)|((tree.dat[p].code + 0x6d) << 16);
+			tree.dat[p].code = 3;
+		}
+		return(0);
+code_17:
+code_18://可以继续优化！
+		if (changeTree(tree.dat[p].child) == 2)
+		{
+			tree.dat[p].num = tree.dat[p].num + tree.dat[tree.dat[p].child].num;
+			if (tree.dat[p].code == 0x17)
+			{
+				tree.dat[p].code = 0x02;
+				return(2);
+			}
+			tree.dat[p].code = 0x19;
+		}
+		return(0);
+code_29://可以继续优化！
+		if (changeTree(tree.dat[p].child) == 2)
+		{
+			tree.dat[p].num = !tree.dat[tree.dat[p].child].num;
+			tree.dat[p].code = 0x02;
+			return(2);
+		}
+		return(0);
+code_25://可以继续优化！
+		if (changeTree(tree.dat[p].child) == 2)
+		{
+			tree.dat[p].num = ~tree.dat[tree.dat[p].child].num;
+			tree.dat[p].code = getNumSize(tree.dat[p].num);
+			return(2);
+		}
+		return(0);
+code_1c:
+		bol[0] = changeTree(tree.dat[p].child);
+		if (bol[0] == 2)
+		{
+			tree.dat[p].num = -tree.dat[tree.dat[p].child].num;
+			tree.dat[p].code = getNumSize(tree.dat[p].num);
+			return(2);
+		}
+		else if (bol[0])
+		{
+			return(changeMinus(p));
+		}
+		return(0);
+code_45:// +
+code_46:// -
+code_47:// *
+code_48:// /
+code_49:// %
+code_4a:// <<
+code_4b:// >>
+code_4c:// ==
+code_4d:// !=
+code_4e:// >
+code_4f:// <
+code_50:// >=
+code_51:// <=
+		return(changeT1(p));
+code_21:// +
+code_22:// -
+code_23:// &
+code_24:// |
+code_26:// ^
+code_27:// &&
+code_28:// ||
+code_2a:// *
+code_2b:// /
+code_2c:// %
+code_2d:// <<
+code_2e:// >>
+code_2f:// ==
+code_30:// !=
+code_31:// <=
+code_32:// >=
+code_33:// >
+code_34:// <
+		return(changeT2(p));
+	}
+}
+//***************************************************函数信息收集系统***************************************************//
+void getFunMsg(struct FUNTION &fun)
+{
+	char cmd;
+	int none, len;
+	long offset;
+
+	memset(fun, offset = strMask = 0, sizeof(struct FUNTION));
+	fseek(in.fp, 16, 0);
+	while (!feof(in.fp))
+	{
+		if((cmd = getc(in.fp)) == 1)
+		{
+			fseek(in.fp, 1, 1);
+			offset = ftell(in.fp);
+		}
+		else if (cmd == 0x3 | cmd == 0x41)
+		{
+			fread(&none, 1, 4, in.fp);
+			if (cmd == 0x41) fseek(in.fp, len, 1);
+		}
+		else if (cmd == 0x0d)
+		{
+			do {} while (getc(in.fp) ^ strMask);
+		}
+		else if (!cmd) continue;
+		else if (cmd <= 0x19 | strchr(bol + 17, cmd))
+		{
+			fseek(in.fp, 2, 1);
+		}
+		else if (strchr(bol + 32, cmd))
+		{
+			if(cmd == 0x3e)
+			{
+				fseek(in.fp, -2, 1);
+				if ((cmd = getc(in.fp)) == 0xad)
+				{
+					fseek(in.fp, -2, 1);
+					cmd = getc(in.fp);
+					getc(in.fp);//跳过0xad
+					offset++;
+				}
+				if (cmd == 0x3f)
+				{
+					if (offset == ftell(in.fp) - 1) fun.dat[cp.fn].type = fun.dat[cp.fn].type | 0x80;
+					cp.fn++;
+				}
+				else if (cmd == 0x40)
+				{
+					cp.fn++;
+				}
+				if (cp.fn >= FUN_MAX)
+				{
+					Error(0, E_YMSG);
+				}
+				offset = ftell(in.fp);
+				memcpy(fun.dat[cp.fn].offset, &offset, 3);
+				fseek(in.fp, 3, 1);
+				fun.dat[cp.fn].type = getc(in.fp);//参数个数
+				Progress(ftell(in.fp), in.size, 0);//进度
+			}
+			else
+			{
+				fseek(in.fp, 3, 1);
+			}
+		}
+		else if (cmd == 0x43)
+		{
+			strMask = getc(in.fp);
+		}
+		else if (strchr(bol + 39, cmd) | cmd > 0xd6)
+		{
+			Error(cmd, E_CODE);
+		}
+	}
+	fseek(in.fp, -1, 1);
+	cmd = getc(in.fp);
+	if (cmd == 0x3f)
+	{
+		if (offset == ftell(in.fp) - 1) fun.dat[cp.fn].type = fun.dat[cp.fn].type | 0x80;
+		cp.fn++;
+	}
+	else if (cmd == 0x40)
+	{
+		cp.fn++;
+	}
+	Progress(1, 1, 0);//进度
+}
+
+long seekFun(struct FUNTION &fun, long offset)
+{
+	int low, high, mid;
+	long t;
+
+	low = t = 0;
+	high = cp.fn - 1;
+	while (low <= high)
+	{
+		memcpy(&t, fun.dat[mid = (low + high) >> 1].offset, 3);
+		if (t > offset)
+		{
+			high = mid - 1;
+		}
+		else if (t < offset)
+		{
+			low = mid + 1;
+		}
+		else
+		{
+			return(fun.dat[mid].type);
+		}
+	}
+	Error(offset, E_FUN);
+}
+//******************************************************跳转表系统******************************************************//
+void insertAdd(long a, long b)
+{
+	if (cp.ln >= MAP_MAX)
+	{
+		if (!cp.fp)
+		{
+			if (ChPath(cpldata)) Error(cpldata, E_CATA);
+			if (!(cp.fp = fopen("cpl.tmp","w+")))
+			{
+				Error("cpl.tmp", E_CREAT);//创建临时文件
+			}
+		}
+		fwrite(JMP_TABLE, 1, sizeof(struct ADDR), cp.fp);
+		memset(JMP_TABLE, 0, sizeof(struct ADDR));
+		cp.ln = 0;
+	}
+	memcpy(cp.ln * 6 + JMP_TABLE, &a, 3);
+	memcpy(cp.ln * 6 + JMP_TABLE + 3, &b, 3);
+	cp.ln++;
+}
+
+long seekAdd(long a)
+{
+	long low, high, mid, t;
+
+	t = 0;
+	if (cp.fp)
+	{
+		low = 0;
+		high = cp.ary - 1;
+		while (low + MAP_MAX - 1 < high)
+		{
+			fseek(cp.fp, (mid = (low + high) >> 1) * sizeof(struct MAPPING), 0);
+			fread(&t, 1, 3, cp.fp);
+			if (t > a)
+			{
+				high = mid - 1;
+			}
+			else if (t < a)
+			{
+				low = mid + 1;
+			}
+			else
+			{
+				fread(&t, 1, 3, cp.fp);
+				return(t);
+			}
+		}
+		fseek(cp.fp, low * sizeof(struct MAPPING), 0);
+		cp.ln = fread(JMP_TABLE, 1, sizeof(struct ADDR), cp.fp) / sizeof(struct MAPPING);
+	}
+	low = 0;
+	high = cp.ln - 1;
+	while (low <= high)
+	{
+		memcpy(&t, (mid = (low + high) >> 1) * sizeof(struct MAPPING) + JMP_TABLE, 3);
+		if (t > a)
+		{
+			high = mid - 1;
+		}
+		else if (t < a)
+		{
+			low = mid + 1;
+		}
+		else
+		{
+			memcpy(&t, mid * sizeof(struct MAPPING) + JMP_TABLE + 3, 3);
+			return(t);
+		}
+	}
+	Error(a, E_JUMP);
+}
+
+void writeAdd()
+{
+	char cmd;
+	int none, len;
+	long a;
+
+	if (cp.fp)
+	{
+		fwrite(JMP_TABLE, 1, cp.ln * sizeof(struct MAPPING), cp.fp);
+		cp.ary = ftell(cp.fp) / sizeof(struct MAPPING);
+	}
+	fseek(out.fp, strMask = a = 0, 2);
+	in.size = ftell(out.fp);
+	fseek(out.fp, 16, 0);
+	Progress("调整中...", "优化系统正在运行...", 1);//消息框
+	while (!feof(out.fp))
+	{
+		if((cmd = getc(out.fp)) == 1)
+		{
+			getc(out.fp);
+		}
+		else if (cmd == 0x3 | cmd == 0x41)
+		{
+			fread(&none, 1, 4, out.fp);
+			if (cmd == 0x41) fseek(out.fp, len, 1);
+		}
+		else if (cmd == 0x0d)
+		{
+			do {} while (getc(out.fp) ^ strMask);
+		}
+		else if (!cmd) continue;
+		else if (cmd <= 0x19 | strchr(bol + 17, cmd))
+		{
+			fseek(out.fp, 2, 1);
+		}
+		else if (strchr(bol + 32, cmd))
+		{
+			if(cmd == 0x3e)
+			{
+				fseek(out.fp, 3, 1);
+				Progress(ftell(out.fp), in.size, 0);
+			}
+			else
+			{
+				fread(&a, 1, 3, out.fp);
+				a = seekAdd(a);
+				fseek(out.fp, -3, 1);
+				fwrite(&a, 1, 3, out.fp);
+			}
+		}
+		else if (cmd == 0x43)
+		{
+			strMask = getc(out.fp);
+		}
+		else if (strchr(bol + 39, cmd) | cmd > 0xd6)
+		{
+			Error(cmd, E_CODE);
+		}
+	}
+	Progress(1, 1, 0);
+}
+//*******************************************************解析系统*******************************************************//
+void skip41(char fp)
+{
+	int none, size;
+
+	fread(&none, 1, 4, fp);
+	fseek(fp, size, 1);
+}
+
+void Optimize(struct FUNTION &fun, struct ADDR &add, struct STACK &stack)
+{
+	struct TREE_NODE e;
+	char name[NAME_MAX];
+
+	Progress("收集信息中", "优化系统正在运行...", 1);//消息框
+	if (datfp)//关闭资源文件(可能被打开)
+	{
+		fclose(datfp);
+		datfp = 0;
+	}
+	memset(cp, 0, sizeof(struct COMPILE));//初始化
+	///cp.add[1]: 临时变量
+	///cp.add[0]: 变量总空间
+	///cp.fn	: fun.len
+	///cp.ln	: add.len
+	///cp.ts	: stack.len
+	memset(add, 0, sizeof(struct ADDR));
+	memset(stack, 0, sizeof(struct STACK));
+	memset(tree, 0, sizeof(struct TREE_MEM));
+	tree.len = 1;//索引从1开始 0作为标志位
+	strcpy(code, "!\"*+,-./03421");
+	strcpy(grad, "EF#$%&'()GHIJKLMQPNO");
+	strcpy(sig, "!E");//45 21
+	strcpy(sig + 3, "\"F");//46 22
+	strcpy(sig + 6, "*G");//47 2a
+	strcpy(sign26, "+H");//48 2b
+	strcpy(sign25, ",I");//49 2c
+	strcpy(sign25 + 3, "-J");//4a 2d
+	strcpy(bol + 17, "<EFGHIJKLMNOPQ");
+	strcpy(bol + 32, "9:;<=>");
+	strcpy(bol + 39, "nopqrstuvwxyz{|}~ ");
+	bol[56] = 0x7f;
+	strcpy(sign24, ".K");//4b 2e
+	strcpy(sign23, "/L");//4c 2f
+	strcpy(sign22, "0M");//4d 30
+	strcpy(sign21, "3N");//4e 33
+	strcpy(sign20, "4O");//4f 34
+	strcpy(sign19, "2P");//50 32
+	strcpy(sign18, "1Q");//51 31
+	strcpy(sign17, "HI");//48 49
+	strcpy(sign16, "GH");//47 48
+	strcpy(sign15, "#'*");//23 27 2a
+	strcpy(sign14, "+,");//2b 2c
+	strcpy(sign13, "*+");//2a 2b
+	strcpy(sign13 + 3, "EF");//45 46
+	strcpy(sign12, "+,-.");//2b 2c 2d 2e
+	//////////////////////////////////////////////////////
+	if (!ChDir(out.path)) Error(out.path, E_CATA);
+	if (!(in.fp = fopen(out.name, "r"))) Error(out.name, E_OPEN);//打开文件
+	fseek(in.fp, 0, 2);
+	in.size = ftell(in.fp);//获取文件长度
+	getFunMsg(fun);//收集函数信息
+	Progress("优化中...", "优化系统正在运行...", 1);//消息框
+	ChExt(out.name, "tmp");
+	if (!(out.fp = fopen(out.name, "w+"))) Error(out.name, E_CREAT);//创建tmp文件
+	rewind(in.fp);
+	fread(bol, 1, 16, in.fp);//bol[0],bol[1]为临时变量
+	bol[15] = 'y';//yan ^_^
+	fwrite(bol, 1, 16, out.fp);
+	strMask = 0;
+	while (!feof(in.fp))
+	{
+		memset(e, 0, sizeof(struct TREE_NODE));
+		e.code = getc(in.fp);
+		//printf("%d %d %d\n", e.code, ftell(in.fp), cp.ts);getchar();
+		for (;;)
+		{
+			if (e.code < 0x80)
+			{
+				switch(e.code);
+//				goto code_00;
+				goto checkWrite;
+				goto code_01;
+				goto code_02;
+				goto code_03;
+				goto code_04;
+				goto code_05;
+				goto code_06;
+				goto code_07;
+				goto code_08;
+				goto code_09;
+				goto code_0a;
+				goto code_0b;
+				goto code_0c;
+				goto code_0d;
+				goto code_0e;
+				goto code_0f;
+				goto code_10;
+				goto code_11;
+				goto code_12;
+				goto code_13;
+				goto code_14;
+				goto code_15;
+				goto code_16;
+				goto code_17;
+				goto code_18;
+				goto code_19;
+				goto code_1a;
+				goto code_1b;
+				goto code_1c;
+				goto code_1d;
+				goto code_1e;
+				goto code_1f;
+				goto code_20;
+				goto code_21;
+				goto code_22;
+				goto code_23;
+				goto code_24;
+				goto code_25;
+				goto code_26;
+				goto code_27;
+				goto code_28;
+				goto code_29;
+				goto code_2a;
+				goto code_2b;
+				goto code_2c;
+				goto code_2d;
+				goto code_2e;
+				goto code_2f;
+				goto code_30;
+				goto code_31;
+				goto code_32;
+				goto code_33;
+				goto code_34;
+				goto code_35;
+				goto code_36;
+				goto code_37;
+				goto code_38;
+				goto code_39;
+				goto code_3a;
+				goto code_3b;
+				goto code_3c;
+				goto code_3d;
+				goto code_3e;
+				goto code_3f;
+				goto code_40;
+				goto code_41;
+				goto code_42;
+				goto code_43;
+//				goto code_44;
+				goto checkWrite;
+				goto code_45;
+				goto code_46;
+				goto code_47;
+				goto code_48;
+				goto code_49;
+				goto code_4a;
+				goto code_4b;
+				goto code_4c;
+				goto code_4d;
+				goto code_4e;
+				goto code_4f;
+				goto code_50;
+				goto code_51;
+				goto code_52;
+				goto code_53;
+				goto code_54;
+				goto code_55;
+				goto code_56;
+				goto code_57;
+				goto code_58;
+				goto code_59;
+				goto code_5a;
+				goto code_5b;
+				goto code_5c;
+				goto code_5d;
+				goto code_5e;
+				goto code_5f;
+				goto code_60;
+				goto code_61;
+				goto code_62;
+				goto code_63;
+				goto code_64;
+				goto code_65;
+				goto code_66;
+				goto code_67;
+				goto code_68;
+				goto code_69;
+				goto code_6a;
+				goto code_6b;
+				goto code_6c;
+				goto code_6d;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+code_3f:		// 0 Byte 无返回
+code_40:
+				e.num = cp.ts;
+				if (e.num)
+				{
+					if (e.num > 2)
+					{
+						e.child = linkBrother(e.num);
+					}
+					else
+					{
+						e.child = Pop();
+						if (e.num == 2)
+						{
+							e.brother = e.child;
+							e.child = Pop();
+						}
+					}
+				}
+				goto checkWrite;
+code_43:		// 1 Byte 无返回
+				strMask = e.num = getc(in.fp);
+				goto checkWrite;
+code_01:		// 1 Byte 有返回
+				e.num = getc(in.fp);
+				Push(e);
+				break;
+code_3c:		// 2 Byte 无返回
+				fread(&e.num, 1, 2, in.fp);
+				cp.add[VGLOBOLE] = e.num;
+				goto checkWrite;
+code_02:		// 2 Byte 有返回
+				fread(&cp.add[1], 1, 2, in.fp);
+				e.num = cp.add[1];
+				Push(e);
+				break;
+code_04:
+code_05:
+code_06:
+code_0e:
+code_0f:
+code_10:
+code_19:
+				fread(&e.num, 1, 2, in.fp);
+				Push(e);
+				break;
+code_45:		// 2 Byte 有返回1
+code_46:
+code_47:
+code_48:
+code_49:
+code_4a:
+code_4b:
+code_4c:
+code_4d:
+code_4e:
+code_4f:
+code_50:
+code_51:
+				fread(&cp.add[1], 1, 2, in.fp);
+				e.num = cp.add[1];
+				e.child = Pop();
+				Push(e);
+				break;
+code_07:		// 2 Byte 有返回2
+code_08:
+code_09:
+code_0a:
+code_0b:
+code_0c:
+code_11:
+code_12:
+code_13:
+code_14:
+code_15:
+code_16:
+code_17:
+code_18:
+				fread(&e.num, 1, 2, in.fp);
+				e.child = Pop();
+				Push(e);
+				break;
+code_39:		// 3 Byte 无返回
+code_3a:
+code_3b:
+code_3e:
+				fread(&e.num, 1, 3, in.fp);
+				goto checkWrite;
+code_3d:		// 3 Byte 无返回1
+				fread(&e.num, 1, 3, in.fp);
+				cp.sn = seekFun(fun, e.num);
+				e.num = (cp.sn << 24) | e.num;
+				cp.sn = cp.sn&0x7f;
+				if (cp.sn > 2)
+				{
+					e.child = linkBrother(cp.sn);
+				}
+				else if (cp.sn)
+				{
+					e.child = Pop();
+					if (cp.sn == 2)
+					{
+						e.brother = e.child;
+						e.child = Pop();
+					}
+				}
+				if (e.num < 0)
+				{
+					Push(e);
+					break;
+				}
+				goto checkWrite;
+code_03:		// 4 Byte 有返回
+				fread(&e.num, 1, 4, in.fp);
+				Push(e);
+				break;
+code_41:		// size Byte 无返回
+				e.num = ftell(in.fp);
+				skip41(in.fp);
+				goto checkWrite;
+code_0d:		// n Byte 有返回
+				e.num = ftell(in.fp);
+				Push(e);
+				do {} while (getc(in.fp) ^ strMask);
+				break;
+			}
+			else
+			{
+				switch(e.code - 0x80);
+				goto code_80;
+				goto code_81;
+				goto code_82;
+				goto code_83;
+				goto code_84;
+				goto code_85;
+				goto code_86;
+				goto code_87;
+				goto code_88;
+//				goto code_89;
+				goto checkWrite;
+				goto code_8a;
+				goto code_8b;
+				goto code_8c;
+				goto code_8d;
+//				goto code_8e;
+				goto checkWrite;
+				goto code_8f;
+				goto code_90;
+				goto code_91;
+				goto code_92;
+				goto code_93;
+				goto code_94;
+				goto code_95;
+				goto code_96;
+				goto code_97;
+				goto code_98;
+				goto code_99;
+//				goto code_9a;
+				goto checkWrite;
+				goto code_9b;
+				goto code_9c;
+				goto code_9d;
+				goto code_9e;
+				goto code_9f;
+				goto code_a0;
+				goto code_a1;
+				goto code_a2;
+				goto code_a3;
+				goto code_a4;
+				goto code_a5;
+				goto code_a6;
+				goto code_a7;
+				goto code_a8;
+				goto code_a9;
+				goto code_aa;
+				goto code_ab;
+				goto code_ac;
+				goto code_ad;
+				goto code_ae;
+				goto code_af;
+				goto code_b0;
+				goto code_b1;
+				goto code_b2;
+				goto code_b3;
+				goto code_b4;
+				goto code_b5;
+				goto code_b6;
+				goto code_b7;
+				goto code_b8;
+				goto code_b9;
+				goto code_ba;
+				goto code_bb;
+				goto code_bc;
+				goto code_bd;
+				goto code_be;
+				goto code_bf;
+				goto code_c0;
+				goto code_c1;
+				goto code_c2;
+				goto code_c3;
+				goto code_c4;
+				goto code_c5;
+				goto code_c6;
+				goto code_c7;
+				goto code_c8;
+				goto code_c9;
+				goto code_ca;
+				goto code_cb;
+				goto code_cc;
+				goto code_cd;
+				goto code_ce;
+				goto code_cf;
+				goto code_d0;
+				goto code_d1;
+				goto code_d2;
+				goto code_d3;
+				goto code_d4;
+				goto code_d5;
+				goto code_d6;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+code_1a:		//0个参数 有返回
+code_1b:
+code_42:
+code_81:
+code_90:
+code_93:
+code_bb:
+				Push(e);
+				break;
+code_38:		//1个参数 无返回
+code_80:
+code_85:
+code_86:
+code_87:
+code_8d:
+code_91:
+code_af:
+code_b5:
+code_c2:
+code_c3:
+code_c5:
+code_c6:
+code_cc:
+code_cd:
+code_cf:
+code_d6:
+				e.child = Pop();
+				goto checkWrite;
+code_1c:		//1个参数 有返回
+code_1d:
+code_1e:
+code_1f:
+code_20:
+code_25:
+code_29:
+code_36:
+code_37:
+code_52:
+code_53:
+code_54:
+code_55:
+code_56:
+code_57:
+code_58:
+code_59:
+code_5a:
+code_5b:
+code_5c:
+code_5d:
+code_5e:
+code_5f:
+code_60:
+code_61:
+code_62:
+code_63:
+code_64:
+code_65:
+code_66:
+code_67:
+code_68:
+code_69:
+code_6a:
+code_6b:
+code_6c:
+code_6d:
+code_84:
+code_8f:
+code_9b:
+code_9c:
+code_9d:
+code_9e:
+code_9f:
+code_a0:
+code_a1:
+code_a2:
+code_a3:
+code_a4:
+code_a5:
+code_aa:
+code_ab:
+code_b3:
+code_b4:
+code_b6:
+code_b9:
+code_ba:
+code_bc:
+code_c0:
+code_c1:
+code_c4:
+code_c8:
+code_c9:
+code_cb:
+code_d2:
+				e.child = Pop();
+				Push(e);
+				break;
+code_83:		//2个参数 无返回
+code_92:
+code_a6:
+code_ce:
+				e.brother = Pop();
+				e.child = Pop();
+				goto checkWrite;
+code_21:		//2个参数 有返回
+code_22:
+code_23:
+code_24:
+code_26:
+code_27:
+code_28:
+code_2a:
+code_2b:
+code_2c:
+code_2d:
+code_2e:
+code_2f:
+code_30:
+code_31:
+code_32:
+code_33:
+code_34:
+code_35:
+code_95:
+code_a7:
+code_a8:
+code_a9:
+code_ae:
+code_b7:
+code_be:
+				e.brother = Pop();
+				e.child = Pop();
+				Push(e);
+				break;
+code_94:		//3个参数 无返回
+code_ac:
+code_bd:
+code_bf:
+code_ca:
+				e.child = linkBrother(3);
+				goto checkWrite;
+code_ad:		//比较特殊，函数指针
+				if (getc(in.fp) == 0x3e)
+				{
+					putc(0xad, out.fp);
+					e.code = 0x3e;
+					insertAdd(ftell(in.fp) - 1, ftell(out.fp));
+					goto code_3e;
+				}
+				else
+				{
+					fseek(in.fp, -1, 1);//退格
+					e.child = linkBrother(3);
+					goto checkWrite;
+				}
+code_b2:		//3个参数 有返回
+code_d0:
+code_d1:
+code_d5:
+				e.child = linkBrother(3);
+				Push(e);
+				break;
+code_8a:		//4个参数 无返回
+				e.child = linkBrother(4);
+				goto checkWrite;
+code_b0:		//4个参数 有返回
+code_b1:
+				e.child = linkBrother(4);
+				Push(e);
+				break;
+code_8b:		//5个参数 无返回
+code_8c:
+code_96:
+code_98:
+				e.child = linkBrother(5);
+				goto checkWrite;
+code_88:		//6个参数 无返回
+code_97:
+code_99:
+code_c7:
+				e.child = linkBrother(6);
+				goto checkWrite;
+code_82:		//n个参数 无返回
+code_b8:
+				e.num = Pop();
+				e.num = tree.dat[e.num].num;
+				if (e.num > 2)
+				{
+					e.child = linkBrother(e.num);
+				}
+				else
+				{
+					e.child = Pop();
+					if (e.num == 2)
+					{
+						e.brother = e.child;
+						e.child = Pop();
+					}
+				}
+				goto checkWrite;
+code_d3:
+				e.num = tree.dat[Pop()].num;
+				if (e.num == 1 | e.num == 6 | e.num == 8 | e.num == 0x16)//1个参数
+				{
+					e.child = Pop();
+				}
+				else if (e.num == 9 | e.num == 0xa | e.num == 0xb | e.num == 0xf | e.num == 0x10)//2个参数
+				{
+					e.brother = Pop();
+					e.child = Pop();
+				}
+				else if (e.num == 0xc | e.num == 0x14 | e.num == 0x15)//3个参数
+				{
+					e.child = linkBrother(3);
+				}
+				Push(e);
+				break;
+code_d4:
+				e.num = tree.dat[Pop()].num;
+				e.child = Pop();
+				Push(e);
+				break;
+			}
+checkWrite:
+			Push(e);
+			changeTree(bol[1] = Pop());
+			WriteCode(bol[1]);
+			if (cp.ts) Error(ftell(in.fp), E_STACK);
+			insertAdd(ftell(in.fp), ftell(out.fp));
+			memset(stack, 0, sizeof(struct STACK));
+			memset(tree, 0, sizeof(struct TREE_MEM));
+			tree.len = 1;//索引从1开始 0作为标志位
+			Progress(ftell(in.fp), in.size, 0);//进度
+			break;
+		}
+	}
+	Progress(1, 1, 0);//进度
+	fclose(in.fp);
+	in.fp = 0;
+	writeAdd();//写入跳转数据
+	Progress("复制中...", "优化系统正在运行...", 1);//消息框
+	ChDir(out.path);
+	strcpy(name, out.name);
+	ChExt(name, "lav");
+	if (!(in.fp = fopen(name, "w"))) Error(name, E_OPEN);//打开文件
+	rewind(out.fp);
+	for (;;)
+	{
+		cp.fn = fread(FUN_TABLE, 1, 2048, out.fp);
+		if (!cp.fn) break;
+		fwrite(FUN_TABLE, 1, cp.fn, in.fp);
+		Progress(ftell(out.fp), in.size, 0);//进度
+	}
+	cp.offset = ftell(in.fp);
+	fclose(out.fp);
+	fclose(in.fp);
+	in.fp = out.fp = 0;
+	if (!DeleteFile(out.name))
+	{
+		Swin("错误！", "无法删除*.tmp", SWIN_ONE);
+	}
+	ChExt(out.name, "lav");
+	if (cp.fp)
+	{
+		fclose(cp.fp);
+		cp.fp = 0;
+		if (cfset.dat[0].tem[3].value)
+		{
+			if (!ChDir(cpldata))
+			{
+				Swin("错误！", "无法进入目录", SWIN_ONE);
+			}
+			else if (!DeleteFile("cpl.tmp"))
+			{
+				Swin("错误！", "无法删除*.tmp", SWIN_ONE);
+			}
+		}
+	}
+	Progress(1, 1, 0);//进度
+}

@@ -1,0 +1,16 @@
+原型:void Ellipse(int x, int y, int a, int b, int fill, int type);
+功能:在屏幕上画一椭圆
+说明:(x,y)指定圆心,a为横向长度的一半,b为纵向长度的一半
+     type决定画椭图方式,其值含义如下:
+     0:清除方式
+     1:正常方式
+     2:反相方式
+     fill=0:不填充
+     fill=1:填充
+举例:
+void main()
+{
+ Ellipse(80, 40, 60, 30, 0, 1); 
+ Ellipse(80, 40, 20, 30, 1, 1);
+ getchar();
+}

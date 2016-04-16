@@ -1,0 +1,483 @@
+#define TSL 16384 //文本长度最大上限
+#define K_UP 20 //键值
+#define K_DOWN 21
+#define K_LEFT 23
+#define K_RIGHT 22
+#define K_ENTER 13
+#define DTIME 32//频控制的最短时间
+#define NOWDMAX 48//路径字符串的最大长度
+#define C_ONPC 0  //“是否在PC上运行”选项的序号
+long aaa;
+struct TIME{  //放时间日期用的
+int y;
+char m;
+char d;
+char h;
+char min;
+char s;
+char w;
+};
+struct TIME time;
+char numkey[]="0bnmghjtyu";   //键盘键值表
+char punkey[]="qwerasdfzxcviopkl";
+char punto[]="+-*/;' =()[],<>{}";   //键值表中按键对应的符号
+char punkeyb[]="bnmghjtyu.    ";
+char puntob[]=" %:|~?!&#_`^$@";
+char txt_h[]={0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x18,0x0,0x0,0x1a,0x0,0x0,0x0,0x0,0x0,0x18,0x0,0x0,0x1a,0x0,0x0,0x0,0x0,0xd,0xa};  //TXT文件的文件头（TC800没有）
+char cian,ciul;   //英数和大小写输入法状态的标记
+char clips=0;  //剪贴板的标记，0为用内存，1为用文件
+char cfg[]=" ";  //配置选项表，'.'为真，' '为假
+char str[60],sstr[19],nowd[NOWDMAX+1],clip[1025],ts[TSL+1];
+long clipl=0;  
+//str:字符串传递、临时存放处；sstr:搜索的字串；nowd:路径字串传递；clip:剪贴板；ts:放文本的主空间；clipl:剪贴板长度
+
+
+/////////////////
+//即Message，在屏幕底部显示t指向的字串
+void mess(int t){
+Box(1,67,159,79,1,1);TextOut(2,68,t,73);
+}
+/////////////////
+//用带阴影的框显示t指向的字串
+char dia(int t){
+char w,k;w=strlen(t)*3;Box(78-w,31,82+w,48,1,0);Box(79-w,32,81+w,47,0,1);Line(80-w,48,82+w,48,1);Line(82+w,33,82+w,47,1);TextOut(80-w,34,t,65);k=getchar();return(k);
+}
+
+///////////////////////////////
+//显示菜单，返回所选的项号
+char menu(int title,int a,int b,int c){
+char k,n;k=0;n=1;
+Box(14,9,146,71,1,0);Box(15,10,145,70,0,1);
+TextOut(18,13,title,65);
+TextOut(19,28,"A",65);TextOut(32,28,a,65);
+TextOut(19,41,"B",65);TextOut(32,41,b,65);
+TextOut(19,54,"C",65);TextOut(32,54,c,65);
+Line(17,26,143,26,1);Line(29,27,29,68,1);
+Circle(136,18,4,1,1);
+Box(134,18,138,19,1,0);
+while(k!=13){
+Box(18,15+n*13,26,27+n*13,1,2);
+k=getchar();
+Box(18,15+n*13,26,27+n*13,1,2);
+if(k==21&&n<3)n++;
+else if(k==20&&n>1)n--;
+else if(k==27)return(0);
+else if(k=='a')return(1);
+else if(k=='b')return(2);
+else if(k=='c')return(3);
+ }
+return(n);
+}
+
+
+///////////
+//判断nowp所指向的字节是否是中文的右半字节，*nowp要>=160，end是终点
+long ismid(long nowp,long end){
+long i;
+for(i=nowp;*i>=160&&i>=end;i--);
+return(!((nowp-i)%2));
+}
+
+
+//////////////////////////
+//整数输入，参数：(Locate的y,Locate的x)
+long numi(char y,char x){
+long ans,max;
+char k,i;
+char c[11],show[30];
+k=0;ans=0;max=100000000;strcpy(c,"0bnmghjtyu");
+while(k!=13&&k!=27){
+memset(show,0,30);
+Locate(y,x);
+if(ans>max)ans=max;
+printf("%d ",ans);
+k=getchar();
+  for(i=0;i<10;i++){if(k==c[i])ans=ans*10+i;}
+  if(k==29||k==23)ans=ans/10;
+  else if(k==27)ans=-1;
+ }//while
+return(ans);
+}
+
+
+///////////////////////
+//字串输入，参数：(Locate的y,预留,默认值,最大长度)
+void stri(char y,char x,int o,int maxl){
+char ch[3],show[21];
+int word,n,l,sx;
+memset(str,0,maxl+1);memset(ch,0,3);strcpy(str,o);n=0;sx=0;
+while(ch[aaa=0]!=13){
+memset(show,0,21);
+if(n<sx)sx=n;
+if(n>sx+20)sx=n-20;
+memcpy(show,str+sx,20);
+l=strlen(str);
+if(show[aaa=0]>=160&&ismid(str+sx,str))show[aaa=0]='_';
+if(show[aaa=19]>=160&&!ismid(show+19,show))show[aaa=19]='_';
+Locate(4,0);printf("                    ");
+Locate(y,0);printf("%s  ",show);Box(8*(n-sx),16*y,8*(n-sx)+1,16*y+16,1,2);
+if(ch[aaa=0]==22||ch[aaa=0]==23){Delay(80);ReleaseKey(128);}
+word=GetWord(3);
+ch[aaa=0]=word;
+if(isprint(ch[aaa=0])&&l<maxl){memmove(str+n+1,str+n,l-n);str[n]=ch[aaa=0];n++;}
+else if(ch[aaa=0]>=160&&l<maxl-1){ch[aaa=1]=word>>8;memmove(str+n+2,str+n,l-n);memcpy(str+n,ch,2);n=n+2;}
+else if(ch[aaa=0]==27){strcpy(str,"");return;}
+else if(ch[aaa=0]==29&&n>0){
+ if(str[n-1]>=160){memmove(str+n-2,str+n,l-n);memset(str+l-2,0,2);n=n-2;}
+ else {memmove(str+n-1,str+n,l-n);str[l-1]=0;n--;}}
+else if(ch[aaa=0]==23){if(n==0)n=l;else if(str[n-1]>=160)n=n-2;else n--;
+  }//if完
+else if(ch[aaa=0]==22){if(n>=l)n=0;else if(str[n]>=160)n=n+2;else n++;
+  }//if完
+else if(ch[aaa=0]==30){memset(str,0,maxl+1);Locate(y,0);printf("                    ");n=0;}
+else if(ch[aaa=0]==28)n=0;
+else if(ch[aaa=0]==31)n=strlen(str);
+ }//while完
+}
+
+
+
+///////////////////////////
+//选择文件，nowd变为所选路径，o为初始目录
+void fc(int o){
+char i;
+char fname[20];
+if(CheckKey(25)){SetScreen(0);stri(0,0,"",59);strcpy(nowd,str);return;}
+strcpy(nowd,"/");
+if(ChDir(o))strcpy(nowd,o);else ChDir("/");
+while(1){
+  if (!FileList(fname)||!strcmp(fname,"..")){
+    if(!strcmp(nowd,"/"))break;
+    for(i=strlen(nowd);i>0&&nowd[i]!='/';i--);
+    if(i>0)nowd[i]=0;else strcpy(nowd,"/");
+    ChDir(nowd);continue;
+  }
+  if(NOWDMAX-strlen(nowd)<strlen(fname)){dia("路径字符串过长");continue;}
+  if(!strcmp(nowd,"/"))strcpy(nowd,"");
+  sprintf(nowd,"%s/%s",nowd,fname);
+  if(ChDir(fname))continue;
+  break;
+}
+}
+
+
+/////////////////
+//自己写的输入法
+char inputc(){
+char k;char show[30];
+long i;
+AAA:if(cian==0)TextOut(1,1,"E",66);else TextOut(1,1,"n",66);
+if(ciul==0)TextOut(1,14,"A",66);else TextOut(1,14,"a",66);
+k=getchar();
+if(k==26){
+  cian=cian==0;
+  goto AAA;
+}
+if(k==18){
+  ciul=ciul==0;
+  goto AAA;
+}
+if(cian){
+  for(i=0;i<10;i++)if(k==numkey[i])return(i+48);
+  for(i=0;i<17;i++)if(k==punkey[i])return(punto[i]);
+}else{
+  if(k=='0'){
+    Box(5,13,155,79,1,0);Box(6,14,154,78,0,1);
+    TextOut(7,40," + - * / !   & # , < >",65);
+    strcpy(show," ; '   = |   ~ ? { }");show[aaa=5]=34;TextOut(7,54,show,65);
+    strcpy(show," ( ) [ ]     % :");show[aaa=9]=92;TextOut(7,66,show,65);
+    TextOut(7,28,"字母键:↓空格:` 小数点:_",65);
+    TextOut(7,16,"请选择符号: F1-F3: ^ $ @",65);k=getchar();for(i=0;i<17;i++)if(k==punkey[i])return(punto[i]);for(i=0;i<14;i++)if(k==punkeyb[i])return(puntob[i]);return(0);
+    }
+  if(ciul){if(isprint(k))return(k);}
+  else return(toupper(k));
+}
+if(k=='.')return('.');
+if(k==' ')return(' ');
+return(k);
+}
+
+/////////////////
+//向地址b的前面搜索换行符，实际作用是返回b指向的字节所在文本行的第一字符的地址
+long backsearch(long b){
+long i,tmp;
+tmp=strchr(ts,13);
+if(tmp>b||!tmp)return(ts);
+for(i=b;*i!=13;i--);
+return(i+2);
+}
+
+
+
+///////////////////
+//从nowp开始搜索dstr，找不到就从全文本头部ts开始搜，再搜不到返回0
+long strs(long nowp,long dstr){
+long tmp,a;
+research1:tmp=strstr(nowp,dstr);
+if(tmp){
+  if(*tmp>=160)
+    if(ismid(tmp,ts)){nowp=tmp+1;goto research1;}
+  return(tmp);
+}else{
+nowp=ts;
+research2:  a=strstr(nowp,dstr);
+  if(a){
+    if(*a>=160)
+      if(ismid(a,ts)){nowp=tmp+1;goto research2;}
+    return(a);
+  }else return(0);
+}
+}
+
+///////////////////////////
+//以下为最主要的函数，运行前要先将文本载入ts。
+long codeedit(char m){
+char new,nomove,f,k,lkey;//new:屏幕指针移动标记，0不移动,1令屏幕指针hh[aaa=0]指向光标所在行的行首，2:hh[aaa=0]下移一行，这么做比较省时;nomove:0为屏幕无相对滚动,1为有滚动;f:文件句柄;k:存键值;lkey:标记是否连续响应按键
+char show[30];//显示缓冲
+long lasttime,tmp,end,sx,lasth,nowp,start,i,x,y,a,b;//lasttime:频控制用;tmp,a,b:临时变量，生存期短时用;end,nowp,start:指针变量（指针变量也可为int型），分别指向文本尾，光标处和复制起点（值-1时为无设定）;sx:屏幕右滚偏移量;lasth:最后一行相对屏幕所在行，值9时为不在屏幕里
+long hh[7],hl[7];//hh:指针，指向屏幕上每行的行首地址;hl:每行长度
+hh[aaa=0]=ts;new=0;nomove=0;lkey=0;y=0;sx=0;nowp=ts;start=-1;lasttime=Getms();show[aaa=25]=0;
+while(1){
+end=ts+strlen(ts);
+y=0;lasth=9;
+//移动屏幕指针
+if(nowp<hh[aaa=0]||new==1){
+  hh[aaa=0]=backsearch(nowp-1);
+}else if(new==2){
+  hh[aaa=0]=hh[aaa=1];
+}
+//变量y为光标所在行相对屏幕的行号,以下为y,hh,hl赋值
+for(i=0;i<6;i++){
+  if(nowp>=hh[i])y=i;
+  tmp=strchr(hh[i],13);
+  if(tmp){hh[i+1]=tmp+2;hl[i]=hh[i+1]-hh[i]-2;}else {lasth=i;hl[i]=strlen(hh[i]);break;}
+}
+//显示
+if(nowp-hh[y]-sx>24)sx=nowp-hh[y]-24;
+if(nowp-hh[y]<sx)sx=nowp-hh[y];
+if(nomove){//设置nomove是为了节省时间
+  memcpy(show,hh[y]+sx,25);
+  if(sx>hl[y])show[aaa=0]=0;
+  else{
+    tmp=strchr(show,13);
+    if(tmp){*tmp=31;*(tmp+1)=0;}
+  }
+  if(show[aaa=0]>=160)//若为中文，以下为防止乱码
+    if(ismid(hh[y]+sx,ts))show[aaa=0]='_';
+  if(strlen(show)==25&&show[aaa=24]>=160)
+    if(!ismid(show+24,show))show[aaa=24]='_';
+  TextOut(8,y*13+2,show,1);
+  nomove=0;
+}
+else {ClearScreen();for(i=0;i<6;i++){
+  if(i<=lasth){
+    memcpy(show,hh[i]+sx,25);
+    if(sx>hl[i])show[aaa=0]=0;
+    else{
+      tmp=strchr(show,13);
+      if(tmp){*tmp=31;*(tmp+1)=0;}
+    }
+    if(show[aaa=0]>=160)
+      if(ismid(hh[i]+sx,ts))show[aaa=0]='_';
+    if(strlen(show)==25&&show[aaa=24]>=160)
+      if(!ismid(show+24,show))show[aaa=24]='_';
+    TextOut(8,i*13+2,show,1);
+  }
+}}
+//显示光标、状态栏等
+x=(nowp-hh[y]-sx)*6+8;
+Block(x,y*13+2,x+1,y*13+13,2);
+Rectangle(7,1,7,79,1);
+if(lkey)TextOut(1,27,"l",2);
+if(sx>0)TextOut(1,68,"<",2);
+Refresh();
+new=0;
+//频控制，延时
+while(((Getms()-lasttime)&0xff)<DTIME);
+if(k==K_LEFT||k==K_RIGHT||k==K_UP||k==K_DOWN||k==19||k==14){
+  ReleaseKey(128);
+}
+else if(lkey==1&&k!=28){
+  ReleaseKey(128);
+}
+k=inputc();
+lasttime=Getms();
+if(k==K_UP){
+  if(hh[aaa=0]==ts+(aaa=0)&&y==0)continue;
+  tmp=nowp-hh[y];//得到相对行首的距离
+  a=backsearch(hh[y]-3);b=hh[y]-a-2;
+  if(tmp>b)nowp=hh[y]-2;else nowp=a+tmp;
+  if(*nowp>=160)//防止中文错位
+    if(ismid(nowp,ts))nowp--;
+}
+else if(k==K_DOWN){
+  if(y==lasth)continue;
+  if(y==5)new=2;
+  tmp=nowp-hh[y];
+  a=strchr(hh[y+1],13);
+  if(a==0)b=strlen(hh[y+1]);else b=a-hh[y+1];
+  if(tmp>b)nowp=hh[y+1]+b;else nowp=hh[y+1]+tmp;
+  if(*nowp>=160)
+    if(ismid(nowp,ts))nowp--;
+}
+else if(k==K_LEFT){if(*(nowp-1)<160)nowp--;else nowp=nowp-2;if(*nowp==10)nowp--;}
+else if(k==K_RIGHT){if(*nowp<160)nowp++;else nowp=nowp+2;if(*nowp==10){nowp++;if(y==5)new=2;}}
+else if(k==K_ENTER){  for(i=hh[y];isspace(*i)&&i<nowp;i++);//运行完后i-hh[y]为应该自动填充的空格数
+  tmp=i-hh[y]+2;if(tmp>TSL-strlen(ts)){dia("已到上限!");continue;}
+  memmove(nowp+tmp,nowp,end-nowp);memset(nowp,' ',tmp);*nowp=13;*(nowp+1)=10;nowp=nowp+tmp;end=end+tmp;
+  if(y==5)new=2;//光标在屏幕底时下移一行
+}
+else if(k==27){
+  if(m==0){
+    tmp=menu("退回菜单：","保存并退回剪辑","不保存退回剪辑","取消");
+    if(tmp==1)return(1);
+    else if(tmp==2)return(2);
+  }else{
+    tmp=menu("文件操作菜单：","保存","结束编辑","返回");
+    if(tmp==1){
+      f=fopen(nowd,"w");if(!f){dia("保存失败");continue;}
+      if(cfg[(aaa=C_ONPC)]==' '){
+        a=strlen(ts)+24;
+        fwrite(txt_h,1,24,f);
+        fseek(f,10,0);fwrite(&a,1,4,f);
+        fseek(f,19,0);fwrite(&a,1,4,f);
+        fseek(f,24,0);fwrite(ts,1,a-24,f);
+      }else{a=strlen(ts);fwrite(ts,1,a,f);}
+      fclose(f);dia("保存完毕");
+    }
+    else if(tmp==2)return(2);
+  }
+}//if
+else if(k==28){if(lkey==0)lkey=1;else lkey=0;}
+else if(k==29){//退格
+  if(nowp<=ts+(aaa=0))continue;
+  if(*(nowp-1)==10||*(nowp-1)>=160)tmp=2;else tmp=1;//遇中文或换行符时退两格
+  for(i=0;i<tmp;i++){
+    memmove(nowp-1,nowp,end-nowp);
+    *(end-1)=0;
+    nowp--;
+  }
+  start=-1;
+}
+else if(k==25){
+ Box(10,5,135,65,1,0);
+ Box(10,5,135,65,0,1);
+ Box(12,66,137,67,1,1);
+ Box(136,7,137,65,1,1);
+ Line(12,21,133,21,1);
+ TextOut(46,7,"功能选择",65);
+ TextOut(24,23,"F:查找 求助:续查",65);
+ TextOut(33,37,"小数点:设起点",65);
+ TextOut(12,50,"C:复制 V:粘贴 D:删除",65);
+ b=getchar();
+ if(b=='f'){
+   SetScreen(0);printf("在编辑区内搜索：");stri(1,0,sstr,18);if(!strcmp(str,""))continue;
+   strcpy(sstr,str);
+   tmp=strs(nowp+1,sstr);
+   if(tmp){
+     nowp=tmp;new=1;
+   }else dia("未找到!");
+ }//ifkey
+ else if(b==25){
+   if(!strcmp(sstr,""))continue;
+   tmp=strs(nowp+1,sstr);
+   if(tmp){
+     nowp=tmp;new=1;
+   }else dia("未找到!");
+ }
+ else if(b=='.')start=nowp;
+ else if(b=='c'){
+   if(start==-1){dia("请先设起点");continue;}
+   if(abs(nowp-start)>1024){
+     mess("复制中..");f=fopen("/eweclip.mem","wb");if(f==0){dia("电力或空间不足,操作失败!");continue;}
+     clipl=abs(nowp-start);
+     if(nowp<start)a=nowp;else a=start;
+     fwrite(a,1,clipl,f);clips=1;
+     fclose(f);
+   }
+   else{
+     if(nowp<start){clipl=start-nowp;memcpy(clip,nowp,clipl);}
+     else{clipl=nowp-start;memcpy(clip,start,clipl);}
+     clips=0;
+   }
+ }
+ else if(b=='v'){
+   if(clipl>TSL-strlen(ts)){dia("已到上限!");continue;}
+   if(clips){
+     mess("粘贴中..");f=fopen("/eweclip.mem","rb");
+     memmove(nowp+clipl,nowp,end-nowp);
+     fread(nowp,1,clipl,f);
+     start=-1;fclose(f);
+   }else{
+     memmove(nowp+clipl,nowp,end-nowp);
+     memcpy(nowp,clip,clipl);start=-1;
+   }
+ }
+ else if(b=='d'){
+   if(start==-1){dia("请先设起点");continue;}
+   if(nowp<start){a=start-nowp;memmove(nowp,start,end-start);memset(end-a,0,a);start=-1;}
+   else {a=nowp-start;memmove(start,nowp,end-nowp);memset(end-a,0,a);nowp=nowp-a;start=-1;}
+ }
+}
+else if(k==31){//输入中文
+  SetScreen(0);printf("请输入字串：");
+  stri(1,0,"",59);
+  if(strlen(str)>TSL-strlen(ts))dia("已到上限!");
+  else{
+    memmove(nowp+strlen(str),nowp,end-nowp);
+    memcpy(nowp,str,strlen(str));
+    start=-1;
+  }
+}
+else if(k==30){
+  GetTime(time);SetScreen(1);printf("时  间 : %d:%d\n当  前 : %d\n总  共 : %d字节\n最大上限: %d字节\n按空格键跳转 求助键帮助",time.h,time.min,nowp-ts*(aaa=1),strlen(ts),TSL);tmp=getchar();
+  if(tmp==25){
+    SetScreen(1);
+    printf("操作指南：\nF1:输入键连续响应的开关。\nF2:退格。F4：输入中文。\nF3:查看相关信息，跳转。\n求助:搜索续查,复制,粘贴。\n跳出:保存菜单。");
+    getchar();
+  }
+  if(tmp==' '){
+    printf("\n到：");a=numi(5,4);if(a==-1)continue;if(a>end-ts*(aaa=1)){dia("过大!");continue;}
+    a=a+ts*(aaa=1);if(*a==10)a--;
+    if(*a>=160)
+      if(ismid(a,ts))a--;
+    nowp=a;new=1;
+  }
+}
+else if(k==19){
+  if(sx==0)continue;
+  sx--;
+}
+else if(k==14){
+  sx++;
+}
+else if(!k)continue;
+else if(isprint(k)){//插入字符
+  if(TSL-strlen(ts)<1){dia("已到上限!");continue;}
+  memmove(nowp+1,nowp,end-nowp);*nowp=k;nowp++;end++;
+  if(nowp-hh[y]-sx==25)sx=nowp-hh[y]-17;else nomove=1;//光标在屏幕最右端时屏幕右滚
+  start=-1;
+}
+//防出界
+if(nowp>end)nowp=end;if(nowp<ts+(aaa=0))nowp=ts;
+}
+}///////////////////
+void main(){
+char f;
+long fsize;
+memset(ts,0,16385);
+cian=0;ciul=1;
+punto[aaa=6]=34;puntob[aaa=0]=92;punkeyb[aaa=11]=28;punkeyb[aaa=12]=29;punkeyb[aaa=13]=30;memset(sstr,0,19);
+fc("/文本文件");
+if(!strcmp(nowd,"/"))return;
+if(strcmp(nowd+strlen(nowd)-(aaa=4),".txt")){dia("非txt格式!");return;}
+f=fopen(nowd,"r");if(!f){dia("打开失败!");return;}
+fsize=fseek(f,0,2);
+if(cfg[(aaa=C_ONPC)]==' ')fsize=fsize-24;
+if(fsize>TSL){dia("文件大小超过上限");fclose(f);return;}
+if(cfg[(aaa=C_ONPC)]==' ')fseek(f,24,0);else rewind(f);
+fread(ts,1,fsize,f);
+fclose(f);codeedit(1);
+SetScreen(1);printf("EWayWriter 开源版 060803\nfor LavaX 20K\n作者:E路客 Ｅ路软件园\nE-mail:ewaykexp@yahoo.com.cn (来信时请在标题处注明关于EWay软件)");getchar();
+}
+

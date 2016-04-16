@@ -1,0 +1,1060 @@
+//TIMETOOL(LavaX1.0 Version by Franksoft Copyright 1998-2006)-2006/10/5
+//V0.38101
+
+
+struct TIME
+{
+int year;
+char month;
+char day;
+char hour;
+char minute;
+char second;
+char week;
+};
+
+char ch,WID;
+char sx,sy;
+char numkey[10]="bnmghjtyu",weekcn[15]="日一二三四五六";
+char dmax[12]={31,28,31,30,31,30,31,31,30,31,30,31},wk[12]={0,3,2,5,0,3,5,1,4,6,2,4};
+char TG[]="甲乙丙丁戊己庚辛壬癸",DZ[]="子鼠丑牛寅虎卯兔辰龙巳蛇午马未羊申猴酉鸡戌狗亥猪";//天干地支
+char strAbout[12][25]={
+"  时间工具集 V0.38",
+"Copyright by Franksoft(1",
+"998-2006)",
+"Ver0.38 Beta1",
+"更新日期：2006/10/5",
+"文件大小：9818B",
+"本软件使用LavaXIDE3.5.1.",
+"060615编译",
+"LavaX Virtual Machine",
+"认证:LAVA ALL",
+"适用机型：LavaX1.0",
+"通过TC800S实机测试"
+};
+char string[4],stra[27],strb[3],strd[22],strt[9],strw[7];
+struct TIME time,addt;
+
+
+void ScrWindow(char style)
+{
+ClearScreen();
+Rectangle(1,0,159,79,1);
+Block(3,2,157,18-style,1);
+}
+char getkey(char c)
+{
+char i;
+for(i=0;i<9;i++)
+  {
+  if(c==numkey[i])
+    {
+    c=i+'1';
+    break;
+    }
+  }
+return c;
+}
+int strval()
+//用来将字符串转化成数值
+{
+char i;
+int val;
+ch=i=val=0;
+for(;i<strlen(string);i++)
+  {
+  ch=string[i];
+  val=val*10+(ch-48);
+  }
+return val;
+}
+int inputnum(char len,char y,char x)
+//在y行x列(含位置坐标偏移)的地方输入一个正整数
+//它的返回值就是输入的数值
+{
+char i;
+int val;
+ch=i=val=0;
+memset(string,0,5);
+TextOut(x*6+3,y*13-2,"_    ",1);
+Rectangle(x*6+1,y*13-3,(x+len)*6+10,y*13+10,1);
+Refresh();
+for(;;)
+  {
+  ch=getkey(getchar());
+  if(ch>='0'&&ch<='9'&&i<len)
+    {
+    sprintf(stra,"%c_",ch);
+    TextOut((x+i)*6+3,y*13-2,stra,1);
+    Refresh();
+    string[i]=ch;
+    i++;
+    }
+  else if(ch==23||ch==29)
+    {
+    if(i)
+      {
+      i--;
+      TextOut((x+i)*6+3,y*13-2,"_ ",1);
+      Refresh();
+      string[i]=0;
+      }
+    else
+      {
+      TextOut(x*6+3,y*13-2," ",1);
+      Rectangle(x*6+1,y*13-3,(x+len)*6+10,y*13+10,0);
+      Refresh();
+      return 100;
+      }
+    }
+  else if(ch==19)
+    {
+    memset(string,0,5);
+    TextOut(x*6+3,y*13-2,"_    ",1);
+    Refresh();
+    i=0;
+    }
+  else if(ch==27)
+    {
+    Rectangle(x*6+1,y*13-3,(x+len)*6+10,y*13+10,0);
+    Refresh();
+    return 100;
+    }
+  else if(ch==13&&i)
+    {
+    TextOut((x+i)*6+3,y*13-2," ",1);
+    Rectangle(x*6+1,y*13-3,(x+len)*6+10,y*13+10,0);
+    Refresh();
+    string[i]=0;
+    val=strval();
+    return(val);
+    }
+  }
+}
+void drawLine(char x,char y,char sl,char el,int deg)
+{
+int dx,dy;
+deg=deg%360;
+if(deg<90)
+  {
+  dx=1;
+  dy=-1;
+  deg=90-deg;
+  }
+else if(deg<180)
+  {
+  dx=1;
+  dy=1;
+  deg=deg-90;
+  }
+else if(deg<270)
+  {
+  dx=-1;
+  dy=1;
+  deg=270-deg;
+  }
+else
+  {
+  dx=-1;
+  dy=-1;
+  deg=deg-270;
+  }
+Line(x+dx*sl*Cos(deg)/1024,y+dy*sl*Sin(deg)/1024,x+dx*el*Cos(deg)/1024,y+dy*el*Sin(deg)/1024,65);
+}
+void QWatch(char x,char y,char r)
+{
+//中心坐标,钟表半径
+char i,ms,sl,ml,hl,sec;
+sec=255;
+//这儿设定分针,秒针,时针的长度
+sl=5*r/6;
+ml=4*r/5;
+hl=r/2;
+while(Inkey()-27)
+  {
+  GetTime(time);
+  if(time.second-sec)
+    {
+    sec=time.second;
+    Block(x-r,y-r,x+r,y+r,0);
+    for(i=0;i<60;i++)if(i%5)drawLine(x,y,r-1,r,i*6);
+    else drawLine(x,y,r-3,r,i*6);
+    drawLine(x,y,0,sl,time.second*6);
+    drawLine(x,y,0,ml,time.minute*6);
+    drawLine(x,y,0,hl,time.hour*30+time.minute/2);
+    Refresh();
+    }
+  }
+}
+
+char dayofweek(int y,char m,char d)
+//已知日期求星期
+{
+if(m<3)y--;
+return (y+y/4-y/100+y/400+wk[m-1]+d)%7;
+}
+char isInYear(int year)
+//判断闰年(isIntercalaryYear)
+{
+if(year%4&&year%100)return 0;
+else if(!(year%400))return 0;
+else return 1;
+}
+
+void frmAbout()
+{
+char cha,i,j;
+WID=11;
+i=0;
+ScrWindow(0);
+TextOut(19,3,"关于",130);
+do
+  {
+  Block(2,19,158,78,0);
+  Rectangle(152,20,157,77,1);
+  Block(154,22+53*i/12,155,22+53*(i+4)/12,1);
+  for(j=0;j<4;j++)TextOut(3,24+j*13,strAbout[i+j],1);
+  Refresh();
+  cha=CheckKey(128);
+  Delay(20);
+  if(cha=='q')exit(0);
+  if(cha==21)i++;
+  else if(cha==20)i--;
+  else if(cha==14)i=i+4;
+  else if(cha==19)i=i-4;
+  if(i>127)i=0;
+  else if(i>8)i=8;
+  }while(cha-27);
+ReleaseKey(128);
+Delay(100);
+}
+void frmHelp(char HelpID)
+{
+WID=128+HelpID;
+ScrWindow(0);
+TextOut(19,3,"帮助",130);
+TextOut(6,24,"功能按键说明",1);
+}
+void frmkey()
+{
+char cha;
+Refresh();
+do
+  {
+  cha=getchar();
+  if(cha=='q')exit(0);
+  }
+while(cha-13&&cha-27);
+Delay(100);
+}
+void CallHelp(char hlp)
+{
+if(!(hlp/2))
+  {
+  frmHelp(hlp);
+  TextOut(3,39,"Q退出 W设置时间 E设置日期",1);
+  TextOut(3,52,"A关于 S保存时间 D保存日期",1);
+  TextOut(3,65,"I日历 X还原时间 C还原日期",1);
+  frmkey();
+  }
+else if(hlp==2)
+  {
+  frmHelp(hlp);
+  TextOut(3,39,"<Q>退出 <A>关于 <I>日历",1);
+  TextOut(3,52,"<Z>应用设置 <左键>退格",1);
+  TextOut(3,65,"上下键切换 <跳出>返回",1);
+  frmkey();
+  }
+else if(hlp==64)
+  {
+  frmHelp(hlp);
+  TextOut(3,39,"<Q>退出 <A>关于",1);
+  TextOut(3,52,"方向键切换日期 <输入>选择",1);
+  TextOut(3,65,"翻页键切换月份 <跳出>返回",1);
+  frmkey();
+  }
+}
+
+void tblCal()
+//tableCalendar
+{
+char i;
+ClearScreen();
+Rectangle(1,0,159,79,1);
+Rectangle(4,3,31,76,1);
+Rectangle(34,3,156,76,1);
+for(i=0;i<7;i++)
+  {
+  sprintf(stra,"%c%c",weekcn[i*2],weekcn[i*2+1]);
+  TextOut(38+17*i,4,stra,1);
+  Block(36+17*i,4,52+17*i,15,2);
+  }
+}
+char sCal(int yy,char mm,char dd)
+//showCalendar
+{
+char d,x,y,ww;
+tblCal();
+dmax[1]=28+isInYear(yy);
+ww=yy%10;
+if(ww<4)ww=ww+10;
+*(stra+2)=0;
+memcpy(stra,TG+ww*2-8,2);
+TextOut(6,12,stra,1);
+ww=yy%12;
+if(ww<4)ww=ww+12;
+*(stra+4)=0;
+memcpy(stra,DZ+ww*4-16,4);
+TextOut(6,24,stra,1);
+sprintf(stra,"%d",yy);
+TextOut(6,39,stra,1);
+sprintf(stra,"%d",mm);
+TextOut(9,60,stra,129);
+d=dd%7;
+ww=dayofweek(yy,mm,dd);
+if(!d)d=7;
+x=ww-d+1;
+if(x>127)x=x+7;
+strb[0]=x;
+d=1;
+y=0;
+do
+  {
+  sprintf(stra,"%d",d);
+  TextOut(40+17*x,17+11*y,stra,1);
+  if(d==dd)
+    {
+    sx=x;
+    sy=y;
+    }
+  if(++x>6)
+    {
+    x=0;
+    if(++y>4)y=0;
+    }
+  d++;
+  }while(d<=dmax[mm-1]);
+return strb[0];
+}
+char ctrlCal(int yy,char mm,char dd)
+//controlCalendar
+{
+char cha,aa,bb;
+do
+  {
+  if(WID-64)
+    {
+    WID=64;
+    aa=sCal(yy,mm,dd);
+    Block(36+17*sx,17+11*sy,53+17*sx,28+11*sy,2);
+    }
+  Refresh();
+  cha=CheckKey(128);
+  Delay(50);
+  if(cha=='q')exit(0);
+  else if(cha=='a')frmAbout();
+  else if(cha==25||cha==28)CallHelp(64);
+  else if(cha==14||cha==19)
+    {
+    dmax[1]=28+isInYear(yy);
+    if(cha-19)
+      {
+      if(mm-12)mm++;
+      else
+        {
+        mm=1;
+        if(yy-2199)yy++;
+        else yy=1753;
+        }
+      }
+    else
+      {
+      if(mm-1)mm--;
+      else
+        {
+        mm=12;
+        if(yy-1753)yy--;
+        else yy=2199;
+        }
+      }
+    bb=sy*7+sx-aa+1;
+    while(bb>dmax[mm-1])bb--;
+    aa=sCal(yy,mm,bb);
+    Block(36+17*sx,17+11*sy,53+17*sx,28+11*sy,2);
+    continue;
+    }
+  else if(cha==22||cha==23||cha==21||cha==20)
+    {
+    Block(36+17*sx,17+11*sy,53+17*sx,28+11*sy,2);
+    do
+      {
+      if(cha==22)sx++;
+      else if(cha==23)sx--;
+      else if(cha-20)sy++;
+      else sy--;
+      if(sx>127)sx=6;
+      else if(sx>6)sx=0;
+      if(sy>127)sy=4;
+      else if(sy>4)sy=0;
+      if(!sy&&sx<aa)bb=35+sx-aa+1;
+      else bb=sy*7+sx-aa+1;
+    }while(bb>dmax[mm-1]);
+    Block(36+17*sx,17+11*sy,53+17*sx,28+11*sy,2);
+    }
+  }while(cha-27&&cha-13);
+if(cha-27)
+  {
+  addt.year=yy;
+  addt.month=mm;
+  addt.day=(sy*7+sx-aa+1);
+  ClearScreen();
+  ReleaseKey(128);
+  Delay(50);
+  return addt.day;
+  }
+else
+  {
+  ClearScreen();
+  sx=0;
+  ReleaseKey(128);
+  Delay(100);
+  }
+}
+void StrDate(addr daddr)
+{
+sprintf(strd,"%d年%d月%d日",*(daddr)+*(daddr+1)*256,*(daddr+2),*(daddr+3));
+}
+void StrWeek(char week)
+{
+sprintf(strw,"星期%c%c",weekcn[week*2],weekcn[week*2+1]);
+}
+
+void StrTime(addr taddr)
+{
+memset(stra,'0',5);
+sprintf(stra-(*(taddr+5)<10),"%d",*(taddr+5));
+*(stra+2)=':';
+sprintf(stra+3-(*(taddr+6)<10),"%d",*(taddr+6));
+sprintf(strt,"%d:%s",*(taddr+4),stra);
+}
+void DCircle(char z)
+{
+char i;
+for(i=37;i<76;i=i+13)TextOut(3,i,"○",1);
+TextOut(3,11+z*13,"◎",1);
+Refresh();
+}
+int InputX(char wz)
+{
+return inputnum(2,wz+1,6);
+}
+void SDate()
+//设置日期
+{
+char wz;
+int inum;
+wz=2;
+inum=0;
+GetTime(addt);
+for(;ch-27;)
+  {
+  if(WID-2)
+    {
+    WID=2;
+    ScrWindow(0);
+    TextOut(19,3,"设置日期",130);
+    DCircle(2);
+    TextOut(15,37,"年",1);
+    TextOut(15,50,"月",1);
+    TextOut(15,63,"日",1);
+    sprintf(stra,"%d",addt.year);
+    TextOut(39,37,stra,1);
+    sprintf(stra,"%d",addt.month);
+    TextOut(39,50,stra,1);
+    sprintf(stra,"%d",addt.day);
+    TextOut(39,63,stra,1);
+    sx=0;
+    }
+  GetTime(time);
+  StrDate(time);
+  StrWeek(time.week);
+  sprintf(stra,"%s %s",strw,strd);
+  TextOut(12,24,stra,1);
+  Refresh();
+  ch=CheckKey(128);
+  Delay(50);
+  if(ch==22)
+    {
+    if(wz==2)
+      {
+      addt.year++;
+      if(addt.year>2031)addt.year=1932;
+      dmax[1]=28+isInYear(addt.year);
+      sprintf(stra,"%d ",addt.year);
+      }
+    else if(wz==3)
+      {
+      addt.month++;
+      if(addt.month>12)addt.month=1;
+      if(addt.day>dmax[addt.month-1])
+        {
+        addt.day=dmax[addt.month-1];
+        sprintf(stra,"%d ",addt.day);
+        TextOut(39,63,stra,1);
+        }
+      sprintf(stra,"%d ",addt.month);
+      }
+    else
+      {
+      addt.day++;
+      if(addt.day>dmax[addt.month-1])addt.day=1;
+      sprintf(stra,"%d ",addt.day);
+      }
+    TextOut(39,11+wz*13,stra,1);
+    Refresh();
+    Delay(50);
+    }
+  else if(ch==23)
+    {
+    if(wz==2)
+      {
+      addt.year--;
+      if(addt.year<1932)addt.year=2031;
+      dmax[1]=28+isInYear(addt.year);
+      sprintf(stra,"%d ",addt.year);
+      }
+    else if(wz==3)
+      {
+      addt.month--;
+      if(!addt.month)addt.month=12;
+      if(addt.day>dmax[addt.month-1])
+        {
+        addt.day=dmax[addt.month-1];
+        sprintf(stra,"%d ",addt.day);
+        TextOut(39,63,stra,1);
+        }
+      sprintf(stra,"%d ",addt.month);
+      }
+    else
+      {
+      addt.day--;
+      if(!addt.day)addt.day=dmax[addt.month-1];
+      sprintf(stra,"%d ",addt.day);
+      }
+    TextOut(39,11+wz*13,stra,1);
+    Refresh();
+    Delay(50);
+    }
+  else if(ch=='q')exit(0);
+  else if(ch=='a')frmAbout();
+  else if(ch==25||ch==28)CallHelp(2);
+  else if(ch=='i'||ch==30)ctrlCal(addt.year,addt.month,addt.day);
+  else if(ch=='y')
+    {
+    wz=2;
+    DCircle(wz);
+    }
+  else if(ch=='m')
+    {
+    wz=3;
+    DCircle(wz);
+    }
+  else if(ch=='d')
+    {
+    wz=4;
+    DCircle(wz);
+    }
+  else if(ch==13)
+    {
+    inum=0;
+    if(wz==2)
+      {
+      do
+        {
+        inum=inputnum(4,3,6);
+        }while(inum<1932||inum>2031&&inum-100&&inum-101);
+      if(inum>1931)addt.year=inum;
+      else
+        {
+        if(inum>100)addt.year=2006;
+        dmax[1]=28+isInYear(addt.year);
+        sprintf(stra,"%d ",addt.year);
+        TextOut(39,37,stra,1);
+        }
+      }
+    else if(wz==3)
+      {
+      do
+        {
+        inum=InputX(wz);
+        }while(inum>12&&inum-100);
+      if(inum-100)addt.month=inum;
+      else
+        {
+        sprintf(stra,"%d ",addt.month);
+        TextOut(39,50,stra,1);
+        }
+      }
+    else
+      {
+      do
+        {
+        inum=InputX(wz);
+        }while(inum>dmax[addt.month-1]&&inum-100);
+      if(inum-100)addt.day=inum;
+      else
+        {
+        sprintf(stra,"%d ",addt.day);
+        TextOut(39,63,stra,1);
+        }
+      }
+    Refresh();
+    Delay(200);
+    }
+  else if(ch==20)
+    {
+    if(wz==2)wz=4;
+    else wz--;
+    DCircle(wz);
+    Delay(50);
+    }
+  else if(ch==21)
+    {
+    if(wz==4)wz=2;
+    else wz++;
+    DCircle(wz);
+    Delay(50);
+    }
+  else if(ch=='z')
+    {
+    GetTime(time);
+    time.year=addt.year;
+    time.month=addt.month;
+    time.day=addt.day;
+    SetTime(time);
+    TextOut(80,65,"设置完毕！",1);
+    StrDate(time);
+    StrWeek(time.week);
+    sprintf(stra,"%s %s",strw,strd);
+    Block(12,24,60,37,0);
+    TextOut(12,24,stra,1);
+    Refresh();
+    Delay(200);
+    TextOut(80,65,"          ",1);
+    Refresh();
+    }
+  }
+ReleaseKey(128);
+Delay(100);
+}
+void STime()
+//设置时间
+{
+char wz;
+int inum;
+wz=2;
+inum=0;
+GetTime(addt);
+for(;ch-27;)
+  {
+  if(WID-2)
+    {
+    WID=2;
+    ScrWindow(0);
+    TextOut(19,3,"设置时间",130);
+    DCircle(2);
+    TextOut(15,37,"时",1);
+    TextOut(15,50,"分",1);
+    TextOut(15,63,"秒",1);
+    sprintf(stra,"%d",addt.hour);
+    TextOut(39,37,stra,1);
+    sprintf(stra,"%d",addt.minute);
+    TextOut(39,50,stra,1);
+    sprintf(stra,"%d",addt.second);
+    TextOut(39,63,stra,1);
+    }
+  GetTime(time);
+  StrTime(time);
+  TextOut(12,24,strt,1);
+  Refresh();
+  ch=CheckKey(128);
+  Delay(50);
+  if(ch==22)
+    {
+    if(wz==2)
+      {
+      addt.hour++;
+      if(addt.hour>23)addt.hour=0;
+      sprintf(stra,"%d ",addt.hour);
+      }
+    else if(wz==3)
+      {
+      addt.minute++;
+      if(addt.minute>59)addt.minute=0;
+      sprintf(stra,"%d ",addt.minute);
+      }
+    else
+      {
+      addt.second++;
+      if(addt.second>59)addt.second=0;
+      sprintf(stra,"%d ",addt.second);
+      }
+    TextOut(39,11+wz*13,stra,1);
+    Refresh();
+    Delay(50);
+    }
+  else if(ch==23)
+    {
+    if(wz==2)
+      {
+      addt.hour--;
+      if(addt.hour==255)addt.hour=23;
+      sprintf(stra,"%d ",addt.hour);
+      }
+    else if(wz==3)
+      {
+      addt.minute--;
+      if(addt.minute==255)addt.minute=59;
+      sprintf(stra,"%d ",addt.minute);
+      }
+    else
+      {
+      addt.second--;
+      if(addt.second==255)addt.second=59;
+      sprintf(stra,"%d ",addt.second);
+      }
+    TextOut(39,11+wz*13,stra,1);
+    Refresh();
+    Delay(50);
+    }
+  else if(ch=='q')exit(0);
+  else if(ch=='a')frmAbout();
+  else if(ch==25||ch==28)CallHelp(2);
+  else if(ch=='i'||ch==30)ctrlCal(addt.year,addt.month,addt.day);
+  else if(ch=='h')
+    {
+    wz=2;
+    DCircle(wz);
+    }
+  else if(ch=='m')
+    {
+    wz=3;
+    DCircle(wz);
+    }
+  else if(ch=='s')
+    {
+    wz=4;
+    DCircle(wz);
+    }
+  else if(ch==13)
+    {
+    inum=0;
+    if(wz==2)
+      {
+      do
+        {
+        inum=InputX(wz);
+        }while(inum>23&&inum-100);
+      if(inum-100)addt.hour=inum;
+      else 
+        {
+        sprintf(stra,"%d ",addt.hour);
+        TextOut(39,37,stra,1);
+        }
+      }
+    else if(wz==3)
+      {
+      do
+        {
+        inum=InputX(wz);
+        }while(inum>59&&inum-100);
+      if(inum-100)addt.minute=inum;
+      else
+        {
+        sprintf(stra,"%d ",addt.minute);
+        TextOut(39,50,stra,1);
+        }
+      }
+    else
+      {
+      do
+        {
+        inum=InputX(wz);
+        }while(inum>59&&inum-100);
+      if(inum-100)addt.second=inum;
+      else
+        {
+        sprintf(stra,"%d ",addt.second);
+        TextOut(39,63,stra,1);
+        }
+      }
+    Refresh();
+    Delay(200);
+    }
+  else if(ch==20)
+    {
+    if(wz==2)wz=4;
+    else wz--;
+    DCircle(wz);
+    Delay(50);
+    }
+  else if(ch==21)
+    {
+    if(wz==4)wz=2;
+    else wz++;
+    DCircle(wz);
+    Delay(50);
+    }
+  else if(ch=='z')
+    {
+    GetTime(time);
+    time.hour=addt.hour;
+    time.minute=addt.minute;
+    time.second=addt.second;
+    SetTime(time);
+    TextOut(80,65,"设置完毕！",1);
+    StrTime(time);
+    Block(12,24,60,37,0);
+    TextOut(12,24,strt,1);
+    Refresh();
+    Delay(200);
+    TextOut(80,65,"          ",1);
+    Refresh();
+    }
+  }
+ReleaseKey(128);
+Delay(100);
+}
+void SaveDate()
+{
+char fp;
+ScrWindow(0);
+TextOut(19,3,"保存日期",130);
+GetTime(time);
+StrDate(time);
+StrWeek(time.week);
+TextOut(18,23,"今天是",1);
+sprintf(stra,"%s %s",strw,strd);
+TextOut(18,36,stra,1);
+TextOut(18,49,"是否保存日期？(Y)",1);
+Refresh();
+ch=getchar();
+if(ch-121)return;
+if(!(fp=fopen("time.sav","r+")))fp=fopen("time.sav","w");
+putc(time.year%256,fp);
+putc(time.year/256,fp);
+putc(time.month,fp);
+if(putc(time.day,fp)+1)TextOut(18,63,"日期保存成功！",1);
+else TextOut(18,63,"日期保存失败！",1);
+fclose(fp);
+Refresh();
+getchar();
+}
+void SaveTime()
+{
+char fp;
+ScrWindow(0);
+TextOut(19,3,"保存时间",130);
+GetTime(time);
+StrTime(time);
+TextOut(18,23,"现在是",1);
+TextOut(36,36,strt,1);
+TextOut(18,49,"是否保存时间？(Y)",1);
+Refresh();
+ch=getchar();
+if(ch-121)return;
+if(!(fp=fopen("time.sav","r+")))fp=fopen("time.sav","w");
+fseek(fp,4,0);
+putc(time.hour,fp);
+putc(time.minute,fp);
+if(putc(time.second,fp)+1)TextOut(18,63,"时间保存成功！",1);
+else TextOut(18,63,"时间保存失败！",1);
+fclose(fp);
+Refresh();
+getchar();
+}
+void LoadDate()
+{
+char fp;
+ScrWindow(0);
+TextOut(19,3,"日期还原",130);
+if(!(fp=fopen("time.sav","r")))
+  {
+  TextOut(18,39,"文件打开错误！",1);
+  TextOut(18,52,"按键返回...",1);
+  Refresh();
+  getchar();
+  return;
+  }
+addt.year=getc(fp)+getc(fp)*256;
+addt.month=getc(fp);
+addt.day=getc(fp);
+fclose(fp);
+if(addt.day==255)
+  {
+  TextOut(18,39,"文件错误！",1);
+  Refresh();
+  getchar();
+  return;
+  }
+else
+  {
+  StrWeek(dayofweek(addt.year,addt.month,addt.day));
+  sprintf(stra,"%s %d年%d月%d日",strw,addt.year,addt.month,addt.day);
+  TextOut(18,26,stra,1);
+  TextOut(24,39,"确认还原？(Y)",1);
+  Refresh();
+  ch=getchar();
+  if(ch-121)return;
+  GetTime(time);
+  time.year=addt.year;
+  time.month=addt.month;
+  time.day=addt.day;
+  SetTime(time);
+  TextOut(24,52,"日期还原成功！",1);
+  Refresh();
+  getchar();
+  }
+}
+void LoadTime()
+{
+char fp;
+ScrWindow(0);
+TextOut(19,3,"时间还原",130);
+if(!(fp=fopen("time.sav","r")))
+  {
+  TextOut(18,39,"文件打开错误！",1);
+  TextOut(18,52,"按键返回...",1);
+  Refresh();
+  getchar();
+  return;
+  }
+fseek(fp,4,0);
+addt.hour=getc(fp);
+addt.minute=getc(fp);
+addt.second=getc(fp);
+fclose(fp);
+if(addt.second==255)
+  {
+  TextOut(18,39,"文件错误！",1);
+  Refresh();
+  getchar();
+  return;
+  }
+else
+  {
+  sprintf(stra,"%d:%d:%d",addt.hour,addt.minute,addt.second);
+  TextOut(24,26,stra,1);
+  TextOut(24,39,"确认还原？(Y)",1);
+  Refresh();
+  ch=getchar();
+  if(ch-121)return;
+  GetTime(time);
+  time.hour=addt.hour;
+  time.minute=addt.minute;
+  time.second=addt.second;
+  SetTime(time);
+  TextOut(24,52,"时间还原成功！",1);
+  Refresh();
+  getchar();
+  }
+}
+
+void Check_Key(char frmID)
+{
+WID=127;
+GetTime(time);
+if(ch==27||ch=='q')exit(0);
+else if(ch==25||ch==28)CallHelp(frmID);
+else if(ch=='a')frmAbout();
+else if(ch=='w')STime();
+else if(ch=='e')SDate();
+else if(ch=='d')SaveDate();
+else if(ch=='s')SaveTime();
+else if(ch=='c')LoadDate();
+else if(ch=='x')LoadTime();
+else if(ch=='i'||ch==30)ctrlCal(time.year,time.month,time.day);
+else WID=frmID;
+}
+
+void frmA()
+{
+WID=255;
+while(ch-13)
+  {
+  if(WID)
+    {
+    WID=0;
+    ClearScreen();
+    Rectangle(1,0,159,79,1);
+    TextOut(14,5,"时 间 工 具 集 V0.38",1);
+    TextOut(14,18,"by Franksoft",1);
+    TextOut(12,33,"摁<输入>键开始",1);
+    TextOut(40,49,"按<F1>或<求助>",1);
+    TextOut(40,62,"获取帮助",1);
+    Refresh();
+    }
+  ch=0;
+  ch=getchar();
+  Check_Key(0);
+  }
+}
+void frmB()
+{
+char x,y,r;
+//中心坐标,钟表半径
+char i,ms,sl,ml,hl,sec;
+x=120;y=40;r=30;
+sec=255;
+//这儿设定分针,秒针,时针的长度
+sl=4*r/5;
+ml=3*r/4;
+hl=r/2;
+WID=255;
+while(1)
+  {
+  if(WID-1)
+    {
+    WID=1;
+    ScrWindow(0);
+    TextOut(19,3,"TIMETOOL",130);
+    }
+  Block(2,19,87,78,0);
+  GetTime(time);
+  StrDate(time);
+  StrWeek(time.week);
+  StrTime(time);
+  TextOut(9,29,strd,1);
+  TextOut(9,42,strw,1);
+  TextOut(9,55,strt,1);
+  if(time.second-sec)
+    {
+    sec=time.second;
+    Block(x-r-2,y-r-5,x+r+2,y+r,0);
+    Rectangle(x-r-2,y-r-5,x+r+2,y+r+5,1);
+    for(i=0;i<60;i++)if(i%5)drawLine(x,y,r-1,r,i*6);
+    else drawLine(x,y,r-3,r,i*6);
+    drawLine(x,y,0,sl,time.second*6);
+    drawLine(x,y,0,ml,time.minute*6);
+    drawLine(x,y,0,hl,time.hour*30+time.minute/2);
+    Refresh();
+    }
+  Refresh();
+  ch=0;
+  ch=Inkey();
+  Check_Key(1);
+  }
+}
+
+void main()
+{
+if(!ChDir("/LavaData"))
+  {
+  MakeDir("/LavaData");
+  ChDir("/LavaData");
+  }
+frmA();
+frmB();
+}
+
+

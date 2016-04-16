@@ -1,0 +1,4 @@
+0	setn		0
+1	gettime		0
+1	getdate		0
+1	difftime	1

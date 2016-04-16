@@ -1,0 +1,13 @@
+原型:char Getms();
+功能:取系统时间的毫秒数
+说明:实际上是1/256秒,返回值的范围为0~255
+举例:
+void main()
+{
+ for (;;)
+ {
+  printf("\n%d", Getms());
+  getchar();
+ }
+ getchar();
+}

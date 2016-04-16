@@ -1,0 +1,26 @@
+原型:void rewind(char fp);
+功能:文件指针复位
+说明:将句柄为fp的文件中的位置指针置于文件开头位置
+举例:
+char s[] = "www.ggv.com.cn";
+
+void main()
+{
+ char fp;
+ char t[20];
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!");
+ }
+ else
+ {
+  printf("创建文件成功!");
+  fwrite(s, 1, strlen(s) + 1, fp);
+  rewind(fp);
+  fread(t, 1, strlen(s) + 1, fp);
+  printf("\n%s", t);
+  fclose(fp);
+ }
+ getchar();
+}

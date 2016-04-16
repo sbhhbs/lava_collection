@@ -1,0 +1,17 @@
+原型:void srand(long x);
+功能:用x初始化随机数发生器
+举例:
+void main()
+{
+ int x;
+
+ SetScreen(0);
+ srand(0);
+ printf("%d %d %d\n", rand(), rand(), rand());
+ x = Getms();
+ srand(x);
+ printf("%d %d %d\n", rand(), rand(), rand());
+ srand(x);
+ printf("%d %d %d\n", rand(), rand(), rand()); 
+ getchar();
+}

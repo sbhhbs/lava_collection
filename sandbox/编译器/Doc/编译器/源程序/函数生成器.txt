@@ -1,0 +1,349 @@
+//*********************************************************定义*********************************************************//
+#define WQX         1 //文曲星平台[变][1:LavaX1.0,3:LavaX3.0]
+#define PUBLIC      5500                                                 //公共缓冲区
+#include "查看/定义.txt"//提供"编译/定义.txt"中的MAC_N_LEN
+#include "帮助/定义.txt"
+#include "编译/定义.txt"
+#include "编辑/定义.txt"
+#define BUF_SIZE    6000
+#define BUF2_SIZE   6000
+#define REL_SIZE    500
+//-----------------------------------------------------------------------
+#define NAME_LEN    20                                                   //文件名长度
+//----------------------------------------------------------------------------------------------------------------------//
+struct FUN_LINK
+{int show;//说明入口
+ int seek;//检索入口
+ int size,len;
+ int ptr[HPFUN_L_LEN * 2];
+};
+struct FUN_LINK fun;
+
+struct FUN_COM
+{char type;
+ char rts;
+ char code;
+ char num;
+ char name[NAME_LEN];
+};
+
+struct FUN_COM com;
+int bp,ptr;
+char fp,fi;
+char funname[HPFUN_L_LEN * 2][NAME_LEN];
+char buf[BUF_SIZE];
+char buf2[BUF2_SIZE];
+struct SKFUNTABLE skfun;
+
+//----------------------------------------------------------------------------------------------------------------------//
+void ChExt(char &s[],char &e[])/*改变后缀*/
+{
+	int t, p;
+
+	p = s;
+	while (t = strchr(p,'.')) p = t + 1;
+	if (p > s) strcpy(p, e);
+}
+
+int Select(char &name[])/*文件选择*/
+{
+	char t;
+
+	ChDir("/");
+	t = 0;
+	for (;;)
+	{
+		if(!FileList(name))
+		{
+			if (t)
+			{
+				t--;
+				ChDir("..");
+				continue;
+			}
+			else return(1);
+		}
+		if(ChDir(name))
+		{
+			t++;
+			continue;
+		}
+		return(0);
+	}
+}
+void msg(char &s[],long t)
+{
+	if (t) printf(">%s%s\n", s, t);
+	else printf(">%s\n", s);
+	getchar();
+	if (fp) fclose(fp);
+	exit(0);
+}
+
+void load()
+{
+	SetScreen(0);
+	printf("\n     函数生成器\n\n          ------yan\n  按任意键继续....");
+	getchar();
+	SetScreen(1);
+	printf("说明：\n本程序在电脑上运行,运行后选择规定格式的文件即可生成所需函数文件。\n\n按任意键继续....");
+	getchar();
+}
+//======================================================================================================================//
+int FunInsert(char &name[],char n)
+{
+	int low, mid, high;
+	int value;
+
+	if (strlen(name) >= 12) return(1);
+	low = 0;
+	high = skfun.size - 1;
+	while (low <= high)
+	{
+		mid = (low + high) >> 1;
+		value = strcmp(skfun.dat[mid].name, name);
+		if (!value)			return(1);
+		else if (value > 0)	high = mid - 1;
+		else				low = mid + 1;
+	}
+	if (strcmp(skfun.dat[mid].name,name) < 0 && skfun.size) mid++;//调整
+	if (skfun.size >= SKFUN_L_LEN)//溢出判断
+	{
+		SetScreen(0);
+		printf("检索溢出");
+		getchar();
+		exit(0);
+	}
+	memmove(skfun.dat[mid + 1], skfun.dat[mid], ((skfun.size++) - mid) * sizeof(struct SKFUNUNIT));//移动
+	strcpy(skfun.dat[mid].name, name);
+	skfun.dat[mid].n = n;//插入
+}
+
+void FunSeek()
+{int i,p;
+ char n;
+ FunInsert("define",0|SK_BLANK<<4);
+ FunInsert("include",0|SK_BAO<<4);
+ FunInsert("undef",0|SK_BLANK<<4);
+ FunInsert("ifdef",0|SK_BLANK<<4);
+ FunInsert("ifndef",0|SK_BLANK<<4);
+ FunInsert("endif",0);
+ FunInsert("loadall",0|SK_CR<<4);
+ FunInsert("secret",0|SK_BLANK<<4);
+ FunInsert("code",0|SK_NULL<<4);
+ FunInsert("loaddata",0|SK_BLANK<<4);
+ FunInsert("begin",0|SK_BLANK<<4);
+ FunInsert("end",0|SK_CR<<4);
+ FunInsert("skip",0|SK_BLANK<<4);
+ FunInsert("void",0|SK_BLANK<<4);
+ FunInsert("char",0|SK_BLANK<<4);
+ FunInsert("int",0|SK_BLANK<<4);
+ FunInsert("long",0|SK_BLANK<<4);
+ FunInsert("struct",0|SK_BLANK<<4);
+ FunInsert("union",0|SK_BLANK<<4);
+ FunInsert("main",0|SK_SYMBO<<4);
+ FunInsert("if",0|SK_SYMBO<<4);
+ FunInsert("while",0|SK_SYMBO<<4);
+ FunInsert("do",0|SK_NULL<<4);
+ FunInsert("for",3|SK_SYMBO<<4);
+ FunInsert("break",0|SK_SEMI<<4);
+ FunInsert("continue",0|SK_SEMI<<4);
+ FunInsert("return",0|SK_SEMI<<4);
+ FunInsert("goto",0|SK_BLANK<<4);
+ FunInsert("sizeof",0|SK_SYMBO<<4);
+ FunInsert("else",0|SK_BLANK<<4);
+ FunInsert("static",0|SK_BLANK<<4);
+ #if WQX==3
+ FunInsert("System",0|SK_POINT<<4);
+ FunInsert("RamRead",3|SK_FUN<<4);
+ FunInsert("DiskReclaim",0|SK_FUN<<4);
+ FunInsert("DiskCheck",0|SK_FUN<<4);
+ FunInsert("FlmDecode",2|SK_FUN<<4);
+ FunInsert("SndPlay",2|SK_FUN<<4);
+ FunInsert("SndOpen",0|SK_FUN<<4);
+ FunInsert("SndClose",0|SK_FUN<<4);
+ FunInsert("SndIfEnd",0|SK_FUN<<4);
+ FunInsert("PY2GB",3|SK_FUN<<4);
+ FunInsert("SndPlayFile",3|SK_FUN<<4);
+ FunInsert("SndStop",0|SK_FUN<<4);
+ FunInsert("SndPause",0|SK_FUN<<4);
+ FunInsert("SndResume",0|SK_FUN<<4);
+ FunInsert("SndGetPlay",0|SK_FUN<<4);
+ #endif
+ for(i=0;i<fun.size;i++)
+  {p=fun.ptr[i];n=*(p+strlen(p)+4);
+   if(!strcmp(p,"printf")|!strcmp(p,"sprintf"))n=1;
+   FunInsert(p,n|SK_FUN<<4);
+  }
+}
+//======================================================================================================================//
+void Readfile(char &name[])
+{
+	char tp;
+	int len, size;
+
+	if(!(tp = fopen(name, "r")))
+	{
+		msg("无法打开文件！",name);
+		exit(0);
+	}
+	len = fseek(tp, 0, 2);
+	rewind(tp);
+	fwrite(&len,1,2,fp);
+	while (len)
+	{
+		if (len > BUF_SIZE) size = BUF_SIZE;
+		else size = len;
+		len = len - size;
+		fread(buf, 1, size, tp);
+		fwrite(buf, 1, size, fp);
+	}
+	fclose(tp);
+	putc(0, fp);
+}
+
+void FunHelp(struct HPFUNTABLE &fh)
+{
+	int j,x,y;
+	long addrs;
+	char str[100], len;
+
+	memset(fh, 0, sizeof(struct HPFUNTABLE));
+	fh.size = fi;
+	for (j = 0; j < fh.size; j++)
+	{
+		x = j >> 1;
+		y = j&1;
+		strcpy(com.name, funname[j]);
+		if (strlen(com.name) > HPFUN_N_LEN - 1) strcpy(com.name + 9,"..");
+		strcpy(fh.tem[x][y].name, com.name);
+		len = strlen(fh.tem[x][y].name);
+		memset(fh.tem[x][y].name + len,' ', HPFUN_N_LEN - len - 1);
+		fh.tem[x][y].haddr = ftell(fp) >> 8;
+		fh.tem[x][y].laddr = ftell(fp);
+		strcpy(str, funname[j]);
+		strcat(str, ".txt");
+		Readfile(str);
+	}
+	fun.show = ftell(fp);
+	fwrite(fh, 1, fh.size * sizeof(struct HPFUNUNIT) + 1, fp);
+}
+//======================================================================================================================//
+int FUN_Op()/*函数表操作*/
+{
+	int low, mid, high;
+	int value, p;
+
+	mid = low = 0;
+	high = fun.size - 1;
+	while (low <= high)
+	{
+		mid = (low + high) >> 1;
+		value = strcmp(fun.ptr[mid], com.name);
+		if (!value)			return(-1);
+		else if (value > 0)	high = mid - 1;
+		else				low = mid + 1;
+	}
+	if (strcmp(fun.ptr[mid], com.name) < 0 && fun.size) mid++;
+	memmove(&fun.ptr[mid + 1], &fun.ptr[mid],((fun.size++) - mid) << 1);
+	fun.ptr[mid] = ptr;
+	strcpy(ptr, com.name);
+	ptr = ptr + strlen(com.name) + 1;
+	memmove(ptr, com, 4);
+	ptr = ptr + 4;
+}
+
+long Num_Get()/*数字提取*/
+{
+	long num;
+
+	for (num = 0; isdigit(*bp); bp++)
+	{
+		num = num * 10 + (*bp&0xf);
+	}
+	return(num);
+}
+
+void Str_Get()
+{
+	char i;
+
+	memset(com.name, 0, NAME_LEN);
+	i = 0;
+	do {
+		if (i < NAME_LEN - 1) com.name[i++] = *bp;
+		bp++;
+	} while (*bp == '_' || isalnum(*bp));
+}
+
+void Skip()
+{
+	while (!isalnum(*bp) && *bp != '_')
+	{
+		if (!*bp++) return;
+	}
+}
+
+void Adjust()
+{
+	int i;
+
+	for (i = 0; i < fun.size; i++)
+	{
+		fun.ptr[i] = fun.ptr[i] - buf;
+	}
+	fun.len = ptr - buf;
+}
+
+void main()
+{
+	char name[20];
+
+	load();
+	if(Select(name)) return;
+	SetScreen(1);
+	if (!(fp = fopen(name,"r")))
+	{
+		msg("无法打开文件:", name);
+		return;
+	}
+	memset(buf, 0, BUF_SIZE);//载入
+	fread(buf + REL_SIZE, 1, BUF_SIZE - REL_SIZE, fp);
+	fclose(fp);
+	ChExt(name, "fun");
+	if (!(fp = fopen(name, "w")))
+	{
+		msg("无法创建文件:",name);
+		return;
+	}
+	bp = buf + REL_SIZE;
+	memset(fun, 0, sizeof(struct FUN_LINK));
+	fun.ptr[0] = ptr = buf;
+	for (fi = 0;; fi++)
+	{
+		Skip();
+		if (!*bp) break;
+		com.code = Num_Get();
+		Skip();
+		com.num = Num_Get();
+		Skip();
+		com.rts = Num_Get();
+		Skip();
+		Str_Get();
+		strcpy(funname[fi], com.name);
+		com.type = LVM_FUN;
+		FUN_Op();//插入
+	}
+	FunSeek();
+	Adjust();
+	fwrite(fun, 1, fun.size * 2 + 8, fp);
+	fwrite(buf, 1, fun.len, fp);
+//----------------------------------------------------------------
+	FunHelp(buf2);
+	fun.seek = ftell(fp);
+	fwrite(skfun, 1, skfun.size * sizeof(struct SKFUNUNIT) + 1,fp);
+	rewind(fp);
+	fwrite(&fun.show, 1, 2, fp);
+	fwrite(&fun.seek, 1, 2, fp);
+	msg("操作完成！", NULL);
+}

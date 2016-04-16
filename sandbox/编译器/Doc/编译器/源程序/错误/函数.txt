@@ -1,0 +1,100 @@
+//*******************************************************报告系统*******************************************************//
+void ChangeFun(int tfunjmp)
+{
+	memcpy(&tfunjmp - 2, &tfunjmp, 2);
+	funjmp = 0;
+}
+
+void GotoFun()
+{
+	ChangeFun(funjmp);
+}
+
+void Error(long p, int id)/* 错误系统 */
+{
+	char msg[30];
+
+	Dwin("错误");
+	TextOut(3, 63, "表述:", 1);
+	TextOut(37, 35, "在:", 1);
+	WriteBlock(3, 17, 32, 32, 1, pic[PIC_WARN]);
+#if WQX == 0
+	MyBox(34, 61, 155, 76, 1);
+#else
+	Block(35, 62, 156, 77, 1);//图形界面
+	Block(34, 61, 155, 76, 0);
+	Rectangle(34, 61, 155, 76, 1);
+#endif
+	if (in.fp) fclose(in.fp);
+	if (out.fp)//关闭句柄,删除错误文件
+	{
+		fclose(out.fp);
+		ChDir(out.path);
+		DeleteFile(out.name);
+	}
+	if (cp.fp)
+	{
+		fclose(cp.fp);
+		ChDir(cpldata);
+		DeleteFile("cpl.tmp");
+	}
+	in.fp = out.fp = cp.fp = 0;//关闭所有文件
+	fclose(128);
+	fclose(129);
+	fclose(130);
+	if (in.p >= FB_CUSH + FB_C_REL)//截取片段
+	{
+		if (in.p >= FB_CUSH + FB_C_REL + 10)		in.p = in.p - 10;
+		else if (in.p >= FB_CUSH + FB_C_REL + 8)	in.p = in.p - 8;
+		else if (in.p >= FB_CUSH + FB_C_REL + 6)	in.p=in.p-6;
+		else if (in.p >= FB_CUSH + FB_C_REL + 4)	in.p=in.p-4;
+		else if (in.p >= FB_CUSH + FB_C_REL + 2)	in.p=in.p-2;
+		if (*in.p >= 160) in.p++;
+		if (*(in.p + 17) >= 160)
+		{
+			*(in.p + 16) = 0;
+		}
+		else
+		{
+			*(in.p + 17) = 0;
+		}
+	}
+	if (id <= E_CREAT | id == E_OFFSET | id == E_KVAR | id == E_LOAD | id == E_ZERO | id == E_LINK | id == E_INTER | id == E_MAIN | !in.p)
+	{
+		TextOut(55, 35, "[缺省]", 1);
+	}
+	else
+	{
+		TextOut(55, 35, in.p, 1);
+	}
+	if (DataRead(id, sizeof(struct ERR_UNIT), DAT_ERROR) < 0)//读取信息,返回ERROR_LOAD 打开datfp
+	{
+		Swin("警告！", "无法显示信息", 1);
+		GotoFun();//返回主程序
+		return;
+	}
+	TextOut(100 - (strlen(ERROR_LOAD) << 2), 18, ERROR_LOAD, 129);
+	strcpy(msg, ERROR_LOAD + ERR_MSG);
+	if (id == E_USIGN | id == E_STR | id == E_SIGN)
+	{
+		sprintf(msg + strlen(msg), "%c", p);
+	}
+	else if (id == E_DJMP | id == E_KVAR | id == E_CMD | id == E_UNCODE | id == E_CODE | id == E_FUN | id == E_JUMP | id == E_STACK)
+	{
+		sprintf(msg + strlen(msg),"%d", p);
+	}
+	else if (p >= 6000)
+	{
+		strcat(msg, p);
+	}
+	TextOut(4, 49, msg, 1);
+	TextOut(36, 63, ERROR_LOAD + ERR_MSG + ERR_STR, 1);
+	Refresh();
+	for(;;)//暂停
+	{
+		Delay(20);
+		if (!cfset.dat[0].tem[2].value) Beep();
+		if (Inkey()) break;
+	}
+	GotoFun();//返回主程序
+}

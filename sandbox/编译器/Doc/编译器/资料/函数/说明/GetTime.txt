@@ -1,0 +1,33 @@
+原型:void GetTime(struct Time t);
+功能:取系统日期和时间
+说明:使用GetTime,SetTime,请在程序里加上如下结构定义:
+struct TIME
+{
+ int year;
+ char month;
+ char day;
+ char hour;
+ char minute;
+ char second;
+ char week;
+};
+举例:
+struct TIME
+{
+ int year;
+ char month;
+ char day;
+ char hour;
+ char minute;
+ char second;
+ char week;
+};
+struct TIME time;
+void main()
+{
+ GetTime(time);
+ printf("%d年%d月%d日\n", time.year, time.month, time.day);
+ printf("%d:%d:%d\n", time.hour, time.minute, time.second);
+ printf("星期%d", time.week);
+ getchar();
+}

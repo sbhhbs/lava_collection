@@ -1,0 +1,3 @@
+原型:viod PlaySleep()
+功能:关闭Dsp设备
+说明:在用PlayInit()函数打开Dsp播放声音结束后，要用该函数关闭Dsp

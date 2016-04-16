@@ -1,0 +1,30 @@
+原型:int feof(char fp);
+功能:检查文件是否结束
+说明:遇文件结束符返回非0值,否则返回0
+举例:
+char s[]="www.ggv.com.cn";
+
+void main()
+{
+ char fp;
+ char c;
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!");
+ }
+ else
+ {
+  printf("创建文件成功!\n");
+  fwrite(s, 1, strlen(s) + 1, fp);
+  rewind(fp);
+  for (;;)
+  {
+   if (feof(fp)) break;
+   c = getc(fp);
+   if (isprint(c)) putchar(c);
+  }
+  fclose(fp);
+ }
+ getchar();
+}

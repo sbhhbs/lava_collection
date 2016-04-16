@@ -1,0 +1,548 @@
+#define F2_KEY      0x1d
+#define CR_KEY 	    0x0d
+#define ESC_KEY     0x1b
+#define HELP_KEY    0x19
+#define SHIFT_KEY   0x1a
+#define CAPS_KEY    0x12
+#define UP_KEY	    0x14
+#define	DOWN_KEY    0x15
+#define LEFT_KEY    0x17
+#define RIGHT_KEY   0x16
+#define UU_KEY 	    0x13
+#define DD_KEY 	    0x0e
+
+/* 获取符号 */
+char Getsign()
+{
+	char key, i, j;
+	char numkey[10], mark[4][18];
+
+	TextOut(1, 64, "符", 0xc2);
+	strcpy(numkey, "bnmghjtyu");
+	strcpy(mark, ". , ; - / ? ! $ % ( ) : ` ' \" < > { } [ ] # ~ @ ^ & * + = _ | '         ");
+	mark[3][8] = 92;
+	for (i = 0;;)
+	{
+		TextOut(17, 64, mark[i], 0xc1);
+		key = getchar();
+		if (key == UP_KEY || key == LEFT_KEY || key == UU_KEY)
+		{
+			if (i)
+			{
+				i--;
+				continue;
+			}
+		}
+		else if (key == DOWN_KEY || key == RIGHT_KEY || key == '0' || key == DD_KEY)
+		{
+			if (i < 3)
+			{
+				i++;
+				continue;
+			}
+		}
+		else if (strchr(numkey, key))
+		{
+			j = strchr(numkey, key) - numkey;
+			if (mark[i][j << 1] > ' ') return(mark[i][j << 1]);
+		}
+		else if (isdigit(key))
+		{
+			j = key - '0';
+			if (mark[i][j << 1] > ' ') return(mark[i][j << 1]);
+		}
+		else if (key == ESC_KEY)
+		{
+			return(0);
+		}
+		Beep();
+	}
+}
+
+int Getstr(char &str[], int speed, int delay)
+{
+	char key, tkey, skey, con;
+	char type, tmp;
+	char numkey[10];
+	int i, len, tlen;
+	char x, y;
+	int a, b;
+	char s[256];
+
+	type = tlen = 0;
+	if (str) tlen = strlen(str);
+	*s = i = 0;
+	strcpy(numkey, "bnmghjtyu");
+START:
+	skey = CheckKey(128);
+	do {
+		SetScreen(0);
+		if (str)
+		{
+			printf("%s%s", str, s);
+		}
+		else
+		{
+			printf(s);
+		}
+		x = ((len = strlen(s) + tlen) % 20) << 3;
+		y = (len / 20) << 4;
+		if (y > 64)
+		{
+			y = 64;
+			if (!x) printf(" ");
+		}
+		for (a = b = 0;;)
+		{
+			if (!a) Box(x, y + 14, x + 8, y + 15, 1, 2);
+			if ((a++) == speed) a = 0;
+			tkey = key;
+			key = CheckKey(128);
+			Inkey();
+			if (skey == key || !key)
+			{
+				skey = key;
+				continue;
+			}
+			if (key == tkey)
+			{
+				if (++b >= delay || con)
+				{
+					con = 1;
+					break;
+				}
+				Delay(20);
+				a = 1;
+			}
+			else
+			{
+				con = 0;
+				break;
+			}
+		}
+		if (isprint(key))
+		{
+			if (!(type&1))//英文
+			{
+				if (key == '0')
+				{
+					if (!(tmp = Getsign())) continue;
+				}
+				else if (type&2)
+				{
+					tmp = toupper(key);
+				}
+				else
+				{
+					tmp = key;
+				}
+			}
+			else if (strchr(numkey, key))
+			{
+				tmp = strchr(numkey, key) - numkey + '1';//数字
+			}
+			else
+			{
+				tmp = key;//小字母,数字
+			}
+			*(s + i++) = tmp;
+			*(s + i) = 0;
+			if (!isalnum(tmp)) goto START;
+		}
+		else if (key == F2_KEY || key == LEFT_KEY)
+		{
+			if (i) *(s + (--i)) = 0;
+		}
+		else if (key == UP_KEY || key == ESC_KEY)
+		{
+			i = 0;
+			*s = 0;
+		}
+		else if (key == SHIFT_KEY)
+		{
+			type = type ^ 1;
+		}
+		else if (key == CAPS_KEY)
+		{
+			type = type ^ 2;
+		}
+		else
+		{	
+			Beep();
+		}
+	} while (key != CR_KEY);
+	if(x) printf("\n");
+	return(s);
+}
+
+void puts(char &str[])
+{
+	printf("%s\n", str);
+}
+
+int gets(char &str[])
+{
+	strcpy(str, Getstr(0, 400, 60));
+	return(strlen(str));
+}
+
+int fputs(char &str[], char fp)
+{
+	return(fwrite(str, 1, strlen(str), fp));
+}
+
+int fgets(int s, int size, char fp)
+{
+	int ch;
+
+	if (size < 0) size = 0;
+	if (getc(fp) < 0) return(EOF);
+	fseek(fp, -1, 1);
+	if (!size)
+	{
+		while ((ch = getc(fp)) > 0)
+		{
+			*s++ = ch;
+			size++;
+		}
+	}
+	else if (size == 1)
+	{
+		size = 0;
+	}
+	else
+	{
+		size = fread(s, 1, size - 1, fp);//取字符串
+	}
+	*(s + size) = 0;
+	if ((ch = strlen(s)) != size)
+	{
+		fseek(fp, ch - size + 1, 1);
+		size = ch;
+	}
+	return(size + 1);//调整
+}
+
+int sscanf(int b, int s, long p)
+{
+	char i, ch;//已赋值的参数个数
+	int t, size;
+	long num;
+
+	if (!(*b)) return(EOF);
+	i = size = 0;//是否结束
+	while (ch = *s++)
+	{
+		if (ch == ' ' | ch == 9 | ch == 10) continue;
+		for (;; b++)//跳过间隔符
+		{
+			if (!(*b)) return(i);
+			if (!(*b == ' ' | *b == 9 | *b == 10)) break;
+		}
+		if (ch == '%')
+		{
+START:
+			if (!(ch = *s++)) break;
+			if (isdigit(ch))
+			{
+				size = size * 10 + (ch&0xf);
+				goto START;
+			}
+			if (tolower(ch) == 'd')
+			{
+				t = 1;
+				num = 0;
+				if (*b == '-')
+				{
+					t = -1;
+					b++;
+				}
+				else if (*b == '+') b++;//符号判断
+				if (!isdigit(*b)) return(i);
+				do {
+					num = num * 10 + (*b&0xf);
+				} while (isdigit(*(++b)));
+				num = num * t;//取数
+				if (size > 4)
+				{
+					size = 4;
+				}
+				else if (size <= 0)//长度
+				{
+					size = 1;
+					if (num < -32768 || num >= 32768)
+					{
+						size = 4;
+					}
+					else if (num >> 8)
+					{
+						size = 2;
+					}
+				}
+				memcpy(p, &num, size);
+			}
+			else if (tolower(ch) == 'c')//取字符
+			{
+				*p++ = *b++;
+				size = 0;
+			}
+			else if (tolower(ch) == 's')
+			{
+				if (size < 0) size = 0;
+				for (t = 0; !(!(*b) || *b == 9 || *b == 10 || *b == ' '); t++)//取字符串
+				{
+					*(p + t) = *b++;
+					if (size <= t + 1 && size)
+					{
+						b--;
+						break;
+					}
+				}
+				if (!t) return(i);
+				*(p + t) = 0;
+				if (!size) size = t + 1;
+			}
+			else
+			{
+				return(i);
+			}
+			p = p + size;
+			size = 0;
+			i++;
+		}
+		else if(*b++ != ch)
+		{
+			return(i);
+		}
+	}
+	return(i);
+}
+
+int scanf(char &s[],char &str[],long p)
+{
+	char buf[256];
+
+	for (;;)
+	{
+		strcpy(buf, Getstr(s, 400, 60));
+		if (!strlen(buf)) continue;
+		return(sscanf(buf, str, p));
+	}
+}
+
+int fprintf(char fp, int s, long p)
+{
+	char ch;
+	int size, i, t;
+	long num;
+	char str[256];
+
+	i = size = 0;
+	while (ch = *s++)
+	{
+		if (ch == '%')
+		{
+START:
+			if (!(ch = *s++)) break;
+			if (isdigit(ch))
+			{
+				size = size * 10 + (ch&0xf);
+				goto START;
+			}
+			if (tolower(ch) == 'd')
+			{
+				if (size > 4)
+				{
+					size = 4;
+				}
+				else if(size <= 0)
+				{
+					size = 1;
+				}
+				num = 0;
+				memcpy(&num, p, size);//取数
+				sprintf(str, "%d", num);
+				if (!(t = fwrite(str, 1, strlen(str), fp))) return(i);
+				i = i + t;//保存
+			}
+			else if (tolower(ch) == 'c')//保存字符
+			{
+				if (putc(*p++, fp) < 0) return(i);
+				i++;
+				size = 0;
+			}
+			else if (tolower(ch) == 's')
+			{
+				if (size < 0) size = 0;
+				for (t = 0; *(p + t); t++)//保存字符串
+				{
+					if (putc(*(p + t), fp) < 0) return(i);
+					if (size <= t + 1 && size) break;
+				}
+				if (!size) size = t + 1;
+				i = i + size;
+			}
+			else
+			{
+				goto WRITEBYTE;
+			}
+			p = p + size;
+			size = 0;
+		}
+		else
+		{
+WRITEBYTE:
+			if (putc(ch, fp) < 0) return(i);
+			i++;
+		}
+	}
+	return(i);
+}
+
+char fscanf(char fp, int s, long p)
+{
+	char i;//已赋值的参数个数
+	int ch, t, sign, size;
+	long num;
+
+	if (getc(fp) == EOF) return(EOF);
+	fseek(fp, -1, 1);
+	i = size = 0;
+	while (ch = *s++)
+	{
+		if (ch == ' '| ch == 9 | ch==10) continue;//跳过间隔符
+		for (;;)//跳过间隔符
+		{
+			if (feof(fp)) return(i);
+			if (!((t = getc(fp)) == ' '| t == 9 | t == 10))
+			{
+				fseek(fp, -1, 1);
+				break;
+			}
+		}
+		if (ch == '%')
+		{
+START:
+			if (!(ch = *s++)) break;
+			if (isdigit(ch))
+			{
+				size = size * 10 + (ch&0xf);
+				goto START;
+			}
+			if (tolower(ch) == 'd')
+			{
+				sign = 1;
+				num = t = 0;
+				if ((ch = getc(fp)) == '-')
+				{
+					sign = t = -1;
+					ch = getc(fp);
+				}
+				else if (ch == '+')//符号判断
+				{
+					t = 1;
+					ch = getc(fp);
+				}
+				if(!isdigit(ch))
+				{
+					if(!t) fseek(fp, -1, 1);
+					return(i);
+				}
+				do {
+					num = num * 10 + (ch&0xf);
+				} while (isdigit(ch = getc(fp)));//取数
+				if (ch != EOF) fseek(fp, -1, 1);
+				num = num * sign;
+				if (size > 4)
+				{
+					size = 4;
+				}
+				else if (size <= 0)//长度
+				{
+					size = 1;
+					if (num < -32768 || num >= 32768)
+					{
+						size = 4;
+					}
+					else if (num >> 8)
+					{
+						size = 2;
+					}
+				}
+				memcpy(p, &num, size);
+			}
+			else if (tolower(ch) == 'c')//取字符
+			{
+				*p++ = getc(fp);
+				size = 0;
+			}
+			else if (tolower(ch) == 's')
+			{
+				if (size < 0) size = 0;
+				for (t = 0; ch = getc(fp) > 0 && ch != 9 && ch != 10 && ch != ' '; t++)//取字符串
+				{
+					*(p + t) = ch;
+					if (size <= t + 1 && size) break;
+				}
+				if (ch != EOF) fseek(fp, -1, 1);
+				if (!t) return(i);
+				*(p + t) = 0;
+				if (!size) size = t + 1;
+			}
+			else
+			{
+				return(i);
+			}
+			p = p + size;
+			size = 0;
+			i++;
+		}
+		else if (getc(fp) != ch)
+		{
+			fseek(fp, -1, 1);
+			return(i);
+		}
+	}
+	return(i);
+}
+
+int getw(char fp)
+{
+	return(getc(fp)|(getc(fp) << 8));
+}
+
+void main()
+{
+	char fp;
+	long num,e;
+	int o[10];
+	int i;
+	//struct TT t;
+	char buf[100];
+ //strcpy(t.name,"yan");t.x='a';strcpy(t.c,"sf");
+ //i=scanf("%4d%4d%10s",t);
+ //ChDir("/LAVA2");
+ //fp=fopen("a.dat","w");if(!fp){printf("write error");getchar();return;}
+ //num=30;
+ //sprintf(buf,"name:%s x:%c c:%s",t.name,t.x,t.c);
+ //memset(t,0,sizeof(struct TT));
+ //i=sscanf(buf,"name:%10s x:%c c:%10s",t);
+ //printf("%d %d %d %s\n",i,t.name,t.x,t.c);
+ //fclose(fp);
+ //num=0;
+ //memset(t,0,sizeof(struct TT));
+ //fp=fopen("a.dat","r");if(!fp){printf("read error");getchar();return;}
+ //i=fgets(t.name,100,fp);
+ //i=fgets(t.c,100,fp);
+ 
+ //printf("%d:%s\n%c",i,t.name,getc(fp));
+ //fclose(fp);getchar();
+ //gets(t.name);
+// puts(t.name);
+ //getchar();
+ //gets(t.name);
+ //puts(t.name);
+	scanf("Input x:","%100s",buf);
+	printf("%s\n",buf);getchar();
+	getchar();
+}

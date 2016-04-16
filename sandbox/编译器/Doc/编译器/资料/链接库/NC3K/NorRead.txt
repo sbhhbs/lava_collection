@@ -1,0 +1,75 @@
+#define MAX_BUF_SIZE	0xe00
+#define BUF_ADD			0xb00
+
+#define NorReadBytes	0xe078
+
+#begin 0xde
+int _bufptr;
+#end
+
+#begin 0x09c9
+char _bank;
+int _ptr;
+#skip 1
+int _buflen;
+#end
+
+#begin 0x88B0
+int _exeadd;
+#end
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void bios(long add)
+{
+	long code;
+
+	code = (add << 8)|0x4c;
+	_exeadd = &code;
+	#code{0};
+}
+
+void api(long add)
+{
+	long code;
+
+	code = (add << 8)|0x60000000;
+	_exeadd = &code;
+	#code{0};
+}
+
+void norRead(int buf, int size, char bank, int address)
+{
+	_ptr = address;
+	_bank = bank;
+	while (size)
+	{
+		if (size >= MAX_BUF_SIZE)
+		{
+			_buflen = MAX_BUF_SIZE;
+		}
+		else
+		{
+			_buflen = size;
+		}
+		_bufptr = BUF_ADD;
+		bios(NorReadBytes);
+		memcpy(buf, BUF_ADD, _buflen);
+		_ptr = _ptr + _buflen;
+		buf = buf + _buflen;
+		size = size - _buflen;
+	}
+}
+
+void main()
+{
+	int i;
+	char &buf[];
+
+	&buf = 0x4000;
+	SetScreen(1);
+	norRead(buf, 10, 5, 0x4000);
+	for (i = 0; i < 10; i++)
+	{
+		printf("%d ", buf[i]);
+	}
+	getchar();
+}

@@ -1,0 +1,3 @@
+1	SetRange	0
+1	malloc		1
+1	free		0

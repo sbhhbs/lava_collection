@@ -1,0 +1,3213 @@
+//*******************************************************缓冲系统*******************************************************//
+void CUSH_Sav()//写入剩余在缓冲区的代码
+{
+	fwrite(FB_CUSH, 1, out.p, out.fp);
+	out.p = 0;
+}
+
+/* 缓冲输入操作 */
+void CUSH_Get()
+{
+	long addrs;
+	int n;
+
+	addrs = ftell(in.fp);
+	in.p = FB_CUSH + FB_C_REL;
+	memset(in.p, 0, CB_L_SIZE);//初始化文本缓冲区
+	n = fread(in.p, 1, CB_L_SIZE - 1, in.fp);
+	if (n < CB_L_SIZE - 1) return;//读取文本到缓冲区
+	n = in.p + n;
+	if (!strchr(in.p, ';'))
+	{
+		if (!strchr(in.p, ','))
+		{
+			Error(0, E_SEEK);
+		}
+		else
+		{
+			do {} while(*(--n) != ',');
+		}
+	}
+	else
+	{
+		do {} while(*(--n) != ';');
+	}
+	memset(n + 1, 0, in.p - n + CB_L_SIZE - 2);
+	fseek(in.fp, addrs + n - in.p + 1, 0);
+}
+
+/* 缓冲输出操作 */
+void Put(long data, char len)
+{
+	if (out.p > FB_C_REL - 4)
+	{
+		if (fwrite(FB_CUSH, 1, out.p, out.fp) != out.p) Error(out.name, E_WRITE);
+		out.p = 0;
+	}
+	memcpy(out.p + FB_CUSH, &data, len);
+	out.p = out.p + len;
+	cp.offset = cp.offset + len;
+}
+
+/* 移动输出指针(补0) */
+void Move(long len)
+{
+	if (len > 0)
+	{
+		CUSH_Sav();
+		memset(FB_CUSH, 0, FB_C_REL);
+		cp.offset = cp.offset + len;
+		while (len)//写入len个0
+		{
+			if (len > FB_C_REL)
+			{
+				fwrite(FB_CUSH, 1, FB_C_REL, out.fp);
+				len = len - FB_C_REL;
+			}
+			else
+			{
+				out.p = len;
+				len = 0;
+			}
+		}
+	}
+	else if (len < 0)
+	{
+		cp.offset = cp.offset + len;
+		out.p = out.p + len;
+		if (out.p < 0)
+		{
+			fseek(out.fp, out.p, 1);
+			out.p = 0;
+		}
+	}
+}
+//*******************************************************变量系统*******************************************************//
+/* 更新符号表 把接口var按var.i更新符号表 */
+void ReNewVar()
+{
+	int p;
+
+	p = var.ptr[var.i] + strlen(var.ptr[var.i]) + 1;
+	*p = cv.t;
+	if (cv.t <= PART_ARR)//基本变量
+	{
+		*(p + 1) = cv.b;//记录字节
+		memcpy(p + 2, &cv.v, 2);//记录地址
+		if (cv.t >= GLOB_ARR) memcpy(p + 4, cv.d, (cv.d[0] << 1) + 2);//数组下标
+	}
+	else if (cv.t == LVM_SUB)//子程序
+	{
+		memcpy(p + 1, &cv.b, 10);
+	}
+	else if (cv.t == LVM_LABEL)//标号
+	{
+		memcpy(p + 1, &cv.v, 6);
+	}
+	else if (cv.t <= P_UNI_A)//结构
+	{
+		memcpy(p + 1, &cv.b, 6);
+		if (cv.t >= G_STU_A) memcpy(p + 7, cv.d, (cv.d[0] << 1) + 2);//数组下标
+	}
+	else if (cv.t <= P_UNI_Q)//类型名
+	{
+		memcpy(p + 1, &cv.b, 4);
+	}
+	else if (cv.t <= V_POINT + PART_ARR)//变量指针
+	{
+		*(p + 1) = cv.b;//记录字节
+		memcpy(p + 2, &cv.v, 2);//记录地址
+		if (cv.t >= V_POINT + GLOB_ARR) memcpy(p + 4, cv.d, (cv.d[0] << 1) + 2);//数组下标
+	}
+	else if (cv.t <= V_POINT + P_UNI_A)//结构指针
+	{
+		memcpy(p + 1, &cv.b, 6);
+		if (cv.t >= V_POINT + G_STU_A) memcpy(p + 7, cv.d, (cv.d[0] << 1) + 2);//数组下标
+	}
+	else
+	{
+		Error(cv.t, E_UNCODE);//错误的定义码
+	}
+}
+
+/* 把接口var插入变量表，成功则返回0，否则返回非0 */
+int SavVar()
+{
+	int low, mid, high, t, i;
+
+	i = var.ph;
+	high = var.pt - 1;
+	while (i <= high)//局部查找
+	{
+		t = strcmp(var.ptr[mid = (i + high) >> 1], cv.n);
+		if (t > 0)
+		{
+			high = mid - 1;
+		}
+		else if (t < 0)
+		{
+			i = mid + 1;
+		}
+		else
+		{
+			var.i = mid;
+			return(1);
+		}
+	}
+	if (var.ph)//全局查找
+	{
+		low = 0;
+		high = var.ph - 1;
+		while (low <= high)
+		{
+			t =strcmp(var.ptr[mid = (low + high) >> 1], cv.n);
+			if (t > 0)
+			{
+				high = mid - 1;
+			}
+			else if (t < 0)
+			{
+				low = mid + 1;
+			}
+			else
+			{
+				var.i = mid;
+				return(1);
+			}
+		}
+	}
+	memmove(&var.ptr[i + 1], &var.ptr[i], ((var.pt++) - i) << 1);
+	var.ptr[i] = var.bt;//插入变量链表
+//----------------------------------------------------插入变量存储表
+	strcpy(var.bt, cv.n);//记录名称
+	*(var.bt = var.bt + strlen(cv.n) + 1) = cv.t;//记录类型
+	if (cv.t <= PART_ARR)//基本变量
+	{
+		*(var.bt + 1) = cv.b;//记录字节
+		memcpy(var.bt + 2, &cv.v, 2);//记录地址
+		var.bt = var.bt + 4;
+		if (cv.t >= GLOB_ARR)//数组下标
+		{
+			cv.d[cv.d[0]] = cv.d[DIM_MAX - 1];
+			memcpy(var.bt, cv.d, DIM_MAX * 2);
+			var.bt = var.bt + (cv.d[0] << 1) + 2;
+		}
+	}
+	else if (cv.t == LVM_SUB)//子程序
+	{
+		memcpy(var.bt + 1, &cv.b, 10);
+		var.bt = var.bt + 11;
+	}
+	else if (cv.t == LVM_LABEL)//标号
+	{
+		memcpy(var.bt + 1, &cv.v, 6);
+		var.bt = var.bt + 7;
+	}
+	else if (cv.t <= P_UNI_A)//结构
+	{
+		memcpy(var.bt + 1, &cv.b, 6);
+		var.bt = var.bt + 7;
+		if (cv.t >= G_STU_A)//数组下标
+		{
+			cv.d[cv.d[0]] = cv.d[DIM_MAX - 1];
+			memcpy(var.bt, cv.d, DIM_MAX * 2);
+			var.bt = var.bt + (cv.d[0] << 1) + 2;
+		}
+	}
+	else if (cv.t <= P_UNI_Q)//类型名
+	{
+		memcpy(var.bt + 1, &cv.b, 4);
+		var.bt = var.bt + 5;
+	}
+	else if (cv.t <= V_POINT + PART_ARR)//变量指针
+	{
+		*(var.bt + 1) = cv.b;//记录字节
+		memcpy(var.bt + 2, &cv.v, 2);//记录地址
+		var.bt = var.bt + 4;
+		if (cv.t >= V_POINT + GLOB_ARR)//数组下标
+		{
+			cv.d[cv.d[0]] = cv.d[DIM_MAX - 1];
+			memcpy(var.bt, cv.d, DIM_MAX * 2);
+			var.bt = var.bt + (cv.d[0] << 1) + 2;
+		}
+	}
+	else if (cv.t <= V_POINT + P_UNI_A)//结构指针
+	{
+		memcpy(var.bt + 1, &cv.b, 6);
+		var.bt = var.bt + 7;
+		if (cv.t >= V_POINT + G_STU_A)//数组下标
+		{
+			cv.d[cv.d[0]] = cv.d[DIM_MAX - 1];
+			memcpy(var.bt, cv.d, DIM_MAX * 2);
+			var.bt = var.bt + (cv.d[0] << 1) + 2;
+		}
+	}
+	else
+	{
+		Error(cv.t, E_UNCODE);//错误的定义码
+	}
+	if (var.pt >= VAR_SIZE | var.bt >= cv) Error(0, E_MVAR);//溢出判断
+	//{SetScreen(0);printf("变量太多!\n链表剩余:%d\n空间剩余:%d",VAR_SIZE-var.pt,cv-var.bt);getchar();exit(0);}
+}
+
+/* 把指针i指向的变量从变量表中载入到接口var */
+void ReadVar(int i)
+{
+	int p;
+
+	strcpy(cv.n, var.ptr[i]);//读取名称
+	cv.t = *(p = var.ptr[i] + strlen(cv.n) + 1);//读取类型
+	if (cv.t <= PART_ARR)//基本变量
+	{
+		cv.b = *(p + 1);
+		cv.v = *(p + 2)|(*(p + 3) << 8);
+		if (cv.t >= GLOB_ARR) memcpy(cv.d, p + 4, DIM_MAX * 2);
+		return;
+	}
+	if (cv.t == LVM_FUN)//函数
+	{
+		cv.b = *(p + 1);
+		cv.v = *(p + 2);
+		cv.d[1] = *(p + 3);
+		return;
+	}
+	if (cv.t == LVM_SUB)//子程序
+	{
+		memcpy(&cv.b, p + 1, 10);
+		return;
+	}
+	if (cv.t == LVM_LABEL)//标号
+	{
+		memcpy(&cv.v, p + 1, 6);
+		return;
+	}
+	if (cv.t <= P_UNI_A)//结构
+	{
+		memcpy(&cv.b, p + 1, 6);
+		if (cv.t >= G_STU_A) memcpy(cv.d, p + 7, DIM_MAX * 2);
+		return;
+	}
+	if (cv.t <= P_UNI_Q)
+	{
+		memcpy(&cv.b, p + 1, 4);//引用
+		return;
+	}
+	if (cv.t <= V_POINT + PART_ARR)
+	{
+		cv.b = *(p + 1);
+		cv.v = *(p + 2)|(*(p + 3) << 8);
+		if (cv.t >= V_POINT + GLOB_ARR) memcpy(cv.d, p + 4, DIM_MAX * 2);
+		return;
+	}
+	if (cv.t <= V_POINT + P_UNI_A)//指针
+	{
+		memcpy(&cv.b, p + 1, 6);
+		if (cv.t >= V_POINT + G_STU_A) memcpy(cv.d, p + 7, DIM_MAX * 2);
+		return;
+	}
+	Error(cv.t, E_UNCODE);//错误的定义码
+}
+
+/* 查找变量表，成功则返回0并把变量载入到接口var，否则返回1。（先查找内部变量表，没有时再查找外部的） */
+int SeekVar()
+{
+	int low, mid, high, t;
+
+	if (var.i < var.pt)
+	{
+		if (!strcmp(var.ptr[var.i], cv.n))
+		{
+			ReadVar(var.i);
+			return(0);
+		}
+	}
+	low = var.ph;
+	high = var.pt - 1;//局部查找
+	while (low <= high)
+	{
+		t = strcmp(var.ptr[mid = (low + high) >> 1], cv.n);
+		if (t > 0)
+		{
+			high = mid - 1;
+		}
+		else if (t < 0)
+		{
+			low = mid + 1;
+		}
+		else
+		{
+			ReadVar(var.i = mid);
+			return(0);
+		}
+	}
+	if (var.ph)//全局查找
+	{
+		low = 0;
+		high = var.ph - 1;
+		while (low <= high)
+		{
+			t = strcmp(var.ptr[mid = (low + high) >> 1], cv.n);
+			if (t > 0)
+			{
+				high = mid - 1;
+			}
+			else if (t < 0)
+			{
+				low = mid + 1;
+			}
+			else
+			{
+				ReadVar(var.i = mid);
+				return(0);
+			}
+		}
+	}
+	return(1);//查找失败，返回1
+}
+
+int DeleteVar()//将与接口var匹配的变量从变量表中删除
+{
+	int p, q, t;
+
+	if (!SeekVar())
+	{
+		p = var.ptr[var.i];//头指针
+		t = *(q = p + strlen(p) + 1);
+		if (t <= PART_ARR)
+		{
+			q = q + 4;
+			if (t >= GLOB_ARR)
+			{
+				memcpy(&t, q, 2);
+				q = q + (t << 1) + 2;
+			}
+		}
+		else if (t == LVM_FUN)
+		{
+			q = q + 4;
+		}
+		else if (t == LVM_SUB)
+		{
+			q = q + 11;
+		}
+		else if (t == LVM_LABEL)
+		{
+			q = q + 7;
+		}
+		else if (t <= P_UNI_A)
+		{
+			q = q + 7;
+			if (t >= G_STU_A)
+			{
+				memcpy(&t, q, 2);
+				q = q + (t << 1) + 2;
+			}
+		}
+		else if (t <= P_UNI_Q)
+		{
+			q = q + 5;
+		}
+		else if (t <= V_POINT + PART_ARR)
+		{
+			q = q + 4;
+			if (t >= V_POINT + GLOB_ARR)
+			{
+				memcpy(&t, q, 2);
+				q = q + (t << 1) + 2;
+			}
+		}
+		else if (t <= V_POINT + P_UNI_A)
+		{
+			q = q + 7;
+			if (t >= V_POINT + G_STU_A)
+			{
+				memcpy(&t, q, 2);
+				q = q + (t << 1) + 2;
+			}
+		}
+		else
+		{
+			Error(t, E_UNCODE);//错误的定义码
+		}
+		memmove(p, q, var.bt - q);
+		var.bt = var.bt - (t = q - p);
+		memset(var.bt, 0, cv - var.bt);
+		memmove(&var.ptr[var.i], &var.ptr[var.i + 1], ((--var.pt) - var.i) << 1);
+		memset(&var.ptr[var.pt], 0, (VAR_SIZE - var.pt) << 1);
+		if (var.bh > p)
+		{
+			var.bh = var.bh - t;
+			var.ph = var.ph - 2;
+		}
+		for (q = 0; q < var.pt; q++)
+		{
+			if (var.ptr[q] >= p) var.ptr[q] = var.ptr[q] - t;
+		}
+		return(1);
+	}
+}
+
+/* 更新变量表，i:变量表指针，add:新值地址，rel:偏移量 */
+void RenewVar(int i, int add, char rel)
+{
+	memcpy(var.ptr[i] + strlen(var.ptr[i]) + rel, add, 3);
+}
+
+/* 更新成员数据(结构) p:成员内存地址 */
+void RenewMember(int p)
+{
+	char type;//类型
+	int d;//数组大小
+
+	while (p < var.bt)
+	{
+		type = *(p = p + strlen(p) + 1);//跳过名称
+		if (type <= PART_ARR)//基本变量
+		{
+			p = p + 4;
+			if (type >= GLOB_ARR)
+			{
+				memcpy(&d, p, 2);
+				p = p + d + 2;
+			}
+			continue;
+		}
+		if (type <= P_UNI_A)//结构(更新)
+		{
+			memcpy(p + 1, &cv.b, 2);
+			p = p + 7;
+			if (type >= G_STU_A)
+			{
+				memcpy(&d, p, 2);
+				p = p + d + 2;
+			}
+			continue;
+		}
+		if (type <= V_POINT + PART_ARR)//变量指针
+		{
+			p = p + 4;
+			if (type >= V_POINT + GLOB_ARR)
+			{
+				memcpy(&d, p, 2);
+				p = p + d + 2;
+			}
+			continue;
+		}
+		if (type <= V_POINT + P_UNI_A)//结构指针
+		{
+			memcpy(p + 1, &cv.b, 2);
+			p = p + 7;
+			if (type >= V_POINT + G_STU_A)
+			{
+				memcpy(&d, p, 2);
+				p = p + d + 2;
+			}
+			continue;
+		}
+		Error(type, E_UNCODE);//错误的定义码
+	}
+}
+
+void LoadVFun()//初始化变量表，载入函数文件
+{
+	char fp;
+	int i, size;
+
+	if(!ChDir(cpldata)) Error(cpldata, E_CATA);
+	if (!(fp = fopen(cfset.fun, "r"))) Error(cfset.fun, E_OPEN);//无法打开文件
+	memset(VAR_TABLE, 0, var - VAR_TABLE);
+	memset(var, 0, sizeof(struct VAR_LINK));//初始化
+	fseek(fp, 4, 0);
+	fread(&var.pt, 1, 2, fp);
+	fread(&size, 1, 2, fp);//读取长度
+	fread(var.ptr, 1, (var.pt) << 1, fp);
+	fread(var.bh = VAR_TABLE, 1, size, fp);//读取两个表
+	fclose(fp);
+	var.bt = size + VAR_TABLE;
+	for (var.ph = i = 0; i < var.pt; i++)//调整
+	{
+		var.ptr[i] = var.ptr[i] + VAR_TABLE;
+	}
+}
+//*******************************************************跳转系统*******************************************************//
+/* 跳转写入 */
+void W_Jmp(long addrs, long data, int len)
+{
+	if (addrs + out.p >= cp.offset)
+	{
+		memcpy(addrs + out.p - cp.offset + FB_CUSH, &data, len);
+	}
+	else
+	{
+		fseek(out.fp, addrs, 0);
+		fwrite(&data, 1, len, out.fp);
+		fseek(out.fp, 0, 2);
+	}
+}
+
+/* 把源跳转地址插入跳转表 */
+void SavJmp(int type, long data)
+{
+	int low, mid, high;
+	long t;
+
+	low = 0;
+	high = jp.size - 1;
+	while (low <= high)
+	{
+		t = jp.d[mid = (low + high) >> 1].t - type;
+		if (t > 0)
+		{
+			high = mid - 1;
+		}
+		else if (t < 0)
+		{
+			low = mid + 1;
+		}
+		else
+		{
+			low = mid;
+			break;
+		}
+	}
+	if (jp.size >= JP_SIZE) Error(0, E_JMPM);//溢出判断
+	memmove(jp.d[low + 1], jp.d[low], ((jp.size++) - low) * sizeof(struct UNIT_JUMP));
+	jp.d[low].t = type;
+	jp.d[low].a = data;//插入跳转
+}
+
+/* 查找跳转表，成功则返回1并写入跳转目的地址，否则返回0 */
+int SeekJmp(int type, long data)
+{
+	int low, mid, high;
+	long t;
+
+	low = 0;
+	high = jp.size - 1;
+	while (low <= high)
+	{
+		t = jp.d[mid = (low + high) >> 1].t - type;
+		if (t > 0)
+		{
+			high = mid - 1;
+		}
+		else if (t < 0)
+		{
+			low = mid + 1;
+		}
+		else
+		{
+			W_Jmp(jp.d[mid].a, cp.offset + data, 3);//跳转
+			memmove(jp.d[mid], jp.d[mid + 1],((jp.size--) - mid) * sizeof(struct UNIT_JUMP));
+			jp.d[jp.size].t = 0;//删除
+			return(1);
+		}
+	}
+}
+
+/* 初始化局部跳转 */
+void DelJmp()
+{
+	int i;
+
+	for (i = 0; i < jp.size; i++)
+	{
+		if ((jp.d[i].t >> 16 - JP_TYP) != JP_SUB) Error(0, E_JMPE);
+	}
+}
+//*****************************************************临时文件系统*****************************************************//
+/* 导出临时文件 */
+void Loadtmp()
+{
+	CUSH_Sav();
+	rewind(cp.fp);//调整
+	while (!feof(cp.fp))
+	{
+		out.p = fread(FB_CUSH, 1, FB_C_REL, cp.fp);
+		if (fwrite(FB_CUSH, 1, out.p, out.fp) != out.p) Error(out.name, E_WRITE);
+		cp.offset = cp.offset + out.p;//地址增加
+		cp.ary = cp.ary + out.p;//#loadall内存空间增加
+	}
+	out.p = 0;
+}
+
+/* 写入剩余在缓冲区的代码到临时文件 */
+void Savtmp()
+{
+	fwrite(FB_CUSH, 1, out.p, cp.fp);
+	out.p = 0;
+}
+
+/* 写入临时文件 */
+void tPut(long data, char len)
+{
+	if (out.p > FB_C_REL - 4)
+	{
+		if (fwrite(FB_CUSH, 1, out.p, cp.fp) != out.p) Error("cpl.tmp", E_WRITE);
+		out.p = 0;
+	}
+	memcpy(out.p + FB_CUSH, &data, len);
+	out.p = out.p + len;
+}
+
+/* 移动临时输出指针(补0) */
+void tMove(long len)
+{
+	Savtmp();
+	memset(FB_CUSH, 0, FB_C_REL);
+	while (len)//写入len个0
+	{
+		if (len > FB_C_REL)
+		{
+			fwrite(FB_CUSH, 1, FB_C_REL, out.fp);
+			len = len - FB_C_REL;
+		}
+		else
+		{
+			out.p = len;
+			len = 0;
+		}
+	}
+}
+//*******************************************************链接系统*******************************************************//
+/* 恢复打开文件 */
+void Recover(long fadd)
+{
+	char name[NAME_MAX];
+
+	if (!ChDir(fundata)) Error(fundata, E_CATA);
+	strcpy(name, out.name);
+	ChExt(name, "h");
+	if (!(in.fp = fopen(name, "r"))) Error(name, E_OPEN);//重新打开源程序文件
+	fseek(in.fp, fadd, 0);
+}
+
+void LoadLib()
+{
+	char _strMask;
+	struct COM_VAR t;//临时接口
+	char fp, cmd;//句柄
+	long add, c, fadd;//当前文件地址偏移量 y文件入口 源程序(*.h)当前地址
+	int tv;//当前变量地址偏移量
+	int i;//临时变量
+	int j, type;//临时变量[j,type位置不能换]
+
+	fadd = ftell(in.fp);//关闭输出文件
+	fclose(in.fp);
+	in.fp = 0;
+	memcpy(t, cv, sizeof(struct COM_VAR));//保护现场
+	for (i = 0; i < lib.size; i++)
+	{
+		if (lib.flag[i] == '>')
+		{
+			if (!ChDir(libdata)) Error(libdata, E_CATA);
+		}
+		else
+		{
+			if (!ChDir(lib.path)) Error(lib.path, E_CATA);
+		}
+		if (!(fp = fopen(lib.name[i], "r"))) Error(lib.name[i], E_OPEN);//消息框
+		fread(&add, 1, 4, fp);
+		fseek(fp, add, _strMask = 0);//调转到代码区
+		fread(&j, 1, 2, fp);
+		cp.add[VGLOBOLE] = (tv = cp.add[VGLOBOLE] - 0x2000) + j;//偏移
+		add = cp.offset;
+		while (!feof(fp))
+		{
+			if ((cmd = getc(fp)) == 0x41)//初始化代码放到cpl.tmp文件中，然后在main中载入
+			{
+				fread(&c, 1, 4, fp);
+				if ((c&0xffff) < 0x7000 && (c&0xffff) >= 0x2000) c = c + tv;
+				if (!cp.fp)
+				{
+					if (ChPath(cpldata))
+					{
+						fclose(fp);
+						Error(cpldata, E_CATA);
+					}
+					if (!(cp.fp = fopen("cpl.tmp","w+")))
+					{
+						fclose(fp);
+						Error("cpl.tmp", E_CREAT);//创建临时文件
+					}
+				}
+				putc(0x41, cp.fp);
+				fwrite(&c, 1, 4, cp.fp);
+				c = (c >> 16)&0xffff;
+				for (j = 0; j < c; j++)
+				{
+					putc(getc(fp), cp.fp);
+				}
+				continue;
+			}
+			if (cmd == 0x3e)
+			{
+				fseek(fp, -2, 1);//到0xad 0x3e
+				break;
+			}
+			if (cmd == 0x43)
+			{
+				_strMask = getc(fp);
+				continue;
+			}
+			if (cmd != 0xad)//忽略函数指针标志
+			{
+				fclose(fp);
+				Error(lib.name[i], E_OFFSET);
+			}
+		}
+		while (!feof(fp))
+		{
+			if ((cmd = getc(fp)) == 1)//1 Byte
+			{
+				Put((getc(fp) << 8)|1, 2);
+				continue;
+			}
+			if (cmd == 3)//4 B
+			{
+				Put(3, 1);
+				fread(&j, 1, 4, fp);
+				if ((type == 1 | type == 2 | type == 4) && (j >= 0x2000 && j <= 0x7000)) j = j + tv;
+				Put((j&0xffff)|(type << 16), 4);
+				continue;
+			}
+			if (cmd == 0x41)//4 Byte
+			{
+				Put(0x41, 1);
+				fread(&c, 1, 4, fp);
+				if ((c&0xffff) < 0x7000 && (c&0xffff) >= 0x2000)
+				{
+					Put(c + tv, 4);
+				}
+				else
+				{
+					Put(c, 4);
+				}
+				c = (c >> 16)&0xffff;
+				for (j = 0; j < c; j++)
+				{
+					Put(getc(fp), 1);
+				}
+				continue;
+			}
+			if (cmd == 0x0d)//字符串
+			{
+				Put(0x0d, 1);
+				do{
+					Put((cmd = getc(fp) ^ _strMask) ^ strMask, 1);
+				} while (cmd);
+				continue;
+			}
+			if (!cmd)
+			{
+				Put(0, 1);
+				continue;
+			}
+			if (cmd <= 25 | cmd == 60 | (cmd >= 69 && cmd <= 81))//2 Byte
+			{
+				fread(&j, 1, 2, fp);
+				if ((cmd <= 12 | cmd == 23) && cmd != 2)
+				{
+					if (j >= 0x2000 && j <= 0x7000) j = j + tv;
+				}
+				Put((j << 8)|cmd, 3);
+				continue;
+			}
+			if (cmd >= 57 && cmd <= 61)//跳转
+			{
+				c = 0;
+				fread(&c, 1, 3, fp);
+				c = c + add;
+				Put((c << 8)|cmd, 4);
+				continue;
+			}
+			if (cmd == 0x3e)//函数头
+			{
+				fread(&c, 1, 3, fp);
+				Put((c << 8)|0x3e, 4);
+				if (getc(fp) == 0xff) continue;
+				fread(cv, 1, sizeof(struct COM_VAR), fp);
+				cv.v = cp.offset - 4;
+				cv.d[0] = ++cp.fn;
+				if (SavVar())
+				{
+					fclose(fp);
+					Error(cv.n, E_RVAR);
+				}
+				continue;
+			}
+			if (cmd == 0x43)
+			{
+				_strMask = getc(fp);
+				continue;
+			}
+			if ((cmd > 0x6d && cmd < 0x80) | cmd > 0xd6)//错误
+			{
+				fclose(fp);
+				Error(lib.name[i], E_OFFSET);
+			}
+			Put(cmd, 1);
+		}
+		fclose(fp);
+	}
+	memcpy(cv, t, sizeof(struct COM_VAR));//恢复现场
+	Recover(fadd);//恢复打开文件
+}
+//*******************************************************提取系统*******************************************************//
+/* 词汇提取 保存到cv.n */
+void Str_Get()
+{
+	char i;
+
+	i = 0;
+	while (*in.p == '_' | isalnum(*in.p))
+	{
+		cv.n[i++] = *in.p++;
+	}
+	cv.n[i] = 0;
+}
+
+/* 数字提取 */
+long Num_Get()
+{
+	char ch, rad;
+	int sign;
+	long num;
+
+	num = 0;
+	sign = 1;
+	if (*in.p == '+')//符号判断
+	{
+		in.p++;
+	}
+	else if (*in.p == '-')
+	{
+		sign = -1;
+		in.p++;
+	}
+	if (*in.p == '0')//进制
+	{
+		if (tolower(*++in.p) == 'x')
+		{
+			rad = 16;
+			in.p++;
+		}
+		else
+		{
+			rad = 8;
+		}
+	}
+	else
+	{
+		rad = 10;
+	}
+	while (isxdigit(*in.p))
+	{
+		ch = *in.p++;
+		if (isdigit(ch))
+		{
+			num = num * rad + (ch&0xf);
+		}
+		else if (isxdigit(ch))
+		{
+			if (rad == 16)
+			{
+				num = num * rad + tolower(ch) - 87;
+			}
+			else
+			{
+				Error(0, E_CONST);
+			}
+		}
+	}
+	if (isalnum(*in.p)) Error(0, E_CONST);
+	return(num * sign);
+}
+
+long Calc()//简单计算器
+{
+	long n[3];//数据堆栈
+	char o[3];//符号堆栈
+	char i, j;//数据指针,符号指针
+
+	i = j = 0;
+	if (*in.p != '(') n[i++] = Num_Get();
+	for (;;)
+	{
+		if (isdigit(*in.p))
+		{
+			n[i++] = Num_Get();
+		}
+		else if (*in.p == '(')//压入数据
+		{
+			in.p++;
+			n[i++] = Calc();
+			if (*in.p++ != ')') Error(0, E_CONSTS);
+		}
+		else
+		{
+			while(j && i >= 2)//弹栈
+			{
+				if ((o[j - 1] == '+' | o[j - 1] == '-') && strchr(sign4 + 2, *in.p)) break;
+				i--;
+				if		(o[--j] == '+')	n[i - 1] = n[i - 1] + n[i];
+				else if	(o[j] == '-')	n[i - 1] = n[i - 1] - n[i];
+				else if	(o[j] == '*')	n[i - 1] = n[i - 1] * n[i];
+				else if	(o[j] == '/')	n[i - 1] = n[i - 1] / n[i];
+				else if	(o[j] == '%')	n[i - 1] = n[i - 1] % n[i];
+			}
+			if (strchr(sign4, *in.p))//压入符号
+			{
+				o[j++] = *in.p++;
+			}
+			else
+			{
+				return(n[0]);
+			}
+		}
+	}
+}
+
+void LoadFile()
+{
+	char fp;
+	long start, size, fadd;
+	char i, s[PATH_MAX];
+
+	if (*in.p++ != '(' | *in.p != '"') Error(0, E_GRAMMAR);
+	start = size = i = 0;
+	while (*++in.p != '"')//提取文件名
+	{
+		if (i < PATH_MAX - 1 && *in.p > ' ') s[i++] = *in.p;
+	}
+	s[i] = 0;
+	if (*++in.p == ',')
+	{
+		in.p++;
+		start = Calc();
+		if (*in.p == ',')
+		{
+			in.p++;
+			size = Calc();
+		}
+	}
+	if (*in.p++ != ')') Error(0, E_GRAMMAR);
+//--------------------------------------------------------------
+	fadd = ftell(in.fp);//关闭输出文件
+	fclose(in.fp);
+	in.fp = 0;
+	if (!(fp = fopen(s, "r"))) Error(s, E_OPEN);
+	if (size <= 0)
+	{
+		size = fseek(fp, 0, 2);
+		if (start > 0) size = size - start;
+		rewind(fp);
+	}
+	if (start > 0) fseek(fp, start, 0);
+	Put(size, 2);
+	CUSH_Sav();//写入剩余在缓冲区的代码
+	cp.offset = cp.offset + size;
+	while (size)//拷贝
+	{
+		if (size >= FB_C_REL)
+		{
+			out.p = FB_C_REL;
+		}
+		else
+		{
+			out.p = size;
+		}
+		size = size - out.p;
+		fread(FB_CUSH, 1, out.p, fp);
+		if (fwrite(FB_CUSH, 1, out.p, out.fp) != out.p)
+		{
+			fclose(fp);
+			Error(out.name, E_WRITE);
+		}
+	}
+	fclose(fp);
+	out.p = 0;
+	Recover(fadd);//恢复打开文件
+}
+
+void LoadData()
+{
+	long offset;
+
+	if (*in.p++ != '=') Error(0, E_GRAMMAR);
+	if (isalpha(*in.p))
+	{
+		Str_Get();
+		if (!strcmp(cv.n, "load"))
+		{
+			LoadFile();
+		}
+		else
+		{
+			Error(0, E_GRAMMAR);
+		}
+	}
+	else
+	{
+		offset = cp.offset;
+		Put(cv.b, 2);
+		if (cv.t == GLOB_VAR | isdigit(*in.p))
+		{
+			Put(Calc(), cv.b);
+		}
+		else
+		{
+			W_Jmp(offset, Var_Init(), 2);
+		}
+		if (cp.i == VGLOBOLE) cp.ary = cp.ary + cp.offset - offset + 3;
+	}
+}
+
+int Get_Mark();
+
+/* 符号提取 */
+long Sign_Get()
+{
+	char s[3];//缓冲
+	long p;//地址值或位置
+
+	if (p = strchr(sig, *in.p))//."{}[](),;
+	{
+		cp.o.g = 10;
+		if (p == sig + 3) cp.o.g = 1;
+		if (!*++in.p) CUSH_Get();//调整
+		return(p - sig + POINT);
+	}
+	memcpy(s, in.p++, 2);
+	s[2] = 0;
+	if (p = strstr(bol, s))
+	{
+		in.p++;
+	}
+	else
+	{
+		s[1] = '@';
+		if (!(p = strstr(bol, s)))
+		{
+			if (s[0] == '#')//编译命令处理
+			{
+				Str_Get();
+				if (!strcmp(cv.n,"loadall"))
+				{
+					cp.la = 1;
+					if (*in.p == ' ') in.p++;
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "code"))
+				{
+					if (*in.p != '{') Error(0, E_GRAMMAR);//语法错误
+					while(*in.p++ != '}')
+					{
+						if (*in.p == '"')//字符串
+						{
+							while(*++in.p != '"')
+							{
+								if (!*in.p) CUSH_Get();
+								if (*in.p == 92)
+								{
+									if (p = strchr(sign2, *++in.p))
+									{
+										Put(sign3[p - sign2], 1);
+										continue;
+									}
+								}
+								Put(*in.p, 1);
+							}
+							in.p++;
+						}
+						else
+						{
+							Put(Calc(), 1);//数字
+						}
+						if (!*in.p) CUSH_Get();//调整
+					}
+					if (*in.p++ != ';') Error(0, E_GRAMMAR);//语法错误
+					if (!*in.p) CUSH_Get();//调整
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "loaddata"))
+				{
+					if (*in.p++ != ' ') Error(0, E_NOPARA);
+					Put(65, 1);
+					if (*in.p == '_' | isalpha(*in.p))//变量
+					{
+						Str_Get();
+						if (!SeekVar())
+						{
+							if (cv.t&1) Error(0, E_GRAMMAR);
+						}
+						else
+						{
+							Error(cv.n, E_UVAR);
+						}
+					}
+					else
+					{
+						cv.v = Calc();
+						cv.b = 1;
+						cv.t = 255;
+					}
+					Put(cv.v, 2);
+					LoadData();
+					if (*in.p++ != ';') Error(0, E_GRAMMAR);//语法错误
+					if (!*in.p) CUSH_Get();//调整
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "begin"))
+				{
+					if (*in.p++ != ' ') Error(0,E_NOPARA);
+					cp.add[VBACKUP] = cp.add[cp.i];
+					cp.add[cp.i] = Calc();
+					if (*in.p == ' ') in.p++;
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "end"))
+				{
+					cp.add[cp.i] = cp.add[VBACKUP];
+					if (*in.p == ' ') in.p++;
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "skip"))
+				{
+					if (*in.p++ != ' ') Error(0, E_NOPARA);
+					cp.add[cp.i] = cp.add[cp.i] + Calc();
+					if (*in.p == ' ') in.p++;
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "delete"))
+				{
+					if (*in.p++ != ' ') Error(0, E_NOPARA);
+					if (*in.p != '_' && !isalpha(*in.p)) Error(0, E_SENTE);
+					Str_Get();
+					if (!DeleteVar()) Error(cv.n, E_UVAR);
+					if (*in.p == ' ') in.p++;
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "secret"))
+				{
+					if (*in.p++ != ' ') Error(0, E_NOPARA);
+					Put(((strMask = Calc()) << 8) | 0x43, 2);
+					if (*in.p == ' ') in.p++;
+					return(LVM_NULL);
+				}
+				if (!strcmp(cv.n, "attr"))
+				{
+					if (*in.p++ != '(') Error(0, E_NOPARA);
+					s[0] = Get_Mark();
+					if (s[0] > NUMBER || *in.p++ != ',') Error(0, E_GRAMMAR);
+					if (!*in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.d[0] = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.d[1] = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) s[0] = cv.t = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.b = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.v = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.d[2] = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.d[3] = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if ((p = Calc()) != -1) cv.d[4] = p;
+					if (*in.p != ',') goto END;
+					if (!*++in.p) CUSH_Get();//调整
+					if (Calc() != -1)
+					{
+						ReNewVar();//更新变量
+						if (*in.p++ != ')') Error(0, E_GRAMMAR);
+						return(LVM_NULL);
+					}
+END:
+					if (*in.p++ != ')') Error(0, E_GRAMMAR);
+					return(s[0]);
+				}
+			}
+			if (s[0] == ' ') Error(0, E_ANALY);//解析错误
+			Error(*(in.p - 1), E_USIGN);//不支持的符号
+		}
+	}
+	p = (p - bol) / 3;
+	cp.o.g = grad[p];
+	cp.o.c = code[p];
+	if (p == 2 | p == 3)//a++,a--与++a,--a分离
+	{
+		if ((isalnum(p = *(in.p - 3)) | strchr(sign1, p)) && !isalnum(*in.p)) cp.o.c = cp.o.c + 2;
+	}
+	return(LVM_SIGN);//*,-和&在Exp_deal()中分离
+}
+//"!@$~@$++$--$*@$/@$%@$+@$-@$<<$>>$==$!=$<=$>=$>@$<@$&@$|@$^@$&$||$=$";//符号表
+//  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22
+//  2  2  2  2  3  3  3  4  4  5  5  6  6  6  6  6  6  7  7  7  8  8  9
+//-------------------------------------------------------变量注册
+int Var_Init()
+{
+	long start;//起始地址(用来计算当前维个数)
+	int m;//临时变量
+
+	start = cp.offset;//初始化
+	if (*in.p == '"')//字符串
+	{
+		while (*++in.p != '"')
+		{
+			if (!*in.p) CUSH_Get();
+			if (*in.p == 92)
+			{
+				if (m = strchr(sign2, *++in.p))
+				{
+					Put(sign3[m - sign2], 1);
+					continue;
+				}
+			}
+			Put(*in.p, 1);
+		}
+		Put(0, 1);
+		if (cv.d[0] > 1)//补充
+		{
+			m = cv.d[cv.d[0] - 1] + start - cp.offset;
+			if (m > 0) Move(m);
+		}
+	}
+	else
+	{
+		for (in.p++;;)
+		{
+			if (!isdigit(*in.p))
+			{
+				if (*in.p == ',')
+				{
+					if (!*++in.p) CUSH_Get();
+					continue;
+				}
+				if (*in.p == '-')
+				{
+					Put(Num_Get(), cv.b);
+					continue;
+				}
+				if (strchr(sign26, *in.p))
+				{
+					Var_Init();
+					continue;
+				}
+				if (*in.p == '}')
+				{
+					break;
+				}
+			}
+			Put(Num_Get(), cv.b);
+		}
+	}
+	in.p++;//跳过}",
+	return(cp.offset - start);
+}
+
+int tVar_Init()
+{
+	long start;//起始地址(用来计算当前维个数)
+	int m;//临时变量
+
+	start = ftell(cp.fp) + out.p;//初始化
+	if (*in.p == '"')//字符串
+	{
+		while(*++in.p != '"')
+		{
+			if (!*in.p) CUSH_Get();
+			if (*in.p == 92)
+			{
+				if (m = strchr(sign2, *++in.p))
+				{
+					tPut(sign3[m - sign2], 1);
+					continue;
+				}
+			}
+			tPut(*in.p, 1);
+		}
+		tPut(0, 1);
+		if (cv.d[0] > 1)//补充
+		{
+			m = cv.d[cv.d[0] - 1] + start - ftell(cp.fp) - out.p;
+			if (m > 0) tMove(m);
+		}
+	}
+	else
+	{
+		for (in.p++;;)
+		{
+			if (!isdigit(*in.p))
+			{
+				if (*in.p == ',')
+				{
+					if (!*++in.p) CUSH_Get();
+					continue;
+				}
+				if (*in.p == '-')
+				{
+					tPut(Num_Get(), cv.b);
+					continue;
+				}
+				if (strchr(sign26, *in.p))
+				{
+					tVar_Init();
+					continue;
+				}
+				if (*in.p == '}')
+				{
+					break;
+				}
+			}
+			tPut(Num_Get(), cv.b);
+		}
+	}
+	in.p++;//跳过}",
+	return(ftell(cp.fp) + out.p - start);
+}
+
+/* 结构成员标志(0:普通变量),类型 结构标志(声明) */
+void Var_Write(char flag, char mode, int sn)
+{
+	char def;//数组下标缺省标志
+	long offset;//数组下标缺省地址(配合def)
+	char type;//变量/数组
+	int len, i;//变量长度,临时变量
+
+	if (*in.p == '&') mode = mode + V_POINT;
+ //else if (*in.p == '*')
+	do{
+		in.p++;
+		Str_Get();//提取变量
+		if (*in.p != '(')//变量
+		{
+			len = 1;
+			def = 0;//初始化(长度:1,没有缺省)
+			if (*in.p == '[')//数组
+			{
+				type = UNIT_ARR;
+				memset(cv.d, 0, DIM_MAX * 2);
+				if (*++in.p == ']')//提取最高维
+				{
+					def = 1;
+				}
+				else
+				{
+					len = Calc();
+				}
+				for (cv.d[0] = 1; *++in.p == '['; cv.d[0]++)
+				{
+					if (cv.d[0] > DIM_MAX - 2) Error(cv.n, E_WBIG);
+					in.p++;
+					len = (cv.d[cv.d[0]] = Calc()) * len;
+				}
+			}
+			else
+			{
+				type = UNIT_VAR;//变量
+			}
+			if (*in.p == '=')//赋值
+			{
+				in.p++;//跳过=
+				if (mode&1)
+				{
+					if (!cp.sf)
+					{
+						if (type != UNIT_VAR) Error(cv.n, E_PVAR);//内部不是变量的不能初始化
+						i = cv.b;
+						if (mode >= V_POINT) i = 2;//指针
+						Put(3, 1);
+						Put(cp.add[cp.i]|((i|0x80) << 16), 4);
+						if (i > 2)
+						{
+							Put(3, 1);
+						}
+						else
+						{
+							Put(i, 1);
+						}
+						Put(Calc(), i);
+						Put(0x3835, 2);
+						goto VAR_SET;
+					}
+				}
+				if (jp_var)//不是在顶部初始化的
+				{
+					if (!cp.fp)
+					{
+						if (ChPath(cpldata)) Error(cpldata, E_CATA);
+						if (!(cp.fp = fopen("cpl.tmp", "w+"))) Error("cpl.tmp", E_CREAT);//创建临时文件
+					}
+					CUSH_Sav();//写入剩余在缓冲区的代码(底下程序要用到缓冲区)
+					tPut(65, 1);
+					tPut(cp.add[cp.i], 2);
+					offset = ftell(cp.fp) + out.p;
+					tPut(cv.b * len, 2);
+					if (type == UNIT_VAR)
+					{
+						tPut(Calc(), cv.b);
+					}
+					else
+					{
+						i = tVar_Init();//写入数据
+						Savtmp();//写入剩余在缓冲区的代码到临时文件
+						fseek(cp.fp, offset, 0);
+						fwrite(&i, 1, 2, cp.fp);
+						fseek(cp.fp, 0, 2);//写入大小
+						if (def)
+						{
+							len = i / cv.b;
+						}
+						else if (i > len * cv.b)
+						{
+							Error(cv.n, E_LONG);
+						}
+					}
+					Savtmp();//写入剩余在缓冲区的代码到临时文件
+				}
+				else
+				{
+					Put(65, 1);
+					Put(cp.add[cp.i], 2);
+					offset = cp.offset;
+					Put(cv.b * len, 2);
+					if (type == UNIT_VAR)
+					{
+						Put(Calc(), cv.b);
+					}
+					else
+					{
+						W_Jmp(offset,i = Var_Init(), 2);
+						if (def)
+						{
+							len = i / cv.b;
+						}
+						else if (i > len * cv.b)
+						{
+							Error(cv.n, E_LONG);
+						}
+					}
+					cp.ary = cp.ary + cp.offset - offset + 3;
+				}
+			}
+			else if (def)
+			{
+				if (mode < V_POINT) Error(cv.n, E_SIZE);
+			}
+VAR_SET:
+			cv.d[DIM_MAX - 1] = len = cv.b * len;
+			if (mode >= V_POINT) len = 2;//变量占用空间
+			cv.t = mode + type;//cv.type
+			cv.v = (sn << 16)|cp.add[cp.i];//cv.value
+			if (cp.i == VTEMP)
+			{
+				cv.n[i = strlen(cv.n)] = cp.sn;
+				cv.n[i + 1] = 0;//标记名称
+				if (flag == UNIT_STU) goto ADD;
+				cv.v = cv.v&0xffff0000;//只是清除地址部分
+				if (len > cp.add[cp.i]) cp.add[cp.i] = len;
+			}
+			else
+			{
+ADD:
+				cp.add[cp.i] = cp.add[cp.i] + len;//地址增加
+			}
+		}
+		else//子程序声明
+		{
+			i = in.p++;
+			cv.t = LVM_SUB;
+			cv.d[cv.v=0] = ++cp.fn;//函数模式,标志
+			for (cv.d[1] = 0; *in.p++ != ')';)//参数个数(cv.d)
+			{
+				if (*in.p == ',' | *in.p == ')') cv.d[1]++;
+			}
+			if (*in.p != ';')//子程序
+			{
+				in.p = i;
+				return;
+			}
+		}
+		if (SavVar()) Error(cv.n, E_RVAR);//注册
+	} while (*in.p == ',');
+	while (*in.p == ';')//调整
+	{
+		if (!*++in.p) CUSH_Get();
+	}
+	Progress(ftell(in.fp) - strlen(in.p), in.size, 0);//进度
+}
+
+int ChkByte()/*判断字节*/
+{
+	if (!strcmp(cv.n, sign21))			return(1);
+	else if (!strcmp(cv.n, sign22))		return(2);
+	else if (!strcmp(cv.n, sign23))		return(4);
+	else if (!strcmp(cv.n, sign24))		return(0);
+	else if (!strcmp(cv.n, sign25))		return(UNIT_STU);
+	else if (!strcmp(cv.n, "union"))	return(UNIT_UNI);
+	else if (!strcmp(cv.n, "static"))	return(-1);
+	else								return(-2);
+}
+
+void Par_Write(char mode, int sn)/*类型 结构标志(声明)*/
+{
+	char type;//变量/数组
+
+	if (*in.p++ == '&') mode = mode + V_POINT;
+	Str_Get();//提取变量
+	if (*in.p == '[')//数组
+	{
+		type = UNIT_ARR;//数组
+		memset(cv.d, 0, DIM_MAX * 2);
+		if (*++in.p != ']') Calc();//初始化
+		for (cv.d[0] = 1; *++in.p == '['; cv.d[0]++)
+		{
+			if (cv.d[0] > DIM_MAX - 2) Error(cv.n, E_WBIG);
+			in.p++;
+			cv.d[cv.d[0]] = Calc();
+		}
+	}
+	else
+	{
+		type = UNIT_VAR;//变量
+	}
+	cv.t = mode + type;//cv.type
+	cv.v = (sn << 16)|cp.add[cp.i];//cv.value
+	cp.add[cp.i] = cp.add[cp.i] + 4;//地址增加
+	if (SavVar()) Error(cv.n, E_RVAR);//注册
+}
+
+void Head_Write()
+{
+	struct COM_VAR e;//引用体,函数
+	char type;//类型(外,内)
+	char def, flag;//引用名缺省标志,(普通,结构成员)标志
+	int pmem;//临时成员地址
+
+	for (type = cp.i;;)//类型(外,内)
+	{
+		if ((cv.b = ChkByte()) < -1) break;//记录字节(cv.byte)
+		if (cv.b < 0)//static
+		{
+			cp.sf = type|(cp.i << 4);
+			type = cp.i = VGLOBOLE;//切换变量空间
+			in.p++;
+			Str_Get();
+			continue;
+		}
+		if (cv.b <= 4)
+		{
+			Var_Write(0, type, 0);//普通变量
+			if (*in.p == '(')//子程序
+			{
+				if (!jp_var)
+				{
+					if (cp.la) Put(68, 1);//#loadall
+					jp_var = cp.offset + 1;
+					Put(0x3b00003c, 7);//变量总空间
+					if (lib.size) LoadLib();//链接库
+				}
+				Put(0xad, 1);//函数指针用
+				cp.sub = cv.b;//记录当前fun是否有返回值
+				cp.ma = 0;
+				if (!strcmp(cv.n, sign5))//当前函数是否是main
+				{
+					cp.ma = cp.mai = 1;
+					W_Jmp(jp_var + 3, cp.offset, 3);
+				}
+				cv.v = cp.offset;//记录函数地址(cv.value)
+				if (SavVar())//插入新函数
+				{
+					cp.fn--;
+					memcpy(e, cv, sizeof(struct COM_VAR));
+					ReadVar(var.i);//调整 保存cv
+					if (cv.v) Error(cv.n, E_RSUB);
+					if (cv.b != e.b | cv.d[1] != e.d[1]) Error(cv.n, E_DEFI);//合法性检查
+					RenewVar(var.i, &e.v, 4);//更新变量表
+					do {} while (SeekJmp(cv.d[0] + (JP_SUB << 16 - JP_TYP), 0));//写入函数入口地址
+				}
+				var.bh = var.bt;
+				var.ph = var.pt;
+				var.ptr[var.ph] = var.bh;//建立变量表的分界线
+				cp.ts = cp.sn;
+				type = cp.i = VPART;
+				in.p++;//进入函数内部
+				e.d[1] = cv.d[1];//保护
+				while (*in.p != ')')//函数参数个数(e.d)
+				{
+					Str_Get();
+					cv.b = ChkByte();//读取类型
+					if (cv.b < 0) Error(cv.n, E_UTYPE);//未定义的类型
+					if (cv.b <= 4) Par_Write(type, 0);//基本变量
+					else//构造体
+					{
+						in.p++;
+						Str_Get();//提取引用名
+						if (SeekVar()) Error(cv.n, E_USTU);//未定义
+						Par_Write((cv.t&0xfe) + type - UNIT_QFM, cv.v);
+					}
+					if (*in.p != ')') in.p++;//跳过逗号,调整
+				}
+				jp_sub = cp.offset + 1;
+				Put(62, 3);
+				Put(e.d[1], 1);
+				in.p = in.p + 2;//记录函数头 跳过{
+			}
+		}
+		else//结构
+		{
+			if (*in.p == ' ')
+			{
+				in.p++;
+				Str_Get();//提取引用名
+				if (*in.p == ' ' | *in.p == '&')//结构声明(变量,指针)
+				{
+					if (SeekVar()) Error(cv.n, E_USTU);//未定义
+					Var_Write(0, (cv.t&0xfe) + type - UNIT_QFM, cv.v);
+					goto END;
+				}
+				strcpy(e.n, cv.n);
+				e.t = type + cv.b + UNIT_QFM;
+				def = 1;//保存引用名,类型 没有缺省
+			}
+			else//记录类型 缺省引用名
+			{
+				e.t = type + cv.b;
+				def = 0;
+			}
+			type = cp.i;
+			cp.add[cp.i = VTEMP] = pmem = 0;
+			flag = cv.b;
+			cp.sn++;//保存cp.i 初始化 增加
+			for (in.p++; *in.p != '}';)
+			{
+				Str_Get();
+				cv.b = ChkByte();//提取类型
+				if (cv.b < 0) Error(cv.n,E_UTYPE);//未定义的类型
+				if (cv.b <= 4) Var_Write(flag, type, 0);//普通变量
+				else
+				{
+					in.p++;
+					Str_Get();//提取引用名
+					if (SeekVar())
+					{
+						if (strcmp(e.n, cv.n)) Error(cv.n, E_USTU);//未定义
+						if (!pmem) pmem = var.bt;//留着底下更新
+						cv.v = cp.sn;
+						cv.t = e.t;
+					}
+					Var_Write(flag, (cv.t&0xfe) + type - UNIT_QFM, cv.v);
+				}
+			}
+			cv.b = cp.add[cp.i];
+			cp.i = type;//恢复cp.i
+			if (pmem) RenewMember(pmem);//更新成员数据
+			if (def)//没有缺省
+			{
+				e.b = cv.b;
+				e.v = cp.sn;
+				memcpy(cv, e, sizeof(struct COM_VAR));//切换
+				if (SavVar()) Error(cv.n, E_RSTU);//重复定义
+				if (*(in.p + 1) != ';')
+				{
+					e.t = e.t - UNIT_QFM;
+					goto W_STU;
+				}
+				if (!*(in.p = in.p + 2)) CUSH_Get();//调整
+			}
+			else
+			{
+W_STU:
+				Var_Write(0,e.t,cp.sn);//记录结构
+			}
+		}
+END:
+		if (cp.sf)//static标志清0
+		{
+			cp.i = cp.sf >> 4;
+			type = cp.sf&0xf;
+			cp.sf = 0;
+		}
+		Str_Get();//提取类型
+	}
+	in.p = in.p - strlen(cv.n);//调整
+}
+
+/* 词汇提取模块 */
+int Get_Mark()
+{
+START:
+	memset(cp.o, 0, sizeof(struct OPERATOR));//初始化运算符
+	if (*in.p == '_' | isalpha(*in.p))//词汇
+	{
+		Str_Get();
+		if (ChkByte() != -2)//变量注册
+		{
+			Head_Write();
+			goto START;
+		}
+		if (*in.p == ':')//标号
+		{
+			in.p++;
+			cv.t = LVM_LABEL;
+			cv.v = cp.offset;
+			cv.d[0] = cp.ln++;//记录标号
+			if (SavVar())//插入
+			{
+				cp.ln--;
+				ReadVar(var.i);
+				if (cv.v) Error(cv.n, E_RLAB);//合法性检查
+				RenewVar(var.i, &cp.offset, 2);//更新变量表（记录标号地址）
+				do {} while(SeekJmp(cv.d[0] + (JP_LABEL << 16 - JP_TYP), 0));//写入标号地址
+			}
+			goto START;
+		}
+		if (!SeekVar())					return(cv.t);//变量,函数,子程序
+		if (!strcmp(cv.n, sign6))		return(LVM_IF);//if
+		if (!strcmp(cv.n, sign7))		return(LVM_ELSE);//else
+		if (!strcmp(cv.n, sign8))		return(LVM_WHILE);//while
+		if (!strcmp(cv.n, sign9))		return(LVM_FOR);//for
+		if (!strcmp(cv.n, sign10))		return(LVM_RET);//return
+		if (!strcmp(cv.n, sign11))		return(LVM_DO);//do
+		if (!strcmp(cv.n, sign12))		return(LVM_BRK);//break
+		if (!strcmp(cv.n, sign13))		return(LVM_CONT);//continue
+		if (!strcmp(cv.n, sign14))		return(LVM_GOTO);//goto
+		if (!strcmp(cv.n, "sizeof"))	return(LVM_SIZE);//sizeof
+		if (!strcmp(cv.n, "_TEXT"))		return(LVM_TEXT);
+		if (!strcmp(cv.n, "_GRAPH"))	return(LVM_GRAPH);
+		if (!strcmp(cv.n, "_GBUF"))		return(LVM_GBUF);
+#if WQX == 0
+		if (!strcmp(cv.n, "System"))
+		{
+			in.p++;
+			Str_Get();
+			cv.t = LVM_FUN;
+			cv.b = 1;
+			cv.v = 211;
+			cv.d[1] = 0;
+			if (!strcmp(cv.n, "GetPID"))
+			{
+				cv.d[0] = 0x0001;
+			}
+			else if (!strcmp(cv.n, "SetBrightness"))
+			{
+				cv.d[1] = 1;
+				cv.d[0] = 0x0101;
+			}
+			else if (!strcmp(cv.n, "GetBrightness"))
+			{
+				cv.d[0] = 0x0201;
+			}
+			else if (!strcmp(cv.n, "ComOpen"))
+			{
+				cv.d[0] = 0x0301;
+			}
+			else if (!strcmp(cv.n, "ComClose"))
+			{
+				cv.d[0] = 0x0401;
+			}
+			else if (!strcmp(cv.n, "ComWaitReady"))
+			{
+				cv.d[0] = 0x0501;
+			}
+			else if (!strcmp(cv.n, "ComSetTimer"))
+			{
+				cv.d[1] = 1;
+				cv.d[0] = 0x0601;
+			}
+			else if (!strcmp(cv.n, "ComGetc"))
+			{
+				cv.d[0] = 0x0701;
+			}
+			else if (!strcmp(cv.n, "ComPutc"))
+			{
+				cv.d[1] = 1;
+				cv.d[0] = 0x0801;
+			}
+			else if (!strcmp(cv.n, "ComRead"))
+			{
+				cv.d[1]=2;
+				cv.d[0]=0x0901;
+			}
+			else if (!strcmp(cv.n, "ComWrite"))
+			{
+				cv.d[1] = 2;
+				cv.d[0] = 0x0a01;
+			}
+			else if (!strcmp(cv.n, "ComXor"))
+			{
+				cv.d[1] = 2;
+				cv.d[0] = 0x0b01;
+			}
+			else if (!strcmp(cv.n, "RamRead"))
+			{
+				cv.d[1] = 3;
+				cv.d[0] = 0x0c01;
+			}
+			else if (!strcmp(cv.n, "DiskReclaim"))
+			{
+				cv.d[0] = 0x0d01;
+			}
+			else if (!strcmp(cv.n, "DiskCheck"))
+			{
+				cv.d[0] = 0x0e01;
+			}
+			else if (!strcmp(cv.n, "FlmDecode"))
+			{
+				cv.d[1] = 2;
+				cv.d[0] = 0x0f01;
+			}
+			else if (!strcmp(cv.n, "SndPlay"))
+			{
+				cv.d[1] = 2;
+				cv.d[0] = 0x1001;
+			}
+			else if (!strcmp(cv.n, "SndOpen"))
+			{
+				cv.d[0] = 0x1101;
+			}
+			else if (!strcmp(cv.n, "SndClose"))
+			{
+				cv.d[0] = 0x1201;
+			}
+			else if (!strcmp(cv.n, "SndIfEnd"))
+			{
+				cv.d[0] = 0x1301;
+			}
+			else if (!strcmp(cv.n, "PY2GB"))
+			{
+				cv.d[1] = 3;
+				cv.d[0] = 0x1401;
+			}
+			else if (!strcmp(cv.n, "SndPlayFile"))
+			{
+				cv.d[1] = 3;
+				cv.d[0] = 0x1501;
+			}
+			else if (!strcmp(cv.n, "SndSetVolume"))
+			{
+				cv.d[1] = 1;
+				cv.d[0] = 0x1601;
+			}
+			else if (!strcmp(cv.n, "SndGetVolume"))
+			{
+				cv.d[0] = 0x1701;
+			}
+			else if (!strcmp(cv.n, "SndStop"))
+			{
+				cv.d[0] = 0x1801;
+			}
+			else if (!strcmp(cv.n, "SndPause"))
+			{
+				cv.d[0] = 0x1901;
+			}
+			else if (!strcmp(cv.n, "SndResume"))
+			{
+				cv.d[0] = 0x1a01;
+			}
+			else if (!strcmp(cv.n, "SndGetPlay"))
+			{
+				cv.d[0] = 0x1b01;
+			}
+			else if (!strcmp(cv.n, "Idle"))
+			{
+				cv.d[0] = 0x1c01;
+			}
+			else
+			{
+				Error(cv.n,E_UVAR);//变量未定义
+			}
+			return(LVM_FUN);
+		}
+#endif
+		Error(cv.n,E_UVAR);//变量未定义
+	}
+	else if (isdigit(*in.p))//数字
+	{
+		cv.v = Num_Get();
+		return(NUMBER);
+	}
+	else
+	{
+		return(Sign_Get());
+	}
+}
+
+//******************************************************表达式分析******************************************************//
+/* 表达式编译模块 */
+void Exp_deal(char cmd)
+{
+	struct TMP_VAR e;//临时接口
+	long ev;//结构地址
+	int vi;//临时变量链表指针
+	char i, j, k, f;//临时变量
+	char tv, sv, so;//当前临时变量栈指针,当前变量栈指针,运算栈指针
+	struct OPERATOR o[8];//运算栈
+
+	memset(e, 0, sizeof(struct COM_VAR) + 8 * sizeof(struct OPERATOR) + 13);//初始化
+START:
+//---------------------------------------------------------监视---------------------------------------------------------//
+ //if (5*in.size<6*(ftell(in.fp)-strlen(in.p)))Look(sv,so,o,cmd,0);
+//---------------------------------------------------------变量---------------------------------------------------------//
+	if (cmd <= V_POINT + P_UNI_A)//变量,数组,结构体,共用体,引用
+	{
+		if (cmd <= PART_VAR)//cmd:0 全局变量,1:局部变量[用到的临时变量:k,j]
+		{
+			j = cmd;
+			cmd = Get_Mark();//保护,读取下一个符号
+VAR_DEAL:
+			cp.hp++;//堆栈加1
+			sv++;
+			if (so)//等级转换
+			{
+				if (strchr(sign18, k = o[so - 1].c)) goto VAR_GIVE;//++a,--a
+				if (k == 20)//&
+				{
+					so--;
+					Put((j * 23 + 2)|(cv.v << 8), 3);
+					goto POP;
+				}
+				if (k == 54 && cp.o.g == 9)//*a=
+				{
+					Put(((cv.b >> 1) + j * 10 + 4)|(cv.v << 8), 3);
+					goto POP;
+				}
+			}
+			if (strchr(sign19, cp.o.g))//赋值,a++,a--
+			{
+VAR_GIVE:
+				Put(3, 1);
+				Put(cv.v|(cv.b << 16)|(j << 23), 4);
+				if (cp.o.g == 2)
+				{
+					Put(cp.o.c, 1);
+					cmd = Get_Mark();
+				}
+				goto POP;
+			}
+			Put(((cv.b >> 1) + j * 10 + 4)|(cv.v << 8), 3);
+			goto POP;
+		}
+		if (cmd <= PART_ARR)//cmd:4 全局数组,5:局部数组[用到的临时变量:vi,j,i,k]
+		{
+			if (*in.p != '[')
+			{
+				if (cmd == GLOB_ARR) goto NUM_DEAL;//当成数字处理
+				cp.hp++;//堆栈加1
+				sv++;
+				Put(25|(cv.v << 8), 3);
+				cmd = Get_Mark();
+				goto POP;
+			}
+			in.p++;
+			memcpy(e, cv, sizeof(struct TMP_VAR));
+			vi = var.i;
+			j = cmd;//保护,读取下一个符号
+			sv++;//堆栈加1
+			i = 0;
+			do {
+				Exp_deal(Get_Mark());//下标分析
+				if (i)
+				{
+					Put(33, 1);
+					cp.hp--;
+				}
+				if (++i < e.d[0])
+				{
+					Put(71, 1);
+					Put(e.d[i], 2);
+				}
+				else if (i > e.d[0])
+				{
+					Error(var.ptr[vi], E_OARR);
+				}
+			} while ((cmd = Get_Mark()) == L_M_BRAC);
+			if (i == e.d[0])
+			{
+				if (e.b > 1) Put(74|(e.b << 7), 3);//(e.b << 8) >> 1
+				if (so)//等级转换
+				{
+					if (strchr(sign18, k = o[so - 1].c)) goto ARR_GIVE;//++a,--a
+					if (k == 20)//&
+					{
+						so--;
+						Put((j + 19)|(e.v << 8), 3);
+						goto POP;
+					}
+					if (k == 54 && cp.o.g == 9)//*
+					{
+						Put(((e.b >> 1) + j * 10 - 33)|(e.v << 8), 3);
+						goto POP;
+					}
+				}
+				if (strchr(sign19, cp.o.g))//赋值,a++,a--
+				{
+ARR_GIVE:
+					Put(((e.b >> 1) + j * 10 - 30)|(e.v << 8), 3);
+					if (cp.o.g == 2)
+					{
+						Put(cp.o.c, 1);
+						cmd = Get_Mark();
+					}
+					goto POP;
+				}
+				Put(((e.b >> 1) + j * 10 - 33)|(e.v << 8), 3);
+				goto POP;
+			}
+			for (k = i + 1; k < e.d[0]; k++)
+			{
+				e.d[i] = e.d[i] * e.d[k];
+			}
+			Move(-2);
+			Put(e.d[i] * e.b, 2);
+			Put((j + 19)|(e.v << 8), 3);
+			goto POP;
+		}
+		if (cmd <= P_UNI_A | cmd >= V_POINT + G_STU_V)
+		//cmd:6~13 24~31 结构体(指针)和共用体(指针)[用到的临时变量:ev,vi,j,i,k,f,tv]
+		{
+			j = cmd&1;//转换
+			if (!strchr(sign20, *in.p))
+			{
+				cv.v = cv.v&0xffff;
+				if (cmd >= V_POINT + G_STU_V) goto ADPT_GET;//指针
+				if (j)
+				{
+					cp.hp++;//堆栈加1
+					sv++;
+					Put(25|(cv.v << 8), 3);
+					cmd = Get_Mark();
+					goto POP;
+				}
+				goto NUM_DEAL;//当成数字处理
+			}
+			memcpy(e, cv, sizeof(struct TMP_VAR));//保护
+			ev = e.v;
+			e.v = f = 0;
+			tv = sv;
+STU_LOOP:
+			if (e.t >= V_POINT)//指针
+			{
+				f = f|1;//标志
+				if (!strchr(sign20, *in.p))
+				{
+					if (so && !i)
+					{
+						if (o[so - 1].c == 20)
+						{
+							so--;
+							e.b = 2;
+							e.t = PART_VAR;
+							goto SPT_START;
+						}
+					}
+				}
+				if (sv == tv)
+				{
+					cp.hp++;
+					sv++;
+					Put(j * 10 + 5, 1);
+				}
+				else Put(8, 1);
+				Put(ev, 2);
+				ev = ev&0xffff0000;
+				e.t = e.t - V_POINT;//变为普通变量
+			}
+SPT_START:
+			cmd = Get_Mark();//读取下一个符号
+			i = 0;
+			vi = var.i;//初始化
+			if (cmd == L_M_BRAC)//下标分析
+			{
+				do {
+					Exp_deal(Get_Mark());//下标分析
+					if (i)
+					{
+						Put(33, 1);
+						cp.hp--;
+					}
+					if (++i < e.d[0])
+					{
+						Put(71, 1);
+						Put(e.d[i], 2);
+					}
+					else if (i > e.d[0])
+					{
+						Error(var.ptr[vi], E_OARR);
+					}
+				} while ((cmd = Get_Mark()) == L_M_BRAC);
+				sv++;//堆栈加1
+				if (i == e.d[0])
+				{
+					if (e.t <= PART_ARR)//数组
+					{
+						if (e.b > 1) Put(74|(e.b << 7), 3);//(e.b << 8) >> 1
+					}
+					else if (e.b)
+					{
+						Put(71|(e.b << 8), 3);//结构
+					}
+					i = 2;
+				}
+				else
+				{
+					for (k = i + 1; k < e.d[0]; k++)
+					{
+						e.d[i] = e.d[i] * e.d[k];
+					}
+					Move(-2);
+					Put(e.d[i] * e.b, 2);
+					i = 1;
+				}
+			}
+			while (sv > tv + 1)//堆栈操作
+			{
+				Put(33, 1);
+				sv--;
+				cp.hp--;
+			}
+			if (cmd == POINT)//结构分析
+			{
+				Str_Get();
+				cv.n[k = strlen(cv.n)] = ev >> 16;
+				cv.n[k + 1] = 0;
+				if (SeekVar()) Error(cv.n, E_UMEM);//读取成员
+				ev = (ev&0xffff) + cv.v;//偏移迭加
+				memcpy(e, cv, sizeof(struct TMP_VAR));//保护
+				goto STU_LOOP;
+			}
+//===========================================循环结束=============================================
+			if (sv == tv && e.t <= PART_VAR)//当作变量看待(非引用且非数组，  或引用：&t)
+			{
+				cv.b = e.b;
+				cv.v = ev&0xffff;
+				goto VAR_DEAL;
+			}
+			if (e.t <= PART_VAR | (i == 2 && e.t <= PART_ARR))//只有指针本身，变量，全维数组
+			{
+				if (f) j = 0;//指针初始化类型为0
+				if (so)//等级转换
+				{
+					if (strchr(sign18, k = o[so - 1].c)) goto STU_GIVE;//++a,--a
+					if (k == 20)//&
+					{
+						so--;
+						if (f)
+						{
+							Put(69|(ev << 8), 3);
+						}
+						else
+						{
+							Put((j + 23)|(ev << 8), 3);
+						}
+						goto POP;
+					}
+					if (k == 54 && cp.o.g == 9) goto STU_GET;//*
+				}
+				if (strchr(sign19, cp.o.g))//赋值,a++,a--
+				{
+STU_GIVE:
+					if (f && e.b == 1)
+					{
+						Put(69|(ev << 8), 3);
+						Put(55, 1);
+					}
+					else
+					{
+						Put(((e.b >> 1) + j * 10 + 10)|(ev << 8), 3);
+					}
+					if (cp.o.g == 2)
+					{
+						Put(cp.o.c, 1);
+						cmd = Get_Mark();
+					}
+					goto POP;
+				}
+STU_GET:
+				if (f && e.b == 1)
+				{
+					Put(69|(ev << 8), 3);
+					Put(54, 1);
+				}
+				else
+				{
+					Put(((e.b >> 1) + j * 10 + 7)|(ev << 8), 3);
+				}
+				goto POP;
+			}
+			if (i)//a[]
+			{
+				if (f | !j)
+				{
+					Put(69, 1);
+				}
+				else
+				{
+					Put(24, 1);
+				}
+			}
+			else//a
+			{
+				if (sv == tv)
+				{
+					cp.hp++;
+					sv++;
+					Put(j * 23 + 2, 1);
+				}
+				else
+				{
+					Put(69, 1);
+				}
+			}
+			Put(ev, 2);
+			goto POP;
+		}
+		if (cmd <= V_POINT + PART_VAR)//cmd:18 全局变量指针,19:局部变量指针[用到的临时变量:k,j]
+		{
+			j = cmd&1;
+			cmd = Get_Mark();//保护,读取下一个符号
+			cp.hp++;//堆栈加1
+			sv++;
+			if (so)//等级转换
+			{
+				if (strchr(sign18, k = o[so - 1].c)) goto VPT_GIVE;//++a,--a
+				if (k == 20)//& 当变量处理
+				{
+					so--;
+					cp.hp--;
+					sv--;
+					cv.b = 2;
+					goto VAR_DEAL;
+				}
+				if (k == 54 && cp.o.g == 9) goto VPT_GET;//*a=
+			}
+			if (strchr(sign19, cp.o.g))//赋值,a++,a--
+			{
+VPT_GIVE://赋值
+				Put((j * 10 + 5)|(cv.v << 8), 3);//地址
+				if (cv.b == 1)//char
+				{
+					Put(0x37, 1);
+				}
+				else
+				{
+					Put((cv.b >> 1) + 10, 3);//long
+				}
+				if (cp.o.g == 2)
+				{
+					Put(cp.o.c, 1);
+					cmd = Get_Mark();
+				}
+				goto POP;
+			}
+VPT_GET://引用
+			Put((j * 10 + 5)|(cv.v << 8), 3);//地址
+			if (cv.b == 1)//char
+			{
+				Put(0x36, 1);
+			}
+			else
+			{
+				Put((cv.b >> 1) + 7, 3);//int long
+			}
+			goto POP;
+		}
+		if (cmd <= V_POINT + PART_ARR)//cmd:22 全局数组指针,23:局部数组指针[用到的临时变量:vi,j,i,k]
+		{
+			j = cmd&1;//转换
+			if (*in.p != '[')
+			{
+ADPT_GET:
+				cmd = Get_Mark();//读取下一个符号
+				if (so)//& 当变量处理
+				{
+					if (o[so - 1].c == 20)
+					{
+						so--;
+						cv.b = 2;
+						goto VAR_DEAL;
+					}
+				}
+				cp.hp++;
+				sv++;//堆栈加1
+				Put((j * 10 + 5)|(cv.v << 8), 3);
+				goto POP;
+			}
+			in.p++;
+			memcpy(e, cv, sizeof(struct TMP_VAR));
+			vi = var.i;//保护,读取下一个符号
+			sv++;//堆栈加1
+			i = 0;
+			do {
+				Exp_deal(Get_Mark());//下标分析
+				if (i)
+				{
+					Put(33, 1);
+					cp.hp--;
+				}
+				if (++i < e.d[0])
+				{
+					Put(71, 1);
+					Put(e.d[i], 2);
+				}
+				else if (i > e.d[0])
+				{
+					Error(var.ptr[vi], E_OARR);
+				}
+			} while ((cmd = Get_Mark()) == L_M_BRAC);
+			if (i == e.d[0])
+			{
+				if (e.b > 1) Put(74|(e.b << 7), 3);//(e.b << 8) >> 1
+				if (so)//等级转换
+				{
+					if (strchr(sign18, k = o[so - 1].c)) goto APT_GIVE;//++a,--a
+					if (k == 20)//&
+					{
+						so--;
+						Put((j * 10 + 5)|(e.v << 8), 3);
+						Put(33, 1);
+						goto POP;
+					}
+					if (k == 54 && cp.o.g == 9) goto APT_GET;//*
+				}
+				if (strchr(sign19, cp.o.g))//赋值,a++,a--
+				{
+APT_GIVE:
+					Put((j * 10 + 5)|(e.v << 8), 3);
+					Put(33, 1);
+					if (e.b == 1)
+					{
+						Put(55, 1);
+					}
+					else
+					{
+						Put((e.b >> 1) + 10, 3);
+					}
+					if (cp.o.g == 2)
+					{
+						Put(cp.o.c, 1);
+						cmd = Get_Mark();
+					}
+					goto POP;
+				}
+APT_GET:
+				Put((j * 10 + 5)|(e.v << 8), 3);
+				Put(33, 1);
+				if (e.b == 1)
+				{
+					Put(54, 1);
+				}
+				else
+				{
+					Put((e.b >> 1) + 7, 3);
+				}
+				goto POP;
+			}
+			for (k = i + 1; k < e.d[0]; k++)
+			{
+				e.d[i] = e.d[i] * e.d[k];
+			}
+			Move(-2);
+			Put(e.d[i] * e.b,2);
+			Put((j * 10 + 5)|(e.v << 8), 3);
+			Put(0x1721, 4);
+			goto POP;
+		}
+	}
+//---------------------------------------------------------数字---------------------------------------------------------//
+	if (cmd == NUMBER)//数字
+	{
+NUM_DEAL:
+		if (cv.v < -32768 | cv.v >= 32768)
+		{
+			Put(3, 1);
+			Put(cv.v, 4);
+		}
+		else
+		{
+			if (so)//双目运算符
+			{
+				i = o[so - 1].c;
+				if (so > sv)//*1,!1,~1
+				{
+					if (i == 41)//!1
+					{
+						cv.v = !cv.v;
+						so--;
+					}
+					else if (i == 37)//~1
+					{
+						cv.v = ~cv.v;
+						so--;
+					}
+					goto NUM;
+				}
+				if (i == 33)
+				{
+					i = 69;//+1
+				}
+				else if (i == 34)
+				{
+					i = 70;//-1
+				}
+				else if (i >= 42 && i <= 52)
+				{
+					if (i <= 47)		i = i + 29;
+					else if (i == 48)	i = 77;
+					else if (i <= 50)	i = 130 - i;
+					else				i = i + 27;
+				}
+				else
+				{
+					goto NUM;
+				}
+				e.v = cv.v;
+				cmd = Get_Mark();
+				if (cp.o.g < o[so - 1].g)
+				{
+					if (e.v >> 8)
+					{
+						Put(2|(e.v << 8), 3);
+					}
+					else
+					{
+						Put(1|(e.v << 8), 2);
+					}
+					cp.hp++;//堆栈+1
+					sv++;
+					goto START;
+				}
+				Put(i|(e.v << 8), 3);
+				so--;
+				goto START;
+			}
+NUM:
+			if (cv.v >> 8)
+			{
+				Put(2|(cv.v << 8), 3);
+			}
+			else
+			{
+				Put(1|(cv.v << 8), 2);
+			}
+		}
+		cp.hp++;//堆栈+1
+		sv++;
+		cmd = Get_Mark();
+		goto POP;//堆栈操作
+	}
+//---------------------------------------------------------函数---------------------------------------------------------//
+	if (strchr(sign17, cmd))//子程序,函数
+	{
+		if (*in.p != '(')
+		{
+			if (cmd == LVM_FUN) Error(0, E_GRAMMAR);
+			if (cv.v) goto NUM_DEAL;//函数作为数字
+			Put(0x03, 1);
+			SavJmp(cv.d[0] + (JP_SUB << 16 - JP_TYP), cp.offset);
+			Put(0, 4);
+			cp.hp++;//堆栈+1
+			sv++;
+			cmd = Get_Mark();
+			goto POP;//堆栈操作
+		}
+		memcpy(e, cv, sizeof(struct TMP_VAR));
+		vi = var.i;//保存cv
+		i = 0;//参数分析
+		if (*++in.p != ')')
+		{
+			do {
+				Exp_deal(Get_Mark());
+				i++;
+			} while (*(in.p - 1) == ',');
+		}
+		else
+		{
+			in.p++;
+		}
+		if (cmd == LVM_FUN)
+		{
+			if (strchr(sign16, e.v))
+			{
+				Put(1, 1);
+				Put(e.d[1] = i, 1);//跳过参数检查
+			}
+#if WQX == 0
+			else if (e.v == 211)
+			{
+				Put(e.d[0], 2);
+			}
+#endif
+			Put(e.v, 1);
+		}
+		else//子程序
+		{
+			if (e.b >= 7)//特殊函数
+			{
+				if (e.b == 9)//函数指针
+				{
+					if (cv.t <= PART_VAR)//变量做函数指针!!!
+					{
+						e.b = cv.d[0];
+					}
+					else if (cv.t == LVM_SUB)//子程序
+					{
+						e.b = cv.b;
+					}
+					else
+					{
+						Error(0, E_GRAMMAR);
+					}
+					e.d[1] = cv.d[1] + 1;
+				}
+				else
+				{
+					if (e.b == 7)
+					{
+						e.b = 0;
+					}
+					else
+					{
+						e.b = 1;
+					}
+					Put(1, 1);
+					Put(e.d[1] = i, 1);//跳过参数检查
+				}
+			}
+			Put(61, 1);
+			if (e.v)
+			{
+				Put(e.v, 3);
+			}
+			else
+			{
+				SavJmp(e.d[0] + (JP_SUB << 16 - JP_TYP), cp.offset);
+				Put(0, 3);
+			}
+		}
+		if (e.d[1] != i) Error(var.ptr[vi], E_PARA);//参数合法性检查
+		if (e.b)
+		{
+			sv++;
+			cp.hp = cp.hp - i + 1;//堆栈操作
+			cmd = Get_Mark();
+			goto POP;
+		}
+		cp.hp = cp.hp - i;//堆栈操作
+		cmd = Get_Mark();
+		goto POP;
+	}
+//---------------------------------------------------------符号---------------------------------------------------------//
+	if (cmd == LVM_SIGN)//运算符
+	{
+		if (strchr(sign15, cp.o.c))//*,-,&分离
+		{
+			if ((!isalnum(i = *(in.p - 2)) && !strchr(sign1, i)) | !sv)
+			{
+				if (cp.o.c == 34)//负数
+				{
+					if (isdigit(*in.p))
+					{
+						cv.v = -Num_Get();
+						goto NUM_DEAL;
+					}
+					cp.o.c = 28;
+				}
+				else if (cp.o.c == 35)
+				{
+					cp.o.c = 20;
+				}
+				else
+				{
+					cp.o.c = 54;
+				}
+				cp.o.g = 2;
+			}
+		}
+		while (so && sv >= 2)//双目
+		{
+			if (o[--so].g == 9) o[so].g = 10;
+			if (o[so].g <= cp.o.g)
+			{
+				Put(o[so].c, 1);
+				sv--;
+				cp.hp--;
+			}
+			else
+			{
+				so++;
+				break;
+			}
+		}
+		memcpy(o[so++], cp.o, sizeof(struct OPERATOR));
+		goto END;
+	}
+	if (cmd == L_S_BRAC)//(
+	{
+		Exp_deal(Get_Mark());
+		sv++;
+		cmd = Get_Mark();
+		goto POP;
+	}
+	if (cmd >= R_M_BRAC && cmd <= R_B_BRAC)//括号]),;}
+	{
+		while (so && sv > 1)//双目
+		{
+			if (o[so - 1].g <= cp.o.g)
+			{
+				Put(o[--so].c, 1);
+				if (o[so].g != 2)
+				{
+					sv--;
+					cp.hp--;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		if (cp.hp && cmd == LVM_SEMI)
+		{
+			cp.hp = 0;
+			Put(56, 1);
+		}
+		if (so | sv > 1) Error(0, E_HEAP);
+		return;
+	}
+//---------------------------------------------------------其它---------------------------------------------------------//
+	if (cmd == STRING)//字符串
+	{
+		Put(13, 1);
+		while (*in.p != '"')
+		{
+			if (*in.p == 92)
+			{
+				if (vi = strchr(sign2, *++in.p))
+				{
+					Put(sign3[vi - sign2] ^ strMask, 1);
+					in.p++;
+					continue;
+				}
+			}
+			Put(*in.p ^ strMask, 1);
+			if (!*++in.p) CUSH_Get();//调整
+		}
+		Put(strMask, 1);
+		in.p++;
+		cp.hp++;
+		sv++;
+		goto END;
+	}
+	if (cmd == LVM_SIZE)//sizeof
+	{
+		in.p++;
+		Str_Get();
+		cv.v = ChkByte();//读取类型
+		if (cv.v > 4)//引用:sizeof(struct TIME)
+		{
+			in.p++;
+			Str_Get();
+			if (SeekVar()) Error(cv.n, E_USTU);
+			cv.v = cv.b;
+		}
+		else if (cv.v < 0)//变量:sizeof a;
+		{
+			cv.d[0] = 0;//初始化
+			if (SeekVar()) Error(cv.n, E_UVAR);
+			i = 0;
+			while (*in.p == '[')
+			{
+				i++;
+				do {} while (*in.p++ != ']');
+			}
+			if (i > cv.d[0]) Error(cv.v, E_OARR);
+			if (i)
+			{
+				cv.v = 1;
+				i = cv.d[0] - i;
+				while (i)
+				{
+					cv.v = cv.v * cv.d[i];
+					i--;
+				}
+				cv.v = cv.v * cv.b;
+			}
+			else
+			{
+				cv.v = cv.d[cv.d[0]];
+			}
+		}
+		if (*in.p == ')') in.p++;
+		goto NUM_DEAL;
+	}
+	if (cmd >= LVM_TEXT && cmd <= LVM_GBUF)//_TEXT,_GRAPH,_GBUF
+	{
+		Put(cmd - _LVM_T, 1);
+		sv++;
+		cp.hp++;
+		goto END;
+	}
+//-------------------------------------------------------非法语法-------------------------------------------------------//
+	if (cmd == POINT | cmd == L_M_BRAC | cmd == L_B_BRAC)	Error(*(in.p - 1), E_SIGN);	//.[{
+	if (cmd >= LVM_BRK && cmd <= LVM_DO)					Error(cv.n, E_SENTE);		//语句
+	if (cmd == LVM_LABEL) goto NUM_DEAL;												//标号
+	if (cmd != LVM_NULL)									Error(cmd, E_CMD);			//未定义的内码
+//---------------------------------------------------------提取---------------------------------------------------------//
+END:
+	cmd = Get_Mark();
+	goto START;
+//---------------------------------------------------------堆栈---------------------------------------------------------//
+POP:
+	while (so)//单目:!,~,-,*,--,++
+	{
+		if (o[--so].g == 2)
+		{
+			if ((k = o[so].c) == 54)
+			{
+				if (cp.o.g == 9)
+				{
+					k = 55;
+				}
+				else if (cmd == R_S_BRAC)
+				{
+					if ((*in.p == '+' && *(in.p + 1) == '+') | (*in.p == '-' && *(in.p + 1) == '-')) k = 55;
+				}
+				else if (so)
+				{
+					if (strchr(sign18, o[so - 1].c)) k = 55;
+				}
+			}
+			else if (k == 20)//丢弃多余的&
+			{
+				continue;
+			}
+			Put(k, 1);
+		}
+		else
+		{
+			so++;
+			break;
+		}
+	}
+	goto START;
+}
+//*******************************************************语句分析*******************************************************//
+/* 函数编译模块 */
+void Fun_deal()
+{
+	char cmd, dp;//特征码 当前嵌套指针
+
+	dp = jp.j;
+START:
+	cmd = Get_Mark();//读取词汇
+	if (cmd <= LVM_SEMI)//表达式处理
+	{
+		Exp_deal(cmd);
+		if (cp.hp) Error(0, E_HEAP);//堆栈错误
+		goto END;
+	}
+	if (cmd == LVM_IF)//if
+	{
+		jp.f[++jp.j] = cmd;
+		in.p++;
+		Exp_deal(Get_Mark());//嵌套堆栈 条件
+		if (cp.hp)
+		{
+			cp.hp = 0;
+			Put(56, 1);
+		}
+		else
+		{
+			Error(0, E_HEAP);
+		}
+		SavJmp(jp.j + (JP_IF << 16 - JP_TYP), cp.offset + 1);
+		Put(57, 4);//转移写入
+		goto START;
+	}
+	if (cmd == LVM_WHILE)//while
+	{
+		jp.f[++jp.j] = cmd;
+		jp.t[jp.i++] = cp.offset;//压入嵌套堆栈 记录首地址
+		in.p++;
+		Exp_deal(Get_Mark());//条件写入
+		if (cp.hp)
+		{
+			cp.hp = 0;
+			Put(56, 1);
+		}
+		else
+		{
+			Error(0, E_HEAP);
+		}
+		SavJmp(jp.j + (JP_WHILE << 16 - JP_TYP), cp.offset + 1);
+		Put(57, 4);//转移写入
+		goto START;
+	}
+	if (cmd == LVM_DO)//压入嵌套堆栈 记录首地址
+	{
+		jp.f[++jp.j] = cmd;
+		jp.t[jp.i++] = cp.offset;
+		if (*in.p == ' ') in.p++;
+		goto START;
+	}
+	if (cmd == LVM_FOR)//for
+	{
+		jp.f[++jp.j] = cmd;
+		in.p++;
+		Exp_deal(Get_Mark());
+		jp.t[jp.i++] = cp.offset;//压入嵌套堆栈 参数1 记录临时转移1
+		lib.name[0].t2 = 0;//初始化
+		if (*in.p != ';')//第2个;
+		{
+			Exp_deal(Get_Mark());//参数2 标记
+			cmd = 0;
+			SavJmp(jp.j + (JP_FOR << 16 - JP_TYP), cp.offset + 1);
+			Put(57, 4);//条件写入
+		}
+		else if (!*++in.p)//跳过分号,调整
+		{
+			CUSH_Get();
+		}
+		if (*in.p != ')')
+		{
+			lib.name[0].t2 = cp.offset + 1;//记录临时转移2
+			Put(59, 4);
+			lib.name[0].t1 = jp.t[--jp.i];
+			jp.t[jp.i++] = cp.offset;//记录for首地址
+			Exp_deal(Get_Mark());//参数3
+			if (cp.hp)
+			{
+				cp.hp = 0;
+				Put(56, 1);
+			}
+			else
+			{
+				Error(0, E_HEAP);
+			}
+			if (!cmd)//写入临时转移1
+			{
+				Put(59, 1);
+				Put(lib.name[0].t1, 3);
+			}
+		}
+		else
+		{
+			in.p++;
+		}
+		if (lib.name[0].t2) W_Jmp(lib.name[0].t2, cp.offset, 3);//写入临时转移2
+		goto START;
+	}
+	if (cmd == R_B_BRAC)//}
+	{
+		return;
+	}
+	if (cmd == L_B_BRAC)//{
+	{
+		Fun_deal();
+	}
+	else if (cmd == LVM_BRK)//break
+	{
+		if (jp.i)//转移写入
+		{
+			SavJmp(jp.i + (JP_BRK << 16 - JP_TYP), cp.offset + 1);
+			Put(59, 4);
+		}
+		else
+		{
+			Error(0, E_NBRK);
+		}
+		goto MOV;
+	}
+	else if (cmd == LVM_CONT)//continue
+	{
+		for (lib.name[0].t1 = jp.j; jp.f[lib.name[0].t1] <= LVM_ELSE && lib.name[0].t1; lib.name[0].t1--);
+		if (jp.f[lib.name[0].t1] == LVM_DO)//转移写入(do)
+		{
+			SavJmp(jp.i + (JP_CONT << 16 - JP_TYP), cp.offset + 1);
+			Put(59, 4);
+		}
+		else if (jp.i)//continue跳转
+		{
+			Put(59, 1);
+			Put(jp.t[jp.i - 1], 3);
+		}
+		else
+		{
+			Error(0, E_NCON);
+		}
+		goto MOV;
+	}
+	else if (cmd == LVM_GOTO)//goto
+	{
+		in.p++;
+		cv.v = 0;
+		Str_Get();//提取标号
+		if (SeekVar())
+		{
+			cv.t = LVM_LABEL;
+			cv.d[cv.v = 0] = cp.ln++;
+			SavVar();//记录标号
+			SavJmp(cv.d[0] + (JP_LABEL << 16 - JP_TYP), cp.offset + 1);
+			Put(59, 4);//跳转写入
+		}
+		else if (!cv.v)
+		{
+			SavJmp(cv.d[0] + (JP_LABEL << 16 - JP_TYP), cp.offset + 1);
+			Put(59, 4);
+		}
+		else
+		{
+			Put(59, 1);
+			Put(cv.v, 3);
+		}
+MOV:
+		if (!*++in.p) CUSH_Get();//跳过分号,调整
+	}
+	else if (cmd == LVM_RET)//return
+	{
+		if (cp.sub)//有返回值
+		{
+			if (*in.p != ';')
+			{
+				if (*in.p == ' ') in.p++;
+				Exp_deal(Get_Mark());//参数
+				if (!cp.hp)//调整
+				{
+					in.p--;
+					Move(-1);
+					if (!cp.hp)
+					{
+						if (*(out.p + FB_CUSH) != 56) Error(0, E_HEAP);
+					}
+				}
+				cp.hp = 0;
+				Put(63, 1);
+			}
+			else
+			{
+				Error(0, E_NRET);
+			}
+		}
+		else if (*in.p == ';')//无返回值
+		{
+			if (cp.ma)
+			{
+				Put(64, 1);
+			}
+			else
+			{
+				Put(63, 1);
+			}
+		}
+		else
+		{
+			Error(0, E_HRET);
+		}
+		if (!*++in.p) CUSH_Get();//跳过分号,调整
+	}
+	else if (cmd != LVM_NULL)
+	{
+		Error(cmd, E_CMD);//未定义的内码
+	}
+//-------------------------------------------------------跳转分析-------------------------------------------------------//
+END:
+	while (jp.j > dp)
+	{
+		if (jp.f[jp.j] <= LVM_ELSE)
+		{
+			if (*in.p == 'e')
+			{
+				Str_Get();
+				if (!strcmp(cv.n, sign7) && jp.f[jp.j] != LVM_ELSE)
+				{
+					SeekJmp(jp.j + (JP_IF << 16 - JP_TYP), 4);
+					SavJmp(jp.j + (JP_IF << 16 - JP_TYP), cp.offset + 1);
+					Put(59, 4);
+					if (*in.p == ' ') in.p++;
+					jp.f[jp.j] = LVM_ELSE;
+					goto START;
+				}
+				in.p = in.p - strlen(cv.n);
+			}
+			SeekJmp(jp.j + (JP_IF << 16 - JP_TYP), 0);
+		}
+		else
+		{
+			if (jp.f[jp.j] <= LVM_WHILE)
+			{
+				Put(59, 1);//首地址写入
+				Put(jp.t[--jp.i], 3);
+				if (jp.f[jp.j] == LVM_FOR) SeekJmp(jp.j + (JP_FOR << 16 - JP_TYP), 0);//for跳转
+				else SeekJmp(jp.j + (JP_WHILE << 16 - JP_TYP), 0);//while跳转
+			}
+			else
+			{
+				do {} while(SeekJmp(jp.i + (JP_CONT << 16 - JP_TYP), 0));//continue跳转
+				Get_Mark();
+				in.p++;//跳过while
+				Exp_deal(Get_Mark());
+				if (cp.hp)
+				{
+					cp.hp = 0;
+					Put(56, 1);
+				}
+				else Error(0, E_HEAP);//参数
+				Put(58, 1);
+				Put(jp.t[--jp.i], 3);//do跳转
+			}
+			do {} while(SeekJmp(jp.i + (JP_BRK << 16 - JP_TYP) + 1, 0));//break跳转
+		}
+		jp.j--;
+	}
+	goto START;
+}
+//*******************************************************编译接口*******************************************************//
+/* 编译模块 */
+void Compile()
+{
+	Progress("编译中...", "编译系统正在运行...", 1);//消息框
+	//优化字符串初始化开始
+	strcpy(sign1, "_])");
+	strcpy(sign2, "nrtb");
+	sign3[0] = 10;
+	sign3[1] = 13;
+	strcpy(sign4, "+-*/%");
+	strcpy(sign5, "main");
+	strcpy(sign6, "if");
+	strcpy(sign7, "else");
+	strcpy(sign8, "while");
+	strcpy(sign9, "for");
+	strcpy(sign10, "return");
+	strcpy(sign11, "do");
+	strcpy(sign12, "break");
+	strcpy(sign13, "continue");
+	strcpy(sign14, "goto");
+	strcpy(sign15, "*\"#");
+	strcpy(sign16, "競");
+	sign17[0] = LVM_SUB;
+	sign17[1] = LVM_FUN;
+	sign18[0] = 29;
+	sign18[1] = 30;
+	sign17[2] = sign18[2] = sign19[2] = 0;
+	strcpy(sign20, ".[");
+	strcpy(sign21, "char");
+	strcpy(sign22, "int");
+	strcpy(sign23, "long");
+	strcpy(sign24, "void");
+	strcpy(sign25, "struct");
+	strcpy(sign26, "\"{");
+	strcpy(sig, ".\"[(]),;}{");
+	strcpy(bol, "!@$~@$++$--$*@$/@$%@$+@$-@$<<$>>$==$!=$<=$>=$>@$<@$&@$|@$^@$&&$||$=@");
+	strcpy(code, ")%");
+	code[2] = 0x1d;
+	code[3] = 0x1e;
+	strcpy(code + 4, "*+,!\"-./01234#$&'(5");
+	sign19[0] = grad[0] = grad[1] = grad[2] = grad[3] = 2;
+	grad[4] = grad[5] = grad[6] = 3;
+	grad[7] = grad[8] = 4;
+	grad[9] = grad[10] = 5;
+	grad[11] = grad[12] = grad[13] = grad[14] = grad[15] = grad[16] = 6;
+	grad[17] = grad[18] = grad[19] = 7;
+	sign3[3] = grad[20] = grad[21] = 8;
+	sign3[2] = sign19[1] = grad[22] = 9;
+	//优化字符串初始化结束
+	memset(FB_CUSH, 0, FB_C_REL);//缓冲初始化
+	strcpy(FB_CUSH, "LAV");
+	*(FB_CUSH + 3) = 18;
+	*(FB_CUSH + 15) = 'y';//yan ^_^
+	out.p = 16;
+	memset(jp, 0, sizeof(struct JUMP_LINK));//跳转表初始化
+	strMask = jp_var = 0;
+	memset(cp, 0, sizeof(struct COMPILE));//设置初始化
+	cp.add[VGLOBOLE] = 0x2000;
+	cp.offset = 16;
+	LoadVFun();//初始化变量表，载入函数文件
+	ChExt(out.name, "lav");
+	strcpy(out.path, cfset.lav);
+	if (ChPath(out.path)) Error(out.path, E_CATA);
+	if (!(out.fp = fopen(out.name, "w"))) Error(out.name, E_CREAT);//创建lav文件
+	CUSH_Get();
+	do {
+		cp.i = VGLOBOLE;//变量类型初始化
+		cp.add[VPART] = 5;
+		Fun_deal();//函数分析
+		W_Jmp(jp_sub, cp.add[VPART], 2);//写入子程序总变量地址
+		if (cp.sub) Put(1, 2);
+		if (cp.ma) Put(64, 1);
+		else Put(63, 1);
+		Progress(ftell(in.fp) - strlen(in.p), in.size, 0);//进度
+		memset(var.bh, 0, var.bt - var.bh);//去除局部变量空间表
+		var.bt = var.bh;
+		var.bh = VAR_TABLE;
+		memset(&var.ptr[var.ph], 0, (var.pt - var.ph) << 1);//去除局部变量链表
+		var.pt = var.ph;
+		var.ph = cp.ln = 0;
+		cp.sn = cp.ts;//标号个数初始化 结构体个数初始化
+		DelJmp();//去除局部跳转表
+	} while (*in.p);
+	CUSH_Sav();//写入剩余在缓冲区的代码
+	if (jp.size) Error(jp.size, E_DJMP);//含有未完成的跳转
+	if (!cp.mai) Error(0, E_MAIN);//没有main函数
+	if (cp.add[VGLOBOLE] > 0x7800) Error(cp.add[VGLOBOLE] - 0x7800, E_KVAR);//变量总空间太大
+	W_Jmp(jp_var, cp.add[VGLOBOLE], 2);//写入变量总空间
+	if (cp.la)//#loadall
+	{
+#if WQX == 0
+		if ((cv.v = ftell(out.fp) - cp.ary) + cp.add[VGLOBOLE] > 0x7c01) Error(0, E_LOAD);
+		W_Jmp(5, 0x80 - ((cv.v + 0xfe) >> 8), 1);
+#else
+		if ((cv.v = ftell(out.fp) - cp.ary) + cp.add[VGLOBOLE] > 0x7001) Error(0, E_LOAD);
+		W_Jmp(5, 0x74 - ((cv.v + 0xfe) >> 8), 1);
+#endif
+		W_Jmp(6, cp.ary + 0x11, 2);
+	}
+	if (cp.fp)//写入剩余信息
+	{
+		W_Jmp(jp_var + 3, cp.offset, 3);
+		Loadtmp();//写入初始化信息
+		strcpy(cv.n, "main");
+		SeekVar();
+		cv.v = (cv.v << 8)|0x3b;
+		fwrite(&cv.v, 1, 4, out.fp);//写入跳转
+		fclose(cp.fp);//删除临时文件
+		cp.fp = 0;
+		if (cfset.dat[0].tem[3].value)
+		{
+			if (!ChDir(cpldata))
+			{
+				Swin("错误！", "无法进入目录", SWIN_ONE);
+			}
+			else if (!DeleteFile("cpl.tmp"))
+			{
+				Swin("错误！", "无法删除*.tmp", SWIN_ONE);
+			}
+		}
+	}
+	fclose(in.fp);
+	fclose(out.fp);
+	in.fp = out.fp = 0;
+	if (cfset.dat[1].tem[1].value)//删除h文件
+	{
+		strcpy(code, out.name);//code为临时变量
+		ChExt(code, "h");
+		if (!ChDir(fundata))
+		{
+			Swin("错误！", "无法进入目录", SWIN_ONE);
+		}
+		else if (!DeleteFile(code))
+		{
+			Swin("错误！", "无法删除*.h", SWIN_ONE);
+		}
+	}
+	Progress(1, 1, 0);//进度
+}

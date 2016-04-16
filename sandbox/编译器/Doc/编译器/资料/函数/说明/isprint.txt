@@ -1,0 +1,24 @@
+原型:int isprint(char c);
+功能:判断字符c是否为可打印字符(含空格)
+说明:当c为可打印字符(0x20-0x7e)时,返回非零值,否则返回零
+举例:
+void print(char c)
+{
+ if (isprint(c))
+ {
+  printf("%c:是可打印字符\n", c);
+ }
+ else
+ {
+  printf("%c:不是可打印字符\n", c);
+ }
+}
+
+void main()
+{
+ SetScreen(0);
+ print('a');
+ print(' ');
+ print(0x7f);
+ getchar();
+}

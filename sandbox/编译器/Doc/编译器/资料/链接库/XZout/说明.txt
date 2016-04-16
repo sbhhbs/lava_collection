@@ -1,0 +1,30 @@
+作 者:红色激情
+时 间:2007.5.18
+原型:void XZout(char x, char y, char &str[], char mode);
+功能:显示5*5所有可打印符号和字母。
+说明:TextOut用法差不多。支持所有转意字符和换行符，str为要显示的字符串，x,y为要打印的屏幕坐标
+ mode:
+  bit6为1时直接在屏幕上显示。
+  bit3为1时图形的所有点取反。
+  bit2-0: 1:copy 2:not 3:or 4:and 5:xor
+
+举例:
+#include <XZout.y>
+
+void main()
+{
+ ClearScreen();
+ XZout(0, 0, "! \" $ % & ' ( ) * + , - . / 0", 1);
+ XZout(0, 5, "1 2 3 4 5 6 7 8 9 : ; < = > ? A", 1);
+ XZout(0, 10, "B C D E F G H I J K L M N O P Q ", 1);
+ XZout(0, 15, "R S T U V W X Y Z [ \\ ] ^ _ a", 1);
+ XZout(0, 20, "b c d e f g h i j k l m n o p r ", 1);
+ XZout(0, 25, "s t u v w x y z { | } ~", 1);
+ XZout(15, 33, "I love LAVA!(By icendragon)", 1);
+ XZout(0, 40, "One day, I got an apple,\nBut I did'nt eat it.", 1);
+ XZout(0, 50, "Because I love Lava!\nI will send it to Lava tomorrow!", 1);
+ XZout(0, 60, "Tomorrow is tomorrow is ...\nSo, I eat it at once,", 1);
+ XZout(0, 70, "and i was full.\nHIA HIA HIA HIA,it's great!", 1);
+ Refresh();
+ getchar();
+}

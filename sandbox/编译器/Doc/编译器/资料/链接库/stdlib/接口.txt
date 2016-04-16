@@ -1,0 +1,8 @@
+1	atoi		1
+1	itoa		0
+1	crotr		1
+1	crotl		1
+1	setjmp		0
+1	checkjmp	1
+0	change		0
+1	longjmp		0

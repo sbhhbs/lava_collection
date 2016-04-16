@@ -1,0 +1,4027 @@
+#define F2 29
+long aaa;
+int  Step;//Step==0是触发随机战斗
+char Ep[]={1,2,3,5,7,10,15,30,50,100};
+char BitN[]={1,2,4,8,16,32,64,128};//位处理开关有用
+char mon_kind[][9]={"史莱姆系","  龙系  ","  兽系  ","  鸟系  "," 植物系 ","  虫系  "," 恶魔系 "," 不死系 "," 物质系 ","  水系  ","？？？系"};
+int mon[]={0,1,27,58,90,117,144,170,200,227,259,291,313};//每个种族第一只怪兽的编号
+char hero[4][2][32],mask[4][2][32];//主角的图形
+char cursor[][8]={0x80,0xc0,0xe0,0xf0,0xf0,0xe0,0xc0,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};//光标
+struct monster
+{
+	char name[11];
+	char explain[25];
+	char grade;
+	char size;
+	char grow[7];
+	char skill[3];
+	long parent[2];
+	char picture[48][6];
+	char fast[27];//0火1闪2爆3风4电5冰6幻7眠8死9吸10封11乱12弱13缓14危15终16炎17雪18毒19麻20咒21停22舞23口24呼25剑26水
+};
+struct item
+{long price;
+ char name[9];
+ char explain[25];
+ char mode;      //bit0->出售 bit1->树国可用 bit2->异界可用 bit3->战斗可用 bit4->单体可用 bit5 ->对敌我
+ char even[30];
+ char pic[2][32];
+};
+struct mons
+{char name[5];  //名字
+ int ability[8];//LV,HP,MP,攻击,防御,敏捷,智力,野性
+ int monk[6];   //种族,编号,性别,父亲,母亲,++
+ long Exp,NetExp;      //当前级经验，升级所需经验
+ char skill[20];//可习的技能
+ char skill_num;//已习得的技能书
+ int LV;
+ int HP;
+ int MP;
+ int state; //bit0->中毒 bit1->诅咒 bit2 ->麻痹 bit3 ->混乱 bit4->睡眠
+};
+struct skill
+{char name[9];
+ char explain[25];
+ int ability[8];
+ char mode;
+ char next;
+};
+char Page,SLine,X,Y,Drct;//地图显示的相关参数
+char MazeMap[16][8][10];//迷宫地形
+char MazeSor[17][32];   //迷宫地形单元
+char MazeFlag[16];      //标志是否走过
+char MazeMNum[16];      //保存每个pages对应的地图号
+char MazeFloor[3];      //0-〉一共有多少层，1-〉起此lv,3->当前层
+char MazeMon[5];        //可能出现的怪兽
+char MazeSK;            //迷宫单元类型
+char MaNP;              //迷宫下一入口所在pages
+char MaNX;              //迷宫下入口X
+char MaNY;              ////迷宫下入口Y
+int result;                            //战斗结果辅助参数（-1死亡 0 未分胜负 1 胜利）
+int order[6][3];                       //命令
+struct monster mon_tmp;
+struct skill ski_tmp;
+char mon_fast[6][27];                   //战斗处理时怪兽抗性
+char Screen[1600];
+char Meven[80];
+char f_mon;//怪兽数据文件指针
+long F_exp;//牧场怪兽获得的exp
+char delay_time=80;//游戏速度
+char Key_up=20;
+char Key_down=21;
+char Key_left=23;
+char Key_right=22;
+char Key_enter=13;
+char Key_esc=27;
+char Key_select=31;
+char Key_maps=30;
+long money;
+char heroname[]="hero";
+char WinGK;             //竞技场通过的级别
+char myitem[20];//最多拥有的道具
+char saveitem[40];//最多可保存的道具（银行）
+char myitem_num,saveitem_num;
+char mon_num[2];                        //0是敌方怪兽数，1是我方携带的怪兽数
+char field_num,field_egg;               //保存牧场怪兽和怪兽蛋个数
+struct mons field_mon[23];              //0~2敌方 3~22牧场 3~3+mon_num[1]携带的怪兽
+char flag_mon[312/4+1];             //怪兽发现和交配开关
+char itm[20];                       //物品关联号
+int gold_num=0;
+char queen_num=0;
+char win_gk[15];
+char queen_flg=0;
+int keyUD;//上下按键,兼顾其他按键
+int keyLR;//左右按键
+void GetKey(int mode)
+{char key;
+ key=0;keyUD=0;keyLR=0;
+ while(keyUD+keyLR==0)
+ {Delay(delay_time);
+		while((key=CheckKey(128))==0);
+		if     ( key==Key_up   ) keyUD=-1;
+		else if( key==Key_down ) keyUD=1;
+		else if( key==Key_left ) keyLR=-1;
+		else if( key==Key_right) keyLR=1;
+		else if( key==Key_enter) keyUD=2;
+		else if( key==Key_esc  ) keyUD=4;
+		else if((key==Key_select)&&mode!=0) keyUD=8;
+		else if((key==Key_maps)&&mode==2) keyUD=16;
+	}
+}
+int Secrt(long addr,long num)
+{
+	int j,k;
+	long i;
+	j=0;
+	for(i=0;i<num;i++)
+	{
+		k=*(addr+i);
+		j=j+k*k-k*k%137;
+	}
+	return j;
+}
+int RandN(int num)
+{
+	return num+(rand()%40-20)*num/100;
+}
+void KeyPas(int time)
+{
+	Delay(time);
+	while(CheckKey(128)==0);
+}
+int GetKind(int num)
+{
+	int i;
+	for(i=2;i<13;i++)
+	{
+		if(num+1<mon[i]) break;
+	}
+	return i-2;
+}
+void MsgBox(char xt,char yt,char ww,char hw,long addr,int mode)
+{
+	int i,len;
+	char tmp[25];
+	Box(xt,yt,xt+ww*6+2,yt+hw*15,1,0);
+	Box(xt,yt,xt+ww*6+2,yt+hw*15,0,2);
+	len=strlen(addr);
+	tmp[ww]=0;
+	while(len>0)
+	{
+		Box(xt+2,yt+3,xt+ww*6+1,yt+hw*15-1,1,0);
+		for(i=0;i<len && i<hw*ww;i=i+ww)
+		{
+			memcpy(tmp,addr+i,ww);
+			TextOut(xt+2,yt+i/ww*15+3,tmp,0x41);
+		}
+		addr=addr+i;
+		len=len-i;
+		if(mode) 
+		{
+			KeyPas(300);
+			while(CheckKey(128)==0) {}
+		}
+	}
+}
+
+void ShowAt(long addr)
+{
+	Box(1,64,158,78,1,0);
+	Box(1,64,158,78,0,2);
+	TextOut(3,66,addr,0x41);
+	Delay(800);
+}
+int ShowFlash(int pos,int ki,int num)
+{
+	int i;
+	char flash[480];
+	if(pos>=3) return -1;
+	if(mon_num[aaa=0]==1) pos=1;
+	GetBlock(0,0,160,80,0,Screen);
+	if(ki==0)//160X80
+	{
+	}
+	else if(ki==1)//80X80
+	{//9600
+	}
+	else if(ki==2)//80X48
+	{//13600
+		for(i=-4;i<=10;i++)
+		{
+			fseek(f_mon,461846+960*num+480*((i+5)%2),0);
+			fread(flash,1,480,f_mon);
+			WriteBlock(0,0,160,80,1,Screen);
+			if(i%2==0) WriteBlock(16*i,14,80,48,3,flash);
+			else WriteBlock(16*i,14,80,48,3,flash+480);
+			Delay(100);
+			Refresh();
+		}
+		WriteBlock(0,0,160,80,1,Screen);
+	}
+	else if(ki==3)//48X48
+	{//16480
+		fseek(f_mon,464726+1152*num,0);
+		for(i=0;i<4;i++)
+		{
+			fread(flash,1,288,f_mon);
+			WriteBlock(0,0,160,80,1,Screen);
+			WriteBlock(3+53*pos,14,48,48,3,flash);
+			Refresh();
+			Delay(200);
+		}
+	}
+	else if(ki==4)//160X48
+	{
+	}
+	WriteBlock(0,0,160,80,1,Screen);
+	Refresh();
+}
+//初始化迷宫数据
+void InitMi(int mx,int my)   //生成随机地图
+{
+	int A[6][6];
+	char flag[6][6],m[6][6];
+	int p,q,f,r;
+	int x,y,xx,yy,s;
+	srand(Getms());
+	for(p=0;p<=mx+1;p++) for(xx=0;xx<=my+1;xx++) { A[p][xx]=0;flag[p][xx]=0;m[p][xx]=0;}
+	for(p=0;p<=mx+1;p++) { A[p][my+1]=-1; A[p][aaa=0]=-1; }
+	for(p=0;p<=my+1;p++) { A[mx+1][p]=-1; A[aaa=0][p]=-1; }
+	x=mx-1;
+	y=my;
+	s=1;
+	A[x][y]=s;
+	do
+	{
+		f=0;
+		for(q=my;q>=1;q--)
+		for(p=mx;p>=1;p--)
+		{
+			if(A[p][q]>0) continue;
+			do
+			{
+				r=rand()%4;
+				xx=p+(r==0)-(r==2);
+				yy=q+(r==1)-(r==3);
+			}while(A[xx][yy]<1);
+			x=p;
+			y=q;
+			s=s+100;
+			if(flag[xx][yy]==0) flag[xx][yy]=xx+yy;
+			flag[p][q]=flag[xx][yy];
+			A[x][y]=s;
+			while(!(x==2&&y==1))
+			{
+				if(A[x-1][y]*A[x][y-1]*A[x+1][y]*A[x][y+1]==0)
+				{
+					do
+					{
+						r=rand()%4;
+						xx=x+(r==1)-(r==3);
+						yy=y+(r==0)-(r==2);
+					}while(A[xx][yy]!=0);
+					x=xx;
+					y=yy;
+					s++;
+					A[x][y]=s;
+				}
+				else  break;
+			}
+			f=1;
+		}
+	}while(f);
+	for(x=0;x<=mx;x++)
+	{
+		for(y=0;y<=my;y++)
+		{
+			if(abs(A[x][y]-A[x+1][y])>1
+				&& (flag[x][y]!=flag[x+1][y] || flag[x][y]*flag[x+1][y]==0) && (rand()%3>0 || x==0 || x==mx))
+			{
+				m[x][y]=m[x][y]|4;
+				m[x+1][y]=m[x+1][y]|1;
+			}
+			if(abs(A[x][y]-A[x][y+1])>1
+				&& (flag[x][y]!=flag[x][y+1] || flag[x][y]*flag[x][y+1]==0) && (rand()%3>0 || y==0 || y==my))
+			{
+				m[x][y]=m[x][y]|8;
+				m[x][y+1]=m[x][y+1]|2;
+			}
+		}
+	}
+	MazeSK=rand()%6;
+	fseek(f_mon,522358+MazeSK*544,0);
+	fread(MazeSor,1,544,f_mon);
+	
+	p=rand()%20;
+	for(x=1;x<=mx;x++)
+	{ 
+		for(y=1;y<=my;y++)
+		{
+			MazeFlag[y+x*mx-mx-1]=0;
+			m[y][x]=15-m[y][x];
+			if(p<3)
+			{
+				MazeMNum[y+x*mx-mx-1]=p*16+m[y][x];
+			}
+			else
+			{
+				MazeMNum[y+x*mx-mx-1]=48+5*m[y][x]+rand()%5;
+			}
+			fseek(f_mon,525622+MazeMNum[y+x*mx-mx-1]*80,0);
+			fread(MazeMap[y+x*mx-mx-1],1,80,f_mon);
+		}
+	}
+	MaNP=rand()%(mx*my);
+	do
+	{
+		MaNX=1+rand()%8;
+		MaNY=1+rand()%6; 
+	}while(MazeMap[MaNP][MaNY][MaNX]!=0);
+	MazeMap[MaNP][MaNY][MaNX]=15;
+	MaNX=40+MaNP%mx*20+2*MaNX;
+	MaNY=8+MaNP/mx*16+2*MaNY;
+	Page=rand()%(mx*my);
+	do
+	{
+		x=1+rand()%8;
+		y=1+rand()%6;
+	}while(MazeMap[Page][y][x]!=0);
+	Step=20;
+	X=x;
+	Drct=1;
+	if(y==1)
+	{
+		Y=1;
+		SLine=0;
+	}
+	else if(y==6)
+	{
+		SLine=3;
+		Y=3;
+	}
+	else
+	{
+		Y=2;
+		SLine=y-2;
+	}
+}
+//怪兽交配结果判断
+int Born(int prnt1,int k1,int prnt2,int k2)
+{
+	int dat[40][2],i;
+	fseek(f_mon,484918+prnt1*120,0);
+	fread(dat,1,120,f_mon);
+	for(i=0;i<30;i++)
+	{
+		if( dat[i][aaa=0]==prnt2+12 || dat[i][aaa=0]==k2+1) return dat[i][aaa=1]-12;
+	}
+	fseek(f_mon,483158+160*k1,0);
+	fread(dat,1,160,f_mon);
+	for(i=0;i<40;i++)
+	{
+		if(dat[i][aaa=0]==prnt2+12 || dat[i][aaa=0]==k2+1) return dat[i][aaa=1]-12;
+	}
+	return prnt1;
+}
+long SelectBoxH(char xt,char yt,char ww,char hw,char n,long addr,int len,int mode)
+{ 
+	int i,j;
+	char tmp[25];
+	tmp[ww]=0;
+	i=mode;
+	Box(xt,yt,xt+ww*6+8,yt+hw*15-1,1,0);
+	Box(xt,yt,xt+ww*6+8,yt+hw*15-1,0,2);
+	for(j=0;j<hw;j++)
+	{
+		memcpy(tmp,addr+j*len,ww);
+		TextOut(xt+8,yt+j*15+2,tmp,0x41);
+	}
+	WriteBlock(xt+2,yt+i*15+3,4,8,0x41,cursor[aaa=0]); 
+	while(1)
+	{
+		WriteBlock(xt+2,yt+i*15+3,4,8,0x41,cursor[aaa=0]);
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) {Delay(200-delay_time); return -1;}
+		if(keyUD==2) {Delay(200-delay_time); return i;}
+		WriteBlock(xt+2,yt+i*15+3,4,8,0x41,cursor[aaa=1]);
+		i=(i+keyUD+keyLR+hw)%hw;
+	}
+}
+
+int SelectBoxT(char xt,char yt,char ww,char hw,char n,long addr,int len,int mode)
+{ 
+	int i,j,basic,pages,xd;
+	char tmp[25];
+	char fg[3];
+	fg[aaa=0]=0x70;
+	fg[aaa=1]=0x50;
+	fg[aaa=2]=0x70;
+	tmp[ww]=0;
+	basic=mode/hw;
+	i=mode-basic*hw;
+	pages=(n-1)/hw+1;
+	xd=xt+ww*6+6-5*pages;
+	Box(xt,yt,xt+ww*6+8,yt+hw*15+3,1,0);
+	Box(xt,yt,xt+ww*6+8,yt+hw*15+1,0,2);
+	for(j=0;j<pages;j++)
+	{
+		WriteBlock(xt+ww*6+1-j*5,yt+hw*15,5,3,0x41,fg);
+	}
+	Box(xd+basic*5,yt+hw*15-1,xd+4+basic*5,yt+hw*15+3,1,2);
+	for(j=0;j<hw && j+basic*hw<n;j++)
+	{
+		memcpy(tmp,addr+(j+basic*hw)*len,ww);
+		TextOut(xt+8,yt+j*15+2,tmp,0x41);
+	}
+	return j;
+}
+
+int SelectBox(char xt,char yt,char ww,char hw,char n,long addr,int len,int mode)
+{ 
+	int i,pages,basic,l;
+	i=mode%hw;
+	pages=(n-1)/hw+1;
+	basic=mode/hw;
+	l=SelectBoxT(xt,yt,ww,hw,n,addr,len,mode);
+	while(1)
+	{
+		WriteBlock(xt+2,yt+i*15+3,4,8,0x41,cursor[aaa=0]);
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) { Box(xt,yt,xt+ww*6+8,yt+hw*15+3,1,0); Delay(200-delay_time); return -1;}
+		if(keyUD==2) { Delay(200-delay_time); return basic*hw+i;}
+		if(keyLR!=0)
+		{
+			basic=(basic+keyLR+pages)%pages;
+			l=SelectBoxT(xt,yt,ww,hw,n,addr,len,basic*hw+i);
+			if(i>=l) { i=l-1;}
+		}
+		WriteBlock(xt+2,yt+i*15+3,4,8,0x41,cursor[aaa=1]);
+		i=(i+keyUD+l)%l;
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int ShowMsg(long addr)
+{
+	char yt;
+	if(Drct==0) yt=Y-1;
+	else if(Drct==1) yt=Y+1;
+	else yt=Y;
+	if(yt<=2) yt=48;
+	else yt=2;
+	MsgBox(6,yt,24,2,addr,1);
+}
+int ShowDialog(int num,int cou)
+{
+	char yt;
+	char str[50];
+	int i;
+	fseek(f_mon,546793+num*24,0);
+	if(Drct==0) yt=Y-1;
+	else if(Drct==1) yt=Y+1;
+	else yt=Y;
+	if(yt<=2) yt=48;
+	else yt=2;
+	if(cou!=1)  fread(str,1,48,f_mon);
+	else { fread(str,1,24,f_mon);memset(str+24,' ',24);}
+	str[aaa=48]=0;
+	MsgBox(6,yt,24,2,str,1);
+	for(i=2;i<cou;i++)
+	{
+		memcpy(str,str+24,24);
+		fread(str+24,1,24,f_mon);
+		MsgBox(6,yt,24,2,str,1);
+	}
+	Refresh();
+}
+int ShowMoney(int mode)
+{
+	char Smoney[7];
+	int i;
+	long money_t;
+	i=5;
+	money_t=money; 
+	strcpy(Smoney,"G     ");
+	do
+	{
+		Smoney[i]=money_t%10+'0';
+		money_t=money_t/10;
+		i--;
+	}while(money_t>0);
+	if(mode==0)
+	{
+		Rectangle(120,1,158,15,2);TextOut(122,3,Smoney,1);
+	}
+	else 
+	{
+		Box(3,1,41,15,1,0);
+		Box(3,1,41,15,0,2);TextOut(5,3,Smoney,0x41);
+	}
+}
+
+void ShowHM()
+{
+	int i;
+	for(i=0;i<mon_num[aaa=1];i++)
+	{
+		if(field_mon[i+3].HP<=0)
+		{
+			Block(3+53*i,1,49+53*i,11,0);
+			TextOut(10+53*i,1,"死亡",1);
+		}
+		else 
+		{
+			Block(3+53*i,1,49+53*i,11,0);
+			Rectangle(3+53*i,1,49+53*i,5,1);
+			Rectangle(3+53*i,7,49+53*i,11,1);
+			if(field_mon[i+3].HP>field_mon[i+3].ability[aaa=1]) field_mon[i+3].HP=1;
+			if(field_mon[i+3].MP>field_mon[i+3].ability[aaa=2]) field_mon[i+3].MP=1;
+			if(field_mon[i+3].ability[aaa=1]>0) Block(3+53*i,2,3+46*field_mon[i+3].HP/field_mon[i+3].ability[aaa=1]+53*i,4,1);
+			if(field_mon[i+3].ability[aaa=2]>0) Block(3+53*i,8,3+46*field_mon[i+3].MP/field_mon[i+3].ability[aaa=2]+53*i,10,1);
+		}
+	}
+}
+
+//所有状态和HP,mp恢复
+void Reset(int num)
+{
+	field_mon[num].HP=field_mon[num].ability[aaa=1];
+	field_mon[num].MP=field_mon[num].ability[aaa=2];
+	field_mon[num].state=0;
+}
+//输入四个字母到addr
+int PassName(long addr)
+{
+	int i;
+	char key;
+	do
+	{
+		i=4;
+		MsgBox(60,25,6,1,addr,0);
+		getchar();
+		while((key=getchar())!=13)
+		{
+			if((key==F2 || key ==23)&&i>0) 
+			{
+				i--;
+			}
+			else if(isprint(key)&&i<4) 
+			{
+				*(addr+i)=key;
+				i++;
+			}
+			*(addr+i)=0;
+			MsgBox(60,25,6,1,addr,0);
+			Delay(200);
+		}
+		while(i<4) {*(addr+i)=' ';i++;}
+		*(addr+i)=0;
+		if(SelectBoxH(1,20,4,2,2,"确定放弃",4,0)==0) break;
+		Refresh();
+		MsgBox(6,48,24,2,"  请输入名字",0);
+	}while(1);
+}
+int AB_ability(int num,int i,int cou,int mode) //对field_mon[num].ability[HP~野性]+=mode*cou
+{
+	field_mon[num].ability[i]=field_mon[num].ability[i]+mode*cou;
+	if(field_mon[num].ability[i]<0) field_mon[num].ability[i]=0;
+	else if(field_mon[num].ability[i]>999) field_mon[num].ability[i]=999;
+	return field_mon[num].ability[i];
+}
+int AB_HP(int num,int cou,int mode)
+{
+	if(field_mon[num].HP>0)
+	{
+		field_mon[num].HP=field_mon[num].HP+mode*cou;
+		if(field_mon[num].HP<0) field_mon[num].HP=0;
+		else if(field_mon[num].HP>field_mon[num].ability[aaa=1]) field_mon[num].HP=field_mon[num].ability[aaa=1];
+		return field_mon[num].HP;
+	}
+}
+int AB_MP(int num,int cou,int mode)
+{
+	if(field_mon[num].HP>0)
+	{
+		field_mon[num].MP=field_mon[num].MP+mode*cou;
+		if(field_mon[num].MP<0) field_mon[num].MP=0;
+		else if(field_mon[num].MP>field_mon[num].ability[aaa=2]) field_mon[num].MP=field_mon[num].ability[aaa=2];
+		return field_mon[num].MP;
+	}
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void DrawHero(int b,int x1,int y1)//画英雄的图像
+{
+	WriteBlock(x1,y1,16,16,4,mask[Drct][b]);
+	WriteBlock(x1,y1,16,16,3,hero[Drct][b]);
+}
+//画地图
+void DrawMap()//树国画地图
+{
+	fseek(f_mon,145014+Page*2560+SLine*320,0);
+	fread(Screen,1,1600,f_mon);
+	fseek(f_mon,12222+Page*80,0);
+	fread(Meven,1,80,f_mon);
+	WriteBlock(0,0,160,80,1,Screen);
+	DrawHero(0,X*16,16*Y);
+	Refresh();
+}
+//画迷宫地图
+void DrawMMap()//画异国地图
+{
+	int i,p;
+	if(MazeFlag[Page]==0)
+	{
+		for(i=0;i<8;i++)
+		{
+			for(p=0;p<10;p++)
+			{
+				if(MazeMap[Page][i][p]==0) 
+				{
+					if(rand()%2==0) MazeMap[Page][i][p]=4+rand()%2;
+					if(rand()%97==3 || rand()%97==2) MazeMap[Page][i][p]=6+rand()%8*(rand()%2);
+				}
+			}
+		}
+		MazeFlag[Page]=1;
+	}
+	for(i=0;i<5;i++)
+	{
+		for(p=0;p<10;p++)
+		{
+			WriteBlock(p*16,i*16,16,16,1,MazeSor[MazeMap[Page][SLine+i][p]]);
+		}
+	}
+	GetBlock(0,0,160,80,0,Screen);
+	DrawHero(0,X*16,16*Y);
+	Refresh();
+}
+//画迷宫的小地图
+void DrawMiMap(char mx,char my)//画小地图
+{
+	int p,i;
+	char bm[48],tmp[10];
+	ClearScreen();
+	for(p=0;p<mx*my;p++)
+	{
+		if(MazeFlag[p]==1)
+		{
+			fseek(f_mon,535862+MazeMNum[p]*48,0);
+			fread(bm,0,48,f_mon);
+			WriteBlock(40+p%mx*20,8+p/mx*16,20,16,1,bm);
+		}
+	}
+	WriteBlock(40+Page%mx*20+2*X,Page/mx*16+2*(SLine+Y)-6,16,16,3,MazeSor[aaa=14]);
+	sprintf(tmp,"%d/%d",MazeFloor[aaa=2]+1,MazeFloor[aaa=0]);
+	TextOut(2,2,tmp,1);
+	Refresh();
+	if(MazeFlag[MaNP]!=0)
+	{
+		Line(MaNX-3,MaNY-3,MaNX+3,MaNY+3,2);
+		Line(MaNX-3,MaNY+3,MaNX+3,MaNY-3,2);
+	}
+	do
+	{
+		GetKey(0);
+	}while(keyUD!=4);
+	Delay(200);
+}
+//树国滚屏
+void MoveScreen(int ud)//树国滚屏
+{
+	char line[320];
+	int i;
+
+	if(ud==1) fseek(f_mon,145014+Page*2560+(SLine+5)*320,0);
+	else fseek(f_mon,145014+Page*2560+(SLine-1)*320,0);
+	fread(line,1,320,f_mon);
+	SLine=SLine+ud;
+	for(i=1;i<=4;i++)
+	{
+		Refresh();
+		if(i!=1) Delay(delay_time);
+		if(ud==1)
+		{
+			WriteBlock(0,-4*i,160,80,1,Screen);
+			WriteBlock(0,80-4*i,160,16,1,line);
+		}
+		else if(ud==-1)
+		{
+			WriteBlock(0,4*i,160,80,1,Screen);
+			WriteBlock(0,-16+4*i,160,16,1,line);
+		}
+		if(i!=4) DrawHero(i%2,X*16,16*Y);
+	}
+	GetBlock(0,0,160,80,0,Screen);
+	DrawHero(0,X*16,16*Y);
+	Refresh();
+	
+}
+//迷宫滚屏
+void MoveMScreen(int ud)//异界滚屏
+{
+	char line[320];
+	int i,p;
+	if(ud==1) i=5;
+	else i=-1;
+	for(p=0;p<10;p++)
+	{
+		WriteBlock(p*16,0,16,16,1,MazeSor[MazeMap[Page][SLine+i][p]]);
+	}
+	GetBlock(0,0,160,16,1,line);
+	SLine=SLine+ud;
+	for(i=1;i<=4;i++)
+	{
+		Refresh();
+		if(i!=1) Delay(delay_time);
+		if(ud==1)
+		{
+			WriteBlock(0,-4*i,160,80,1,Screen);
+			WriteBlock(0,80-4*i,160,16,1,line);
+		}
+		else if(ud==-1)
+		{
+			WriteBlock(0,4*i,160,80,1,Screen);
+			WriteBlock(0,-16+4*i,160,16,1,line);
+		}
+		if(i!=4) DrawHero(i%2,X*16,16*Y);
+	}
+	GetBlock(0,0,160,80,0,Screen);
+	DrawHero(0,X*16,16*Y);
+	Refresh();
+}
+void MoveHero(int ud,int lr)
+{
+	int i;
+	if(ud==1||ud==-1)
+	{
+		if(Y==2 && SLine+Y+ud+2<8 && SLine+Y+ud-2>=0)
+		{
+			MoveScreen(ud);
+			return;
+		}
+	}
+	for(i=1;i<=4;i++)
+	{
+		Refresh();
+		if(i!=1) Delay(delay_time);
+		WriteBlock(0,0,160,80,1,Screen);
+		DrawHero(i%2,X*16+4*i*lr,Y*16+4*i*ud);
+	}
+	Refresh();
+	X=X+lr;
+	Y=Y+ud;
+}
+
+void MoveMHero(int ud,int lr)
+{
+	int i;
+	if(ud==1||ud==-1)
+	{
+		if(Y==2 && SLine+Y+ud+2<8 && SLine+Y+ud-2>=0)
+		{
+			MoveMScreen(ud);
+			return;
+		}
+	}
+	for(i=1;i<=4;i++)
+	{
+		Refresh();
+		if(i!=1) Delay(delay_time);
+		WriteBlock(0,0,160,80,1,Screen);
+		DrawHero(i%2,X*16+4*i*lr,Y*16+4*i*ud);
+	}
+	Refresh();
+	X=X+lr;
+	Y=Y+ud;
+}
+
+void JumpTo(char t_page,char t_line,char t_x,char t_y)
+{
+	Page=t_page;
+	SLine=t_line;
+	X=t_x;
+	Y=t_y;
+	DrawMap();
+}
+//怪兽状态1
+void MonPage1(int i)
+{
+	char tmp[15];
+	sprintf(tmp,"攻击 %d",field_mon[i].ability[aaa=3]);
+	TextOut(55,20,tmp,1);
+	sprintf(tmp,"防御 %d",field_mon[i].ability[aaa=4]);
+	TextOut(109,20,tmp,1);
+	sprintf(tmp,"敏捷 %d",field_mon[i].ability[aaa=5]);
+	TextOut(55,35,tmp,1);
+	sprintf(tmp,"智力 %d",field_mon[i].ability[aaa=6]);
+	TextOut(109,35,tmp,1);
+	sprintf(tmp,"野性 %d",field_mon[i].ability[aaa=7]);
+	TextOut(55,50,tmp,1);
+	sprintf(tmp,"H%d/%d",field_mon[i].HP,field_mon[i].ability[aaa=1]);
+	TextOut(55,65,tmp,1);
+	sprintf(tmp,"M%d/%d",field_mon[i].MP,field_mon[i].ability[aaa=2]);
+	TextOut(109,65,tmp,1);
+}
+//怪兽状态2
+void MonPage2(int i)
+{
+	char tmp[25];
+	if(field_mon[i].monk[aaa=2]%2==0) sprintf(tmp,"Lv%d %s♂",field_mon[i].LV,mon_tmp.name);
+	else sprintf(tmp,"Lv%d %s♀",field_mon[i].LV,mon_tmp.name);
+	TextOut(55,20,tmp,1);
+	sprintf(tmp,"%s +%d",mon_kind[field_mon[i].monk[aaa=0]],field_mon[i].monk[aaa=5]);
+	TextOut(80,35,tmp,1);
+	sprintf(tmp," 主人.......%s",heroname);
+	TextOut(55,50,tmp,1);
+	if(field_mon[i].LV>=field_mon[i].ability[aaa=0])
+	{
+		sprintf(tmp,"到达等级上限");
+	}
+	else
+	{
+		sprintf(tmp,"升级需要  %d",field_mon[i].Exp-field_mon[i].NetExp);
+	}
+	TextOut(55,65,tmp,1);
+}
+
+//怪兽状态3
+void MonPage3(int n)
+{
+	int i;
+	char state[9];
+	for(i=0;i<field_mon[n].skill_num && i<8;i++)
+	{
+		fseek(f_mon,4422+52*field_mon[n].skill[i],0);
+		fread(state,1,9,f_mon);
+		TextOut(55+i%2*54,20+i/2*15,state,1);
+	}
+}
+
+//怪兽状态4
+void MonPage4(int i)
+{
+	char tmp[25];
+	if(field_mon[i].monk[aaa=3]!=-1)
+	{
+		TextOut(55,20,"父亲",1);
+		fseek(f_mon,29262+field_mon[i].monk[aaa=3]*371,0);
+		fread(tmp,1,11,f_mon);
+		TextOut(55,35,tmp,1);
+		TextOut(55,50,"母亲",1);
+		fseek(f_mon,29262+field_mon[i].monk[aaa=4]*371,0);
+		fread(tmp,1,11,f_mon);
+		TextOut(55,65,tmp,1);
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+int SelMon(int mode)//选择怪兽,1我方怪兽,0敌方怪兽
+{
+	int i;
+	char mname[25]; 
+	for(i=0;i<mon_num[mode];i++)
+	{
+		memcpy(mname+5*i,field_mon[mode*3+i].name,5);
+		mname[aaa=5+5*i]=' ';
+	}
+	return SelectBoxH(1,20,5,mon_num[mode],mon_num[mode],mname,5,0);
+}
+//添加怪兽
+int AddMon(int n)//获得怪兽（0<=n<3）
+{
+	if(field_num+field_egg<20) //牧场未满
+	{
+		flag_mon[field_mon[n].monk[aaa=1]/4]=(flag_mon[field_mon[n].monk[aaa=1]/4]|BitN[field_mon[n].monk[aaa=1]%4*2]);
+		memcpy(field_mon[aaa=3+field_num],field_mon[n],70);
+		Reset(3+field_num);
+		field_num++;
+		return field_num;
+	}
+	return -1;//牧场已满
+}
+//放走怪兽
+int DelMon(int num) //放走怪兽（field_mon[num]）
+{
+	if(num>=3 && num < 3+field_num && field_num>1)//怪兽存在
+	{
+		field_num--;
+		if(num!=field_num+3) memcpy(field_mon[num],field_mon[field_num+3],70);
+		return field_num;
+	}
+	return -1;//发生错误
+}
+//添加怪兽蛋
+int AddEgg(int n)//（0<=n<3）
+{
+	if(field_num+field_egg<20) //牧场未满
+	{
+		field_egg++;
+		memcpy(field_mon[aaa=23-field_egg],field_mon[n],70);
+		Reset(23-field_egg);
+		return field_egg;
+	}
+	return -1;//牧场已满
+}
+//删除怪兽蛋
+int DelEgg(int num)
+{
+	if(num<23 && num >= 23-field_egg)//怪兽存在
+	{
+		if(num!=23-field_egg) memcpy(field_mon[num],field_mon[aaa=23-field_egg],70);
+		field_egg--;
+		return field_egg;
+	}
+	return -1;//发生错误
+}
+//寄存怪兽
+int SaveMon(int num)
+{
+	char tmep[70];
+	Reset(num);
+	memcpy(tmep,field_mon[num],70);
+	memcpy(field_mon[num],field_mon[mon_num[aaa=1]+2],70);
+	memcpy(field_mon[mon_num[aaa=1]+2],tmep,70);
+	mon_num[aaa=1]--;
+}
+//领取怪兽
+int GetMon(int num)
+{
+	char tmep[70];
+	Reset(num);
+	memcpy(tmep,field_mon[num],70);
+	memcpy(field_mon[num],field_mon[aaa=3+mon_num[aaa=1]],70);
+	memcpy(field_mon[aaa=3+mon_num[aaa=1]],tmep,70);
+	mon_num[aaa=1]++;
+}
+//添加工具
+int AddItem(int num)//num是物品号
+{
+	if(num<33 && myitem_num<20)//判断号码的有效性以及背包是否有空
+	{
+		myitem[myitem_num]=num;
+		myitem_num++;
+		return num;
+	}
+	return -1;
+}
+//删除工具
+int DelItem(int n)//身上的第n个物品
+{
+	int i;
+	if(n>=myitem_num) return -1;
+	for(i=n;i<myitem_num-1;i++)
+	{
+		myitem[i]=myitem[i+1];
+	}
+	myitem_num--;
+	return myitem_num;
+}
+//储存工具
+int SaveItem(int num)
+{
+	if(num>=myitem_num || saveitem_num>=40) return -1;
+	saveitem[saveitem_num]=myitem[num];
+	saveitem_num++;	
+	DelItem(num);
+	return saveitem_num;
+}
+//取出工具
+int GetItem(int num)
+{
+	int i;
+	if(myitem_num>=20) return -1;
+	AddItem(saveitem[num]);
+	for(i=num;i<saveitem_num;i++)
+	{
+		saveitem[i]=saveitem[i+1];
+	}
+	saveitem_num--;
+	return saveitem_num;
+}
+//删除技能
+int DelSkill(int num,int snum)
+{
+	int i;
+	for(i=snum;field_mon[num].skill[i]<91;i++)
+	{
+		field_mon[num].skill[i]=field_mon[num].skill[i+1];
+	}
+	field_mon[num].skill_num--;
+	return snum;
+}
+//damage
+void Damage(int num,int dmg)
+{
+	int l,pos;
+	char str[30];
+	if(num<3)
+	{
+		if(mon_num[aaa=0]==1) pos=1;
+		else pos=num;
+		Box(3+53*pos,14,51+53*pos,62,1,0);
+		Delay(50);
+		Refresh();
+		Box(3+53*pos,14,51+53*pos,62,1,0);
+		Delay(50);
+		Refresh();
+	}
+	else
+	{
+		GetBlock(0,0,160,80,0,Screen);
+		WriteBlock(0,-5,160,80,1,Screen);
+		Delay(50);
+		Refresh();
+		WriteBlock(0,5,160,80,1,Screen);
+		Delay(50);
+		Refresh();
+		WriteBlock(0,0,160,80,1,Screen);
+		Delay(50);
+		Refresh();
+	}
+	l=RandN(dmg);
+	if(l<0) l=35;
+	if(l==0) sprintf(str,"  %s没有受到伤害",field_mon[num].name);
+	else sprintf(str," %s受到攻击 HP -%d",field_mon[num].name,l);
+	ShowAt(str);
+	if(field_mon[num].HP>l) 
+	{
+		field_mon[num].HP=field_mon[num].HP-l;
+		if(num>=3) 
+		{
+			ShowHM();
+			Refresh();
+		}
+	}
+	else
+	{
+		field_mon[num].HP=0;
+		if(mon_num[aaa=0]==1 && num<3) pos=1;
+		else pos=num;
+		if(pos<3)
+		{
+			Block(3+53*pos,14,51+53*pos,62,0);
+			for(l=0;l<mon_num[aaa=0];l++)
+			{
+				if(field_mon[l].HP>0) break;
+			}
+			if(l==mon_num[aaa=0]) result=1;
+		}
+		else 
+		{
+			ShowHM();
+			for(l=3;l<3+mon_num[aaa=1];l++)
+			{
+				if(field_mon[l].HP>0) break;
+			}
+			if(l==3+mon_num[aaa=1]) result=-1;
+		}
+		Refresh();
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+void Attack(int num1,int num2,int pre)//pre攻击加成
+{
+	int l,i;
+	char c;
+	if(num2<0 || num2>5) return;
+
+	fseek(f_mon,29262+field_mon[num1].monk[aaa=1]*371+42,0);
+	fread(&c,1,1,f_mon);
+	l=(9-c)/2+1;
+
+	l=1+field_mon[num1].ability[aaa=3]*2/3/l;
+
+	for(i=0;i<mon_num[aaa=0]+mon_num[aaa=1];i++)
+	{
+		if(order[i][aaa=0]==num2) break;
+	}
+	if(i<mon_num[aaa=0]+mon_num[aaa=1])
+	{
+		if(order[i][aaa=2]==-3) l=l/5;
+	}
+	Damage(num2,l);
+}
+//使用技能
+int UseSkill(int num1,int num2,int ski)//num2==-2我方全体　ｎｕｍ２＝－３敌方全体
+{
+	int i,l;
+	char str[30];
+	if(num2>=0)
+	{
+		if(field_mon[num2].HP<=0 && ski!=24 && ski != 25) return -1;
+	}
+	fseek(f_mon,4422+52*ski,0);
+	fread(ski_tmp,1,52,f_mon);
+	if(num1>=0) 
+	{
+		sprintf(str,"%s使用技能%s",field_mon[num1].name,ski_tmp.name);
+		ShowAt(str);
+		field_mon[num1].MP=field_mon[num1].MP-ski_tmp.ability[aaa=7];
+	}
+	else num1=3;
+	if(ski<27) //对我方使用
+	{
+		if(num2<0)
+		{
+			l=num2+3;
+			for(i=0;i<mon_num[l];i++)
+			{
+				if(field_mon[aaa=3*l+i].HP<=0) continue;
+				ShowFlash(3*l+i,3,6);
+				if(ski==3 || ski==4)
+				{
+					AB_HP(3*l+i,RandN(100+(ski-3)*999),1);
+					sprintf(str,"%s的伤口愈合了！",field_mon[aaa=3*l+i].name);
+				}
+				else if(ski==7) 
+				{
+					field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state&(255-BitN[aaa=0]);
+					sprintf(str,"%s体内的毒素清除了！",field_mon[aaa=3*l+i].name);
+				}
+				else if(ski==10) 
+				{
+					field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state&(255-BitN[aaa=1]);
+					sprintf(str,"%s身上的诅咒解除了！",field_mon[aaa=3*l+i].name);
+				}
+				else if(ski==13) 
+				{
+					field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state&(255-BitN[aaa=2]);
+					sprintf(str,"%s可以自用活动了！",field_mon[aaa=3*l+i].name);
+				}
+				else if(ski==16) 
+				{
+					field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state&(255-BitN[aaa=3]);
+					sprintf(str,"%s从混乱中醒来！",field_mon[aaa=3*l+i].name);
+				}
+				else if(ski==19) 
+				{
+					field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state&(255-BitN[aaa=4]);
+					sprintf(str,"%s从沉睡中醒来！",field_mon[aaa=3*l+i].name);
+				}
+				else if(ski==22) 
+				{
+					field_mon[aaa=3*l+i].HP=field_mon[aaa=3*l+i].ability[aaa=1];
+					field_mon[aaa=3*l+i].state=0;
+					sprintf(str,"%s所有状态恢复了！",field_mon[aaa=3*l+i].name);
+				}
+				ShowAt(str);
+			}
+		}
+		else 
+		{
+			ShowFlash(num2,3,6);
+			if(ski<3)
+			{
+				if(ski<2) AB_HP(num2,RandN(35+ski*45),1);
+				else AB_HP(num2,999,1);
+				sprintf(str,"%s的伤口愈合了！",field_mon[num2].name);
+			}
+			else if(ski==6) 
+			{
+				field_mon[num2].state=field_mon[num2].state&(255-BitN[aaa=0]);
+				sprintf(str,"%s体内的毒素清除了！",field_mon[num2].name);
+			}
+			else if(ski==9) 
+			{
+				field_mon[num2].state=field_mon[num2].state&(255-BitN[aaa=1]);
+				sprintf(str,"%s身上的诅咒解除了！",field_mon[num2].name);
+			}
+			else if(ski==12) 
+			{
+				field_mon[num2].state=field_mon[num2].state&(255-BitN[aaa=2]);
+				sprintf(str,"%s可以自用活动了！",field_mon[num2].name);
+			}
+			else if(ski==15) 
+			{
+				field_mon[num2].state=field_mon[num2].state&(255-BitN[aaa=3]);
+				sprintf(str,"%s从混乱中醒来！",field_mon[num2].name);
+			}
+			else if(ski==18) 
+			{
+				field_mon[num2].state=field_mon[num2].state&(255-BitN[aaa=4]);
+				sprintf(str,"%s从沉睡中醒来！",field_mon[num2].name);
+			}
+			else if(ski==21) 
+			{
+				field_mon[num2].HP=field_mon[num2].ability[aaa=1];
+				field_mon[num2].state=0;
+				sprintf(str,"%s所有状态恢复了！",field_mon[num2].name);
+			}
+			else if(ski==24 || ski==25)
+			{
+				if(field_mon[num2].HP>0 || (ski==24 && rand()%2==1))
+				{
+					strcpy(str,"  不过什么都没有发生！ ");
+				}
+				else
+				{
+					Reset(num2);
+					if(ski==24) field_mon[num2].HP=1+field_mon[num2].ability[aaa=2]/2;
+					sprintf(str,"　　%s复活了！　",field_mon[num2].name);
+				}
+			}
+			ShowAt(str);
+		}
+	}
+	else if(ski<45)
+	{
+		if(ski/3==9)
+		{
+			ShowFlash(num2,3,11);
+			Damage(num2,(3-mon_fast[num2][aaa=0])*BitN[ski%3]*17);
+		}
+		else 
+		{
+			l=num2+3;
+			if(ski/3==10) ShowFlash(l*3,2,0);
+			else if(ski/3==14) ShowFlash(l*3,2,1);
+			for(i=0;i<mon_num[l];i++)
+			{
+				if(field_mon[aaa=3*l+i].HP<=0) continue;
+				if(ski/3==10)
+				{
+				}
+				else if(ski/3==11)
+				{
+					ShowFlash(3*l+i,3,10);
+				}
+				else if(ski/3==12)
+				{
+					if(ski%3<2) ShowFlash(3*l+i,3,4);
+					else ShowFlash(3*l+i,3,9);
+				}
+				else if(ski/3==13)
+				{
+					if(ski%3<2) ShowFlash(3*l+i,3,14);
+					else ShowFlash(3*l+i,3,15);
+				}
+				else if(ski/3==14)
+				{
+					ShowFlash(3*l+i,3,5);
+				}
+				Damage(3*l+i,(3-mon_fast[aaa=3*l+i][ski/3-9])*BitN[ski%3]*17);
+			}
+		}
+	}
+	else if(ski<60)
+	{
+		if(num2<0)
+		{
+			l=num2+3;
+			for(i=0;i<mon_num[l];i++)
+			{
+				if(field_mon[aaa=3*l+i].HP<=0) continue;
+				ShowFlash(3*l+i,3,6);
+				if(ski==46) 
+				{
+					if(rand()%4>mon_fast[aaa=3*l+i][aaa=18])
+					{
+						field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state|BitN[aaa=0];
+						sprintf(str,"%s中毒了！",field_mon[aaa=3*l+i].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有中毒！",field_mon[aaa=3*l+i].name);
+					}
+				}
+				else if(ski==49) 
+				{
+					if(rand()%4>mon_fast[aaa=3*l+i][aaa=20])
+					{
+						field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state|BitN[aaa=1];
+						sprintf(str,"%s被诅咒了！",field_mon[aaa=3*l+i].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有诅咒！",field_mon[aaa=3*l+i].name);
+					}
+				}
+				else if(ski==52) 
+				{
+					if(rand()%4>mon_fast[aaa=3*l+i][aaa=19])
+					{
+						field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state|BitN[aaa=2];
+						sprintf(str,"%s被麻痹了！",field_mon[aaa=3*l+i].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有麻痹！",field_mon[aaa=3*l+i].name);
+					}
+				}
+				else if(ski==55) 
+				{
+					if(rand()%4>mon_fast[aaa=3*l+i][aaa=11])
+					{
+						field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state|BitN[aaa=3];
+						sprintf(str,"%s混乱了！",field_mon[aaa=3*l+i].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有混乱！",field_mon[aaa=3*l+i].name);
+					}
+				}
+				else if(ski==58) 
+				{
+					if(rand()%4>mon_fast[aaa=3*l+i][aaa=7])
+					{
+						field_mon[aaa=3*l+i].state=field_mon[aaa=3*l+i].state|BitN[aaa=4];
+						sprintf(str,"%s睡着了！",field_mon[aaa=3*l+i].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有睡着！",field_mon[aaa=3*l+i].name);
+					}
+				}
+				ShowAt(str);
+			}
+		}
+		else 
+		{
+				ShowFlash(num2,3,6);
+				if(ski==45) 
+				{
+					if(rand()%4>mon_fast[num2][aaa=18])
+					{
+						field_mon[num2].state=field_mon[num2].state|BitN[aaa=0];
+						sprintf(str,"%s中毒了！",field_mon[num2].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有中毒！",field_mon[num2].name);
+					}
+				}
+				else if(ski==48) 
+				{
+					if(rand()%4>mon_fast[num2][aaa=20])
+					{
+						field_mon[num2].state=field_mon[num2].state|BitN[aaa=1];
+						sprintf(str,"%s被诅咒了！",field_mon[num2].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有诅咒！",field_mon[num2].name);
+					}
+				}
+				else if(ski==51) 
+				{
+					if(rand()%4>mon_fast[num2][aaa=19])
+					{
+						field_mon[num2].state=field_mon[num2].state|BitN[aaa=2];
+						sprintf(str,"%s被麻痹了！",field_mon[num2].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有麻痹！",field_mon[num2].name);
+					}
+				}
+				else if(ski==54) 
+				{
+					if(rand()%4>mon_fast[num2][aaa=11])
+					{
+						field_mon[num2].state=field_mon[num2].state|BitN[aaa=3];
+						sprintf(str,"%s混乱了！",field_mon[num2].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有混乱！",field_mon[num2].name);
+					}
+				}
+				else if(ski==57) 
+				{
+					if(rand()%4>mon_fast[num2][aaa=7])
+					{
+						field_mon[num2].state=field_mon[num2].state|BitN[aaa=4];
+						sprintf(str,"%s睡着了！",field_mon[num2].name);
+					}
+					else 
+					{
+						sprintf(str,"%s没有睡着！",field_mon[num2].name);
+					}
+				}
+				ShowAt(str);
+		}
+	}
+	else 
+	{
+		ShowFlash(num2,3,8);
+		if(field_mon[num2].monk[aaa=0]==ski-60) l=200;
+		else l=100;
+		l=l*(3-mon_fast[num2][aaa=25])/3;
+		Attack(num1,num2,l);
+	}
+}
+//选择技能对象
+int SelSkiUser(int ski)
+{
+	if(ski<27) //对我方使用
+	{
+		if(ski<=2 || (ski>=6 && ski%3==0) || ski==25) return 3+SelMon(1);
+		else return -2;
+	}
+	else
+	{
+		if(ski>=60 || (ski>=45 && ski <=59 && ski%3==0) || ( ski>=27 && ski<=29) ) return SelMon(0);
+		else return -3;
+	}
+}
+//使用物品
+int UseItem(int num,int c)
+{
+	int i,l;
+	if((c&BitN[aaa=4])!=0)//全体
+	{
+		l=-1;
+	}
+	else
+	{
+		l=SelMon(1);                 //对己方怪兽
+		if(l==-1) return -1;         //取消选择
+		l=l+3;
+	}
+
+//0 解毒草 1 苏醒之粉 2 小妖汤药 3 草药 4 月桂树 5 女神水 6 满血草 7 魔法之水 8 贤者之石  
+//9 天使之铃 10 宇宙树露 11 复活草 12 烂肉 13怪兽食 14熏肉 15带骨肉 16五花肉
+//17 速度种//18 力之种//19 守卫种//20 智力种//21 命之果//22 神秘果
+//23 雷杖 24火杖 25友情杖 26封魔杖 27雪杖 28真空杖
+//29 清水 30金竖琴 31 小金牌 32 卡麦羽
+//LV,HP,MP,攻击,防御,敏捷,智力,野性
+//bit0->中毒 bit1->诅咒 bit2 ->麻痹 bit3 ->混乱 bit4->睡眠 bit5->死亡
+	if(num<17)
+	{
+		if(num<11)
+		{
+			if(num==0) field_mon[l].state=field_mon[l].state&(255-BitN[aaa=0]);
+			else if(num==1) field_mon[l].state=field_mon[l].state&(255-BitN[aaa=4]);
+			else if(num==2) AB_MP(l,999,1);
+			else if(num==3) AB_HP(l,RandN(35),1);
+			else if(num==4) field_mon[l].state=field_mon[l].state&(255-BitN[aaa=1]);
+			else if(num==5) AB_HP(l,RandN(55),1);
+			else if(num==6) field_mon[l].state=field_mon[l].state&(255-BitN[aaa=2]);
+			else if(num==7) AB_MP(l,RandN(25),1);
+			else if(num==8||num==10) 
+			{
+				for(i=0;i<mon_num[aaa=1];i++)
+					if((field_mon[aaa=3+i].state&(255-BitN[aaa=5]))==0)
+					{
+						if(num==8) AB_HP(3+i,RandN(75),1);
+						else if(num==10) AB_HP(3+i,999,1);
+					}
+			}
+			else if(num==9) field_mon[l].state=field_mon[l].state&(255-BitN[aaa=3]);
+		}
+		else if(num==11) if(field_mon[l].HP<=0) Reset(l);
+		else if(num==12) AB_ability(l,7,1,-1);
+		else if(num==13) AB_ability(l,7,5,-1);
+		else if(num==14) AB_ability(l,7,10,-1);
+		else if(num==15) AB_ability(l,7,20,-1);
+		else if(num==16) AB_ability(l,7,100,-1);
+	}
+	else if(num<23)
+	{
+		if(num==17) AB_ability(l,5,3,1);
+		else if(num==18) AB_ability(l,3,3,1);
+		else if(num==19) AB_ability(l,4,3,1);
+		else if(num==20) AB_ability(l,6,3,1);
+		else if(num==21) AB_ability(l,1,5,1);
+		else if(num==22) AB_ability(l,2,5,1);
+	}
+
+
+	else if(num<29)
+	{
+		//if(num==23) 
+	}
+	else if(num==29) Step=Step+500;
+	else if(num==30) //战斗
+	{
+		Step=0;
+	}
+	else if(num==32) {}//返回大树国
+	return num;
+}
+//选择技能
+int SelectSkill(char n)
+{
+	int i,pages,basic,l;
+	char state[250],str[25];
+	if(field_mon[n].skill_num==0) {MsgBox(3,25,8,3,"没有技能",1);return -1;}
+	for(i=0;i<field_mon[n].skill_num;i++)
+	{
+		fseek(f_mon,4422+52*field_mon[n].skill[i],0);
+		fread(state+i*8,1,8,f_mon);
+	}
+	i=0;
+	pages=(field_mon[n].skill_num-1)/4+1;
+	basic=0;
+	l=SelectBoxT(60,17,8,4,field_mon[n].skill_num,state,8,basic*4+i);
+	while(1)
+	{
+		fseek(f_mon,4431+52*field_mon[n].skill[basic*4+i],0);
+		fread(str,1,25,f_mon);
+		WriteBlock(62,17+i*15+3,4,8,0x41,cursor[aaa=0]);
+		MsgBox(3,25,8,3,str,0);
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) { return -1;}
+		if(keyUD==2) 
+		{
+			return basic*4+i;
+		}
+		if(keyLR!=0)
+		{
+			basic=(basic+keyLR+pages)%pages;
+			l=SelectBoxT(60,17,8,4,field_mon[n].skill_num,state,8,basic*4+i);
+			if(i>=l) { i=l-1;}
+		}
+		WriteBlock(62,17+i*15+3,4,8,0x41,cursor[aaa=1]);
+		i=(i+keyUD+l)%l;
+	}
+}
+
+
+//选择工具
+int SelectItem(int mode)//2->平时(树国)  4->异界  8->战斗
+{
+	int i,pages,basic,l,u;
+	char state[250],str[25],c;
+	if(myitem_num==0) {MsgBox(3,25,8,3,"没有道具",1);return -1;}
+	for(i=0;i<myitem_num;i++)
+	{
+		fseek(f_mon,4+134*myitem[i],0);
+		fread(state+i*8,1,8,f_mon);
+	}
+	i=0;
+	pages=(myitem_num-1)/4+1;
+	basic=0;
+	l=SelectBoxT(30,17,8,4,myitem_num,state,8,basic*4+i);
+	while(1)
+	{
+		fseek(f_mon,13+134*myitem[basic*4+i],0);
+		fread(str,1,25,f_mon);
+		WriteBlock(32,20+i*15,4,8,0x41,cursor[aaa=0]);
+		MsgBox(90,26,8,3,str,0);
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) { return -1;}
+		if(keyUD==2) 
+		{
+			strcpy(str,"使用 扔掉 ");
+			u=SelectBoxH(1,20,5,2,2,str,5,0);
+			if(u==1)          //扔掉物品
+			{
+				l=myitem[basic*4+i];
+				DelItem(basic*4+i);
+				if(l>=12 && l<=16) return l;
+				else return 0;
+			}
+			else if(u==0)     //使用物品
+			{
+				fseek(f_mon,38+134*myitem[basic*4+i],0);
+				fread(&c,1,1,f_mon);
+				if((mode&c) == 0 )//可用
+				{	
+					if(myitem[basic*4+i]==32) 
+					{
+						DelItem(basic*4+i);
+						return 32;
+					}
+					l=myitem[basic*4+i];
+					if(l>=23 && l<=28)
+					{
+						DelItem(basic*4+i);
+						return l;
+					}
+					if(UseItem(l,c)!=-1)
+					{
+						DelItem(basic*4+i);
+						return -1;
+					}
+				}
+				else 
+				{
+					if(mode==2) MsgBox(25,35,18,1,"大树国中不能使用！",1);
+					else if(mode==4) MsgBox(25,35,18,1,"在异国中不能使用！",1);
+					else if(mode==8) MsgBox(25,35,18,1," 战斗中不能使用！ ",1);
+					Delay(500);
+					GetKey(0);
+				}
+			}
+			keyUD=0;
+			keyLR=1;
+			basic--;
+			Refresh();
+		}
+		if(keyLR!=0)
+		{
+			basic=(basic+keyLR+pages)%pages;
+			l=SelectBoxT(30,17,8,4,myitem_num,state,8,basic*4+i);
+			if(i>=l) { i=l-1;}
+		}
+		WriteBlock(32,20+i*15,4,8,0x41,cursor[aaa=1]);
+		i=(i+keyUD+l)%l;
+	}
+}
+
+//技能升级
+int UpdateSkill(int num)//field_mon[num],num<=2敌方升级,else我方升级,有提示
+{
+	int i,p;
+	char str[35];
+	for(i=field_mon[num].skill_num;field_mon[num].skill[i]<91 && field_mon[num].skill[i]>=0;i++)
+	{
+		fseek(f_mon,4422+52*field_mon[num].skill[i],0);
+		fread(ski_tmp,1,52,f_mon);
+		if(ski_tmp.ability[aaa=0]>field_mon[num].LV) continue;
+		for(p=1;p<7;p++)
+		{
+			if(field_mon[num].ability[i]<ski_tmp.ability[i]) break;
+		}
+		if(p==7) 
+		{
+			p=field_mon[num].skill[i];
+			field_mon[num].skill[i]=field_mon[num].skill[field_mon[num].skill_num];
+			field_mon[num].skill[field_mon[num].skill_num]=p;
+			field_mon[num].skill_num++;
+			if(num>2)
+			{
+				sprintf(str,"  %s习得技能      < %s >",field_mon[num].name,ski_tmp.name);
+				MsgBox(25,30,16,2,str,1);
+			}
+		}
+	}
+	for(i=0;i<field_mon[num].skill_num;i++)
+	{
+		fseek(f_mon,4422+52*field_mon[num].skill[i],0);
+		fread(ski_tmp,1,52,f_mon);
+		if(ski_tmp.next==0) continue;
+		fread(ski_tmp,1,52,f_mon);
+		if(ski_tmp.ability[aaa=0]>field_mon[num].LV) continue;
+		for(p=1;p<7;p++)
+		{
+			if(field_mon[num].ability[i]<ski_tmp.ability[i]) break;
+		}
+		if(p==7) 
+		{
+			field_mon[num].skill[i]++;
+			if(num>2)
+			{
+				sprintf(str,"  %s技能升级  习得< %s >",field_mon[num].name,ski_tmp.name);
+				MsgBox(25,30,16,2,str,1);
+			}
+		}
+	}
+	while(num>2 && field_mon[num].skill_num>10)
+	{
+		p=SelectSkill(num);
+		if(p!=-1) DelSkill(num,p);
+	}
+}
+//怪兽升级
+int UpdateMon(int num)//num是牧场怪兽号
+{
+	int i,p[7];
+	char str[270];
+	while(field_mon[num].NetExp>=field_mon[num].Exp)
+	{
+		if(field_mon[num].LV>=field_mon[num].ability[aaa=0]) break;//到达顶级了
+		field_mon[num].NetExp=field_mon[num].NetExp-field_mon[num].Exp;
+		field_mon[num].LV++;
+		field_mon[num].Exp=field_mon[num].Exp+field_mon[num].Exp*2/field_mon[num].LV;
+		fseek(f_mon,29262+field_mon[num].monk[aaa=1]*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		for(i=1;i<7;i++) 
+		{
+			p[i-1]=RandN((9-mon_tmp.grow[i])*5/3);
+			if(field_mon[num].ability[i]+p[i-1]>999)
+			{
+				p[i-1]=999-field_mon[num].ability[i];
+				field_mon[num].ability[i]=999;
+			}
+			field_mon[num].ability[i]=field_mon[num].ability[i]+p[i-1];
+		}
+		field_mon[num].HP=field_mon[num].HP+p[aaa=0];
+		field_mon[num].MP=field_mon[num].MP+p[aaa=1];
+		if(num<3+mon_num[aaa=1]) 
+		{
+			sprintf(str," %s 升级了！！",field_mon[num].name);
+			ShowAt(str);
+			sprintf(str,"ＨＰ+%d ＭＰ+%d",p[aaa=0],p[aaa=1]);
+			ShowAt(str);
+			sprintf(str,"攻击+%d 防御+%d",p[aaa=2],p[aaa=3]);
+			ShowAt(str);
+			sprintf(str,"敏捷+%d 智力+%d",p[aaa=4],p[aaa=5]);
+			ShowAt(str);
+			UpdateSkill(num);
+			Refresh();
+		}
+		else
+		{
+			field_mon[num].ability[aaa=7]=field_mon[num].ability[aaa=7]+field_mon[num].LV*2;
+			if(field_mon[num].ability[aaa=7]>999) field_mon[num].ability[aaa=7]=999;
+		}
+	}
+}
+//检查有否怪兽加入
+void CheckMon(int mode)
+{
+	int i;
+	char yn[10],tmp[25];
+	strcpy(yn," 是  否 ");
+	//一定不加入
+	if(mode==0) return ;
+	//可能加入
+	else if(mode==1)
+	{
+		for(i=0;i<mon_num[aaa=0];i++)
+		{
+			if(field_mon[i].ability[aaa=7]<=field_mon[i].LV*(rand()%5)) break;
+		}
+		if(i==mon_num[aaa=0]) return;
+	}
+	//一定加入
+	else i=0;
+	fseek(f_mon,29262+(field_mon[i].monk[aaa=1])*371,0);
+	fread(mon_tmp,1,371,f_mon);
+	WriteBlock(56,14,48,48,1,mon_tmp.picture);
+	Refresh();
+	if(mode!=3)
+	{
+		sprintf(tmp,"  %s 站起来了!!!",mon_tmp.name);
+		ShowAt(tmp);
+	}
+	sprintf(tmp,"  与%s做伙伴吗？",mon_tmp.name);
+	ShowAt(tmp);
+	if(SelectBoxH(1,20,4,2,2,yn,4,0)==0)
+	{
+		if(AddMon(i)==-1)
+		{
+			ShowMsg("     牧场已满！  ");
+		}
+		else
+		{
+			PassName(field_mon[aaa=2+field_num].name);
+			sprintf(tmp," %s 往牧场方向去了。",field_mon[aaa=2+field_num].name);
+			ShowMsg(tmp);
+		}
+	}
+}
+//生成怪兽的各种数据
+int LoadMon(int num)
+{
+	//假设field_mon[i],monk[aaa=1](编号）LV（等级）已定
+	int i,p;
+	for(i=3;i<3+mon_num[aaa=1];i++)
+	{
+		fseek(f_mon,29262+field_mon[i].monk[aaa=1]*371+344,0);
+		fread(mon_fast[i],1,27,f_mon);
+	}
+	for(i=0;i<mon_num[aaa=0];i++)
+	{
+		fseek(f_mon,29262+field_mon[i].monk[aaa=1]*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		memcpy(mon_fast[i],mon_tmp.fast,27);             //读取抗性
+
+		for(p=0;p<4;p++) field_mon[i].name[p]='a'+(rand()%26+26)%26;//生成名字
+		field_mon[i].name[p]=0; 
+		field_mon[i].Exp=Ep[mon_tmp.grow[aaa=0]];
+		for(p=1;p<field_mon[i].LV;p++)
+		{
+			field_mon[i].Exp=field_mon[i].Exp+field_mon[i].Exp*2/p;
+		}
+		field_mon[i].NetExp=rand()%field_mon[i].Exp;
+		
+		memcpy(field_mon[i].skill,mon_tmp.skill,3);
+		field_mon[i].skill[aaa=3]=-1;
+		field_mon[i].skill_num=0;
+		field_mon[i].ability[aaa=0]=RandN(15+mon_tmp.grade*13);
+		if(field_mon[i].ability[aaa=0]>99) field_mon[i].ability[aaa=0]=99;
+		field_mon[i].ability[aaa=7]=RandN(4*field_mon[i].LV-1);
+		for(p=1;p<7;p++)
+		{
+			field_mon[i].ability[p]=5+num+RandN((9-mon_tmp.grow[p])*field_mon[i].LV);
+		}
+		field_mon[i].HP=field_mon[i].ability[aaa=1];
+		field_mon[i].MP=field_mon[i].ability[aaa=2];
+		field_mon[i].state=0;
+		field_mon[i].monk[aaa=0]=GetKind(field_mon[i].monk[aaa=1]);
+		field_mon[i].monk[aaa=2]=rand()%2;
+		field_mon[i].monk[aaa=3]=-1;
+		field_mon[i].monk[aaa=5]=0;
+		UpdateSkill(i);
+	}
+}
+//命令处理
+void RunOrder(int mode)
+{
+	int i,j,l;
+	char str[30];
+	for(i=0;i<mon_num[aaa=0];i++)
+	{
+		if(field_mon[i].HP<=0) continue;
+		if((field_mon[i].state&BitN[aaa=0]) != 0)
+		{
+			j=1+field_mon[i].ability[aaa=1]/25;
+			sprintf(str," %s因中毒HP -%d",field_mon[i].name,j);
+			ShowAt(str);
+			field_mon[i].HP=field_mon[i].HP-j;
+			if(field_mon[i].HP<=0)
+			{
+				field_mon[i].HP=0;
+				if(mon_num[aaa=0]==1)	Block(56,14,104,62,0);
+				else				Block(3+53*i,14,51+53*i,62,0);
+				Refresh();
+				for(l=0;l<mon_num[aaa=0];l++)
+				{
+					if(field_mon[l].HP>0) break;
+				}
+				if(l==mon_num[aaa=0]) result=1;
+			}
+		}
+	}
+	for(i=3;i<3+mon_num[aaa=1];i++)
+	{
+		if(field_mon[i].HP<=0) continue;
+		if((field_mon[i].state&BitN[aaa=0]) != 0)
+		{
+			j=1+field_mon[i].ability[aaa=1]/25;
+			sprintf(str," %s因中毒HP -%d",field_mon[i].name,j);
+			ShowAt(str);
+			field_mon[i].HP=field_mon[i].HP-j;
+			if(field_mon[i].HP<=0)
+			{
+				field_mon[i].HP=0;
+				ShowHM();
+				Refresh();
+				for(l=3;l<3+mon_num[aaa=1];l++)
+				{
+					if(field_mon[l].HP>0) break;
+				}
+				if(l==3+mon_num[aaa=1]) result=-1;
+			}
+		}
+	}
+	for(i=0;i<mon_num[aaa=0]+mon_num[aaa=1];i++)
+	{
+		if(result!=0) return;
+		if(order[i][aaa=2]==-3) continue;
+		//逃走命令失败后
+		if(order[i][aaa=0]>=3 && mode ==2) continue;
+		if(field_mon[order[i][aaa=0]].HP<=0) continue;
+		if((field_mon[order[i][aaa=0]].state&BitN[aaa=4]) != 0)
+		{
+			if(rand()%3<2) sprintf(str," %s 睡着了",field_mon[order[i][aaa=0]].name);
+			else 
+			{
+				field_mon[order[i][aaa=0]].state=field_mon[order[i][aaa=0]].state&(255-BitN[aaa=4]);
+				sprintf(str," %s 醒来了",field_mon[order[i][aaa=0]].name);
+			}
+			ShowAt(str);
+			continue;
+		}
+		if((field_mon[order[i][aaa=0]].state&BitN[aaa=2]) != 0 && rand()%5 < 3)
+		{
+			sprintf(str,"  %s 麻痹了，不能动弹",field_mon[order[i][aaa=0]].name);
+			ShowAt(str);
+			continue;
+		}
+		if((field_mon[order[i][aaa=0]].state&BitN[aaa=3]) != 0 && rand()%5 < 3)
+		{
+			sprintf(str,"  %s 混乱了",field_mon[order[i][aaa=0]].name);
+			ShowAt(str);
+			j=rand()%2;
+			order[i][aaa=1]=j*3+rand()%mon_num[j];
+			order[i][aaa=2]=-1;
+		}
+		if(order[i][aaa=2]==-2)
+		{
+			if(order[i][aaa=0]>=3 || rand()%3<1 || field_mon[order[i][aaa=0]].skill_num==0) 
+			{
+				j=1-order[i][aaa=0]/3;
+				l=j*3+rand()%mon_num[j];
+				while(field_mon[l].HP<=0) l=j*3+rand()%mon_num[j];
+				order[i][aaa=1]=l;
+				order[i][aaa=2]=-1;
+			}
+			else
+			{
+				order[i][aaa=2]=field_mon[order[i][aaa=0]].skill[rand()%field_mon[order[i][aaa=0]].skill_num];
+				if( field_mon[order[i][aaa=0]].MP<15 || (order[i][aaa=2]>=6 && order[i][aaa=2]<27) )
+				{
+					j=1-order[i][aaa=0]/3;
+					l=j*3+rand()%mon_num[j];
+					while(field_mon[l].HP<=0) l=j*3+rand()%mon_num[j];
+					order[i][aaa=1]=l;
+					order[i][aaa=2]=-1;
+				}
+				else if(order[i][aaa=2]<27) //对自己使用
+				{
+					if(order[i][aaa=2]<6)
+					{
+						if(order[i][aaa=2]<=2)
+						{
+							l=order[i][aaa=0];
+							for(j=0;j<mon_num[aaa=0];j++);
+							{
+								if(field_mon[j].HP<=0) continue;
+								if(field_mon[j].HP*field_mon[l].ability[aaa=1]<field_mon[j].ability[aaa=1]*field_mon[l].HP)
+								{
+									l=j;
+								}
+							}
+							order[i][aaa=1]=l;
+						}
+						else order[i][aaa=1]=order[i][aaa=0]/3-3;
+					}
+				}
+				else
+				{
+					if(order[i][aaa=2]>=60 || (order[i][aaa=2]>=45 && order[i][aaa=2] <=59 && order[i][aaa=2]%3==0) || (order[i][aaa=2]>=27 && order[i][aaa=2]<=29))
+					{
+						j=1-order[i][aaa=0]/3;
+						l=j*3+rand()%mon_num[j];
+						while(field_mon[l].HP<=0) l=j*3+rand()%mon_num[j];
+						order[i][aaa=1]=l;
+					}
+					else order[i][aaa=1]=-2-order[i][aaa=0]/3;
+				}
+			}
+		}
+		if(order[i][aaa=2]==-1)
+		{
+			if(field_mon[order[i][aaa=1]].HP<=0)
+			{
+				order[i][aaa=1]=(1-order[i][aaa=0]/3)*3;
+				while(field_mon[order[i][aaa=1]].HP<=0) order[i][aaa=1]++;
+			}
+			sprintf(str,"  %s  攻击  %s",field_mon[order[i][aaa=0]].name,field_mon[order[i][aaa=1]].name);
+			ShowAt(str);
+			Attack(order[i][aaa=0],order[i][aaa=1],100);
+		}
+		else
+		{
+			if((field_mon[order[i][aaa=0]].state&BitN[aaa=1]) != 0)
+			{
+				sprintf(str," %s被封锁了魔法",field_mon[order[i][aaa=0]].name);
+				ShowAt(str);
+			}
+			else UseSkill(order[i][aaa=0],order[i][aaa=1],order[i][aaa=2]);
+		}
+	}
+}
+void AtkOr()
+{
+	int i,num,l,j;
+	for(i=0;i<mon_num[aaa=0];i++)
+	{
+		order[i][aaa=0]=i;
+		order[i][aaa=1]=RandN(field_mon[i].ability[aaa=5]);
+	}
+	for(i=0;i<mon_num[aaa=1];i++)
+	{
+		order[i+mon_num[aaa=0]][aaa=0]=3+i;
+		order[i+mon_num[aaa=0]][aaa=1]=RandN(field_mon[aaa=3+i].ability[aaa=5]);
+	}
+	for(i=0;i<mon_num[aaa=0]+mon_num[aaa=1];i++)
+	{
+		num=i;
+		for(j=i+1;j<mon_num[aaa=0]+mon_num[aaa=1];j++)
+		{
+			if(order[j][aaa=1]>order[num][aaa=1]) num=j;
+		}
+		if(num!=i)
+		{
+			l=order[num][aaa=0];
+			order[num][aaa=0]=order[i][aaa=0];
+			order[i][aaa=0]=l;
+			l=order[num][aaa=1];
+			order[num][aaa=1]=order[i][aaa=1];
+			order[i][aaa=1]=l;
+		}
+	}
+}
+//发送命令
+int Order()
+{
+	int i,j,p;
+	char str[15];
+	for(i=0;i<mon_num[aaa=1];i++)
+	{
+		Refresh();
+		for(p=0;p<mon_num[aaa=0]+mon_num[aaa=1];p++)
+		{
+			if(order[p][aaa=0]==3+i) break;
+		}
+		if(field_mon[aaa=3+i].HP<=0) continue;
+		strcpy(str,"攻击防御特技");
+		j=SelectBoxH(65,18,4,3,3,str,4,0);
+		if(j==-1) return 0;
+		if(j==1) 
+		{
+			order[p][aaa=2]=-3;
+			continue;
+		}
+		else if(j==0)
+		{
+			j=SelMon(0);
+			if(j==-1) return 0;
+			order[p][aaa=1]=j;
+			order[p][aaa=2]=-1;
+		}
+		else if(j==2)
+		{
+			if(field_mon[aaa=3+i].skill_num<=0) continue;
+			j=SelectSkill(i+3);
+			if(j==-1) return 0;
+			fseek(f_mon,4422+52*field_mon[aaa=3+i].skill[j],0);
+			fread(ski_tmp,1,52,f_mon);
+			if(ski_tmp.ability[aaa=7]>field_mon[aaa=3+i].MP) 
+			{
+				MsgBox(30,30,16,1,"　 ＭＰ不足！ 　",1);
+				return 0;
+			}
+			order[p][aaa=2]=field_mon[aaa=3+i].skill[j];
+			order[p][aaa=1]=SelSkiUser(field_mon[aaa=3+i].skill[j]);
+			if(order[p][aaa=1]==-1 || (field_mon[aaa=3+i].skill[j]<27 && order[p][aaa=1]==2)) return 0;
+		}
+	}
+	return 1;
+}
+//战斗处理
+int Battle(int mode)//0->普通遇敌 1-〉战斗事件 3-〉竞技场
+{
+	int i,atk,p,j;
+	long GExp;
+	char str[25];
+
+	ClearScreen();
+	for(i=0;i<mon_num[aaa=0];i++)
+	{
+		fseek(f_mon,29262+(field_mon[i].monk[aaa=1])*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		if(mon_num[aaa=0]==1)
+		{
+			WriteBlock(56,14,48,48,1,mon_tmp.picture);
+		}
+		else WriteBlock(3+53*i,14,48,48,1,mon_tmp.picture);
+	}
+	ShowHM();
+	Rectangle(1,64,123,78,2);
+	TextOut(3,66," 攻击 道具 命令 逃走",1);
+	GetBlock(0,0,160,80,0,Screen);
+	WriteBlock(3,68,4,8,1,cursor[aaa=0]);
+	AtkOr();
+	result=0;
+
+	for(j=0;j<mon_num[aaa=0]+mon_num[aaa=1];j++) 
+	{
+		order[j][aaa=2]=-2;
+	}
+
+	for(i=0;;)
+	{ 
+		ShowHM();
+		Refresh();
+		atk=0;
+		for(j=0;j<mon_num[aaa=0]+mon_num[aaa=1];j++) 
+		{
+			if(order[j][aaa=2]!=-3) order[j][aaa=2]=-2;
+		}
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==2)
+		{ 
+			if(i==0) //攻击
+			{
+				atk=1;
+			}
+			else if(i==1)  //道具
+			{
+				if(mode==3) 
+				{
+					MsgBox(25,35,18,1,"该战斗不能使用道具",1);
+				}
+				else
+				{
+					p=SelectItem(8);
+					Refresh();
+					if(p>=12 && p<=16) 
+					{
+						sprintf(str,"%s扔出",heroname);
+						fseek(f_mon,4+134*p,0);
+						fread(str+8,1,8,f_mon);
+						str[aaa=16]=0;
+						ShowAt(str);
+						str[aaa=0]=1;
+						str[aaa=1]=5;
+						str[aaa=2]=10;
+						str[aaa=3]=20;
+						str[aaa=4]=100;
+						for(j=0;j<mon_num[aaa=0];j++)
+						{
+							if(field_mon[j].HP>0)
+							{
+								sprintf(str+5,"%s与%s变得亲近",field_mon[j].name,heroname);
+								ShowAt(str+5);
+								field_mon[j].ability[aaa=7]=field_mon[j].ability[aaa=7]-str[p-12];
+								if(field_mon[j].ability[aaa=7]<0) field_mon[j].ability[aaa=7]=0;
+							}
+						}
+					}
+					if(p>=23 && p<=28)
+					{
+						if(p==23)//雷杖,41
+						{
+							sprintf(str,"      %s使用雷杖",heroname);
+							j=41;
+						}
+						else if(p==24)//火杖,32
+						{
+							sprintf(str,"      %s使用火杖",heroname);
+							j=32;
+						}
+						else if(p==25)//友情杖
+						{
+						}
+						else if(p==26)//封魔杖,49
+						{
+							sprintf(str,"     %s使用封魔杖",heroname);
+							j=49;
+						}
+						else if(p==27)//雪杖,44
+						{
+							sprintf(str,"      %s使用雪杖",heroname);
+							j=44;
+						}
+						else if(p==28)//真空杖,37
+						{
+							sprintf(str,"     %s使用真空杖",heroname);
+							j=37;
+						}
+						ShowAt(str);
+						UseSkill(-1,-3,j);
+					}
+					if(p!=-1) atk=1;
+				}
+			}
+			else if(i==2)  //命令
+			{
+				//if(mode==3) 
+				//{
+				//	MsgBox(25,35,18,1,"该战斗不能使用命令",1);
+				//}
+				atk=Order();
+				Refresh();
+			}
+			else if(i==3)  //逃走
+			{ 
+				if(mode!=0)
+				{
+					MsgBox(25,35,18,1,"该战斗不能使用逃走",1);
+				}
+				else if(rand()%100<40)
+				{
+					MsgBox(25,35,18,1,"   逃走失败……   ",1);
+					Refresh();
+					atk=2;
+				}
+				else 
+				{
+					MsgBox(25,35,18,1,"   逃走成功……   ",1);
+					return -1;
+				}
+			}
+			keyUD=0;
+		}
+		if(atk!=0)
+		{
+			RunOrder(atk);//-1死亡 0 未分胜负 1 胜利
+			if(result==1 && mode!=3) 
+			{
+				GExp=0;
+				for(p=0;p<mon_num[aaa=0];p++)
+				{
+					GExp=100+GExp+field_mon[p].Exp;
+				}
+				F_exp=F_exp+GExp;
+				GExp=1+GExp/mon_num[aaa=1]/10;
+				for(p=3;p<3+mon_num[aaa=1];p++)
+				{
+					if(field_mon[p].HP>0)
+					{
+						field_mon[p].state=field_mon[p].state&(231);
+						sprintf(str,"%s获得经验 %d",field_mon[p].name,GExp);
+						ShowAt(str);
+						field_mon[p].NetExp=field_mon[p].NetExp+GExp;
+						UpdateMon(p);
+					}
+				}
+				if(mode==0) CheckMon(1);
+			}
+			if(result != 0) return result;
+		}
+		WriteBlock(3+30*i,68,4,8,1,cursor[aaa=1]);
+		i=(i+keyUD+keyLR+4)%4;
+		WriteBlock(3+30*i,68,4,8,1,cursor[aaa=0]);
+	}
+}
+//竞技场事件----------------------------------------------------weiwencheng
+int Arena()
+{
+	int i;
+	int price;
+	char btm[3],str[50];
+	if(WinGK<7) sprintf(str,"要参加 %c 级别的挑战吗？",'G'-WinGK);
+	else 
+	{
+		if(WinGK==7) sprintf(str,"要参加 S 级别的挑战吗？");
+		else 
+		{
+			MsgBox(6,48,24,2,"你已经通过了所有的等级",1);
+			return 1;
+		}
+	}
+	MsgBox(6,48,24,2,str,0);
+	strcpy(str,"确定 放弃 ");
+	if(SelectBoxH(115,15,5,2,2,str,5,0)==0)
+	{
+		for(i=0;i<3;i++)
+		{
+			ClearScreen();
+			Refresh();
+			if(i==0) MsgBox(6,25,24,2,"      第一场比赛！  ",1);
+			else if(i==1) MsgBox(6,25,24,2,"      第二场比赛！  ",1);
+			else  MsgBox(6,25,24,2,"      第三场比赛！  ",1);
+			fseek(f_mon,546718+WinGK*9+i*3,0);
+			fread(btm,1,3,f_mon);
+			mon_num[aaa=0]=3;
+			field_mon[aaa=0].monk[aaa=1]=btm[aaa=0];
+			field_mon[aaa=1].monk[aaa=1]=btm[aaa=1];
+			field_mon[aaa=2].monk[aaa=1]=btm[aaa=2];
+			field_mon[aaa=0].LV=5+WinGK*10;
+			field_mon[aaa=1].LV=field_mon[aaa=0].LV;
+			field_mon[aaa=2].LV=field_mon[aaa=0].LV;
+			LoadMon(field_mon[aaa=0].LV*6-15);
+
+			field_mon[aaa=0].ability[aaa=1]=field_mon[aaa=0].ability[aaa=1]*2;
+			field_mon[aaa=0].HP=field_mon[aaa=0].ability[aaa=1];
+			field_mon[aaa=1].ability[aaa=1]=field_mon[aaa=1].ability[aaa=1]*2;
+			field_mon[aaa=1].HP=field_mon[aaa=1].ability[aaa=1];
+			field_mon[aaa=2].ability[aaa=1]=field_mon[aaa=2].ability[aaa=1]*2;
+			field_mon[aaa=2].HP=field_mon[aaa=2].ability[aaa=1];
+
+			Battle(3);
+			if(result==-1) break;
+		}
+		DrawMap();
+		if(i!=3) ShowMsg("      下次努力吧！   ");
+		else   
+		{
+			WinGK++;
+			ShowMsg("恭喜通过测试，继续努力！");
+		}
+		for(i=0;i<mon_num[aaa=1];i++) Reset(i+3);
+	}
+	DrawMap();
+}
+//查看牧场怪兽
+int LookMon(int num)//察看牧场怪兽，可选择怪兽
+{
+	char state[25];
+	int i,basic,nbas,l;
+	ClearScreen();
+	nbas=num;
+	if(nbas<=field_num) l=3;
+	else l=3+field_num-nbas;
+	memset(state+5,' ',14);
+	strcpy(state,"查看 ");
+	for(i=0;i<l;i++)
+	{
+		memcpy(state+5+5*i,field_mon[nbas+i].name,4);
+		state[aaa=4+5*i]=' ';
+	}
+	state[aaa=19]=0;
+	Rectangle(1,1,117,15,2);
+	Rectangle(3,66,50,78,2);
+	Rectangle(53,18,158,78,2);
+	TextOut(3,3,state,1);
+	ShowMoney(0);
+	WriteBlock(28,5,4,8,1,cursor[aaa=0]);
+	i=0;
+	basic=0;
+	keyUD=0;
+	do
+	{
+		fseek(f_mon,29262+field_mon[nbas+i].monk[aaa=1]*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		WriteBlock(2,17,48,48,1,mon_tmp.picture);
+		do
+		{
+			basic=(basic+keyUD+4)%4;
+			Block(54,19,157,76,0);
+			if(basic==0) MonPage1(nbas+i);
+			else if(basic==1) MonPage2(nbas+i);
+			else if(basic==2) MonPage3(nbas+i);
+			else if(basic==3) MonPage4(nbas+i);
+			Refresh();
+			Delay(200-delay_time);
+			GetKey(0);
+			if(keyUD==4) return -1;
+			if(keyUD==2) return nbas+i;
+		}while(keyLR==0);
+		WriteBlock(28+i*30,5,4,8,1,cursor[aaa=1]);
+		i=i+keyLR;
+		if( i>=l) 
+		{		
+			if(nbas+i>=3+field_num) i--;
+			else
+			{
+				nbas=nbas+3;
+				if(nbas<field_num) l=3;
+				else l=3+field_num-nbas;
+				memset(state+5,' ',14);
+				for(i=0;i<l;i++)
+				{
+					memcpy(state+5+5*i,field_mon[nbas+i].name,4);
+					state[aaa=4+5*i]=' ';
+				}
+				TextOut(3,3,state,1);
+				i=0;
+			}
+		}
+		
+		else if(i<0)
+		{
+			if(nbas+i<num) i++;
+			else
+			{
+				nbas=nbas-3;
+				if(nbas<=field_num) l=3;
+				else l=field_num-nbas;
+				memset(state+5,' ',14);
+				for(i=0;i<l;i++)
+				{
+					memcpy(state+5+5*i,field_mon[nbas+i].name,4);
+					state[aaa=4+5*i]=' ';
+				}
+				TextOut(3,3,state,1);
+				i=l-1;
+			}
+		}
+		WriteBlock(28+i*30,5,4,8,1,cursor[aaa=0]);
+	}while(1); 
+}
+//查看怪兽蛋
+int LookEgg()//察看牧场怪兽蛋，可选择怪兽蛋
+{
+	char state[25];
+	int i,basic,nbas,l;
+	ClearScreen();
+	nbas=23-field_egg;
+	if(nbas+3<=23) l=3;
+	else l=23-nbas;
+	memset(state+5,' ',14);
+	strcpy(state,"查看 ");
+	for(i=0;i<l;i++)
+	{
+		memcpy(state+5+5*i,field_mon[nbas+i].name,4);
+		state[aaa=4+5*i]=' ';
+	}
+	state[aaa=19]=0;
+	Rectangle(1,1,117,15,2);
+	Rectangle(3,66,50,78,2);
+	Rectangle(53,18,158,78,2);
+	TextOut(3,3,state,1);
+	Rectangle(120,1,158,15,2);
+	WriteBlock(28,5,4,8,1,cursor[aaa=0]);
+	i=0;
+	keyUD=0;
+	do
+	{
+		fseek(f_mon,29262+field_mon[nbas+i].monk[aaa=1]*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		WriteBlock(2,17,48,48,1,mon_tmp.picture);
+		if(field_mon[nbas+i].monk[aaa=2]%2==0) 	TextOut(122,3,"性别♂",1);
+		else TextOut(122,3,"性别♀",1);
+		Block(54,19,157,76,0);
+		MonPage4(nbas+i);
+		Delay(200-delay_time);
+		Refresh();
+		GetKey(0);
+		if(keyUD==4) return -1;
+		if(keyUD==2) return nbas+i;
+		WriteBlock(28+i*30,5,4,8,1,cursor[aaa=1]);
+		i=i+keyLR+keyUD;
+		if( i>=l) 
+		{		
+			if(nbas+i>=23) i--;
+			else
+			{
+				nbas=nbas+3;
+				if(nbas+3<=23) l=3;
+				else l=23-nbas;
+				memset(state+5,' ',14);
+				for(i=0;i<l;i++)
+				{
+					memcpy(state+5+5*i,field_mon[nbas+i].name,4);
+					state[aaa=4+5*i]=' ';
+				}
+				TextOut(3,3,state,1);
+				i=0;
+			}
+		}
+		else if(i<0)
+		{
+			if(nbas+i<23-field_egg) i++;
+			else
+			{
+				nbas=nbas-3;
+				if(nbas+3<=23) l=3;
+				else l=23-nbas;
+				memset(state+5,' ',14);
+				for(i=0;i<l;i++)
+				{
+					memcpy(state+5+5*i,field_mon[nbas+i].name,4);
+					state[aaa=4+5*i]=' ';
+				}
+				TextOut(3,3,state,1);
+				i=l-1;
+			}
+		}
+		WriteBlock(28+i*30,5,4,8,1,cursor[aaa=0]);
+	}while(1); 
+}
+
+//祝福
+void Bless()
+{
+	int i,p;
+	char str[11],yn[11],tmp[25];
+	strcpy(str,"祝福 离开 ");
+	while((p=SelectBoxH(3,20,5,2,2,str,5,0))!=-1)
+	{
+		if(p==1) break;
+		if(field_egg<1) 
+		{
+			MsgBox(25,35,18,1,"牧场里没有怪兽蛋！",1);
+		}
+		else
+		{
+			p=LookEgg();
+			if(p!=-1)
+			{
+				WriteBlock(0,0,160,80,1,Screen);
+				Refresh();
+				sprintf(tmp,"  对 %s 祝福？  ",field_mon[p].name);
+				MsgBox(25,10,18,1,tmp,0);
+				strcpy(yn,"祝福 放弃 ");
+				if(SelectBoxH(90,50,5,2,2,str,5,0)==0)
+				{
+					field_mon[p].monk[aaa=2]=1-field_mon[p].monk[aaa=2]%2;
+					WriteBlock(0,0,160,80,1,Screen);
+					Refresh();
+					ShowMsg("    @#!@$$%$*#!@……      怪兽蛋的性别已改变！");
+				}
+			}
+		}
+		WriteBlock(0,0,160,80,1,Screen);
+		Refresh();
+	}
+}
+//查看自己所带的怪兽
+int ShowCon()  //显示怪兽状态
+{
+	char state[25];
+	int i,basic;
+	ClearScreen();
+	strcpy(state,"状态");
+	for(i=0;i<mon_num[aaa=1];i++) 
+	{
+		memcpy(state+5+5*i,field_mon[aaa=3+i].name,4);
+		state[aaa=4+5*i]=' ';
+	}
+	state[aaa=4+5*i]=0;
+	Rectangle(1,1,117,15,2);
+	Rectangle(3,66,50,78,2);
+	Rectangle(53,18,158,78,2);
+	TextOut(3,3,state,1);
+	ShowMoney(0);
+	WriteBlock(28,5,4,8,1,cursor[aaa=0]);
+	i=0;
+	basic=0;
+	keyUD=0;
+	do
+	{
+		fseek(f_mon,29262+field_mon[aaa=3+i].monk[aaa=1]*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		WriteBlock(2,17,48,48,1,mon_tmp.picture);
+		do
+		{
+			basic=(basic+keyUD+4)%4;
+			Block(54,19,157,76,0);
+			if(basic==0) MonPage1(3+i);
+			else if(basic==1) MonPage2(3+i);
+			else if(basic==2) MonPage3(3+i);
+			else if(basic==3) MonPage4(3+i);
+			Refresh();
+			Delay(200-delay_time);
+			GetKey(0);
+			if(keyUD==4) return -1;
+			if(keyUD==2) return 3+i;
+		}while(keyLR==0);
+		WriteBlock(28+i*30,5,4,8,1,cursor[aaa=1]);
+		i=(i+keyLR+mon_num[aaa=1])%mon_num[aaa=1];
+		WriteBlock(28+i*30,5,4,8,1,cursor[aaa=0]);
+	}while(keyUD!=4); 
+}
+
+/////////////////////////////有改动！！！！！！！！！！///////////////////////////////////////////////////////////
+int LoadGame(char n)
+{
+	int i,j;
+	for(i=0;i<15;i++) win_gk[i]=0;
+	for(i=0;i<79;i++) flag_mon[i]=0;
+	if(n==0)
+	{
+		money=1000;
+		mon_num[aaa=0]=1;
+		field_mon[aaa=0].LV=10;
+		field_mon[aaa=0].monk[aaa=1]=mon[rand()%10]+rand()%10;
+		LoadMon(10);
+		field_num=0;
+		field_egg=0;
+		AddMon(0);
+		mon_num[aaa=1]=1;
+		myitem_num=0;
+		saveitem_num=0;
+		WinGK=0;
+		ClearScreen();
+		Refresh();
+		MsgBox(6,48,24,2,"请输入你的名字",0);
+		PassName(heroname);
+		return 1;
+	}
+	else
+	{
+		fread(&delay_time,1,(aaa=&queen_flg)-(aaa=&delay_time)+(aaa=1),n);
+		fread(&i,1,2,n);
+		j=Secrt(&delay_time,(aaa=&queen_flg)-(aaa=&delay_time)+(aaa=1));
+		if(j!=i) 
+		{
+			MsgBox(6,20,24,2,"    文件数据错误！！！",1);
+			exit(0);
+		}
+		else return 1;
+	}
+}
+int SaveGame()
+{
+	char fp;
+	int i;
+	i=SelectBoxH(90,25,8,3,3,"默认存档 存档一  存档二 ",8,0);
+	if(i<0) return -1;
+	MsgBox(25,32,16,1," 保存游戏中…… ",0);
+	if(i==0) fp=fopen("/LavaData/DQM_save.dat","wb");
+	else if(i==1) fp=fopen("/LavaData/DQM_save1.dat","wb");
+	else if(i==2) fp=fopen("/LavaData/DQM_save2.dat","wb");
+	if(fp==0) 
+	{
+		MsgBox(6,48,24,2,"    存档保存失败！ ",0);
+		return -1;
+	}
+	else
+	{
+		fwrite(&delay_time,1,(aaa=&queen_flg)-(aaa=&delay_time)+(aaa=1),fp);
+		i=Secrt(&delay_time,(aaa=&queen_flg)-(aaa=&delay_time)+(aaa=1));
+		fwrite(&i,1,2,fp);
+	}
+	fclose(fp);
+	MsgBox(6,48,24,2,"    存档保存成功！ ",0);
+	return 1;
+}
+int OptSet()
+{
+	int i,j;
+	char ikey[5];
+	char str[41];
+	while(1)
+	{
+		i=SelectBoxH(90,17,9,4,4,"按键设置 速度设置 保存进度 退出游戏 ",9,0);
+		if(i==-1) break;
+		if(i==0)
+		{
+			getchar();
+			strcpy(str,"向上    向下    向左    向右    确定    ");
+			for(j=0;j<5;j++)
+			{
+				MsgBox(10,2,8,5,str,0);
+				ikey[j]=getchar();
+				if(isprint(ikey[j])) str[aaa=6+j*8]=ikey[j];
+				else 
+				{
+					str[aaa=5+j*8]=ikey[j]/10+'0';
+					str[aaa=6+j*8]=ikey[j]%10+'0';
+				}
+			}
+			MsgBox(10,2,8,5,str,0);
+			Delay(150);
+			if(SelectBoxH(65,35,5,2,2,"应用 放弃 ",5,0)==0)
+			{
+				Key_up=ikey[aaa=0];
+				Key_down=ikey[aaa=1];
+				Key_left=ikey[aaa=2];
+				Key_right=ikey[aaa=3];
+				Key_enter=ikey[aaa=4];
+			}
+		}
+		else if(i==1)
+		{
+			j=SelectBoxH(60,25,3,3,3,"快 中 慢 ",3,0);
+			if(j!=-1) delay_time=50+50*j;
+		}
+		else if(i==2)
+		{
+			SaveGame();
+		}
+		else if(i==3)
+		{
+			if(SelectBoxH(50,35,5,2,2,"确定 放弃 ",5,0)==0)
+			{
+				getchar();
+				exit(0);
+			}
+		}
+		Refresh();
+	}
+}
+//菜单
+int Option(int mode)//2->平时(树国)  4->异界
+{
+	int i,l,j,p;
+	char tmp[25];
+	ClearScreen();
+	Rectangle(1,1,117,15,2);
+	TextOut(3,3,"状态 道具 特技 设定",1);
+	ShowMoney(0);
+	Rectangle(1,18,158,78,2);
+	sprintf(tmp," 主人     ...........%s",heroname);
+	TextOut(3,21,tmp,1);
+
+	l=0;
+	for(i=0;i<312;i++)
+	{
+		if((flag_mon[i/4]&BitN[i%4*2])!=0) l++;
+	}
+	sprintf(tmp," 怪兽图鉴 ........... %d",l);
+	TextOut(3,36,tmp,1);
+
+	sprintf(tmp," 牧场     怪兽 %d   蛋 %d",field_num,field_egg);
+	TextOut(3,51,tmp,1);
+	TextOut(3,66," 冬眠     怪兽  0   蛋  0",1);
+	Refresh();
+	for(i=0;;)
+	{
+		Block(2+i*30,2,26+i*30,14,2);
+		Refresh();
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) return 4;
+		else if(keyUD==2)
+		{
+			GetBlock(0,0,160,80,0x40,Screen);
+			if(i==0) //状态
+			{ 
+				ShowCon();
+			}
+			else if(i==1)//道具
+			{ 
+				j=SelectItem(mode);
+				if(j==32) return 32;
+			}
+			else if(i==2)//技能
+			{
+				strcpy(tmp,"技能 ");
+				for(j=0;j<mon_num[aaa=1];j++) 
+				{
+					memcpy(tmp+5+5*j,field_mon[aaa=3+j].name,4);
+					tmp[aaa=4+5*j]=' ';
+				}
+				tmp[aaa=4+5*j]=0;
+				Block(2,2,116,14,0);
+				TextOut(3,3,tmp,1);
+				keyUD=0;
+				keyLR=0;
+				l=0;
+				while(keyUD!=4)
+				{
+					if(keyUD==2) 
+					{ 
+						j=SelectSkill(3+l);
+						if(j!=-1)
+						{
+							if(field_mon[aaa=3+l].skill[j]>=27) 
+							{
+								MsgBox(30,30,16,1,"移动中不能使用！",1);
+							}
+							else
+							{
+								fseek(f_mon,4422+52*field_mon[aaa=3+l].skill[j],0);
+								fread(ski_tmp,1,52,f_mon);
+								if(ski_tmp.ability[aaa=7]>field_mon[aaa=3+l].MP) 
+								{
+									MsgBox(30,30,16,1,"　 ＭＰ不足！ 　",1);
+								}
+								else
+								{
+									p=SelSkiUser(field_mon[aaa=3+l].skill[j]);
+									if(p!=-1)
+									{
+										UseSkill(3+l,p,field_mon[aaa=3+l].skill[j]);
+									}
+								}
+							}
+						}
+						break;
+					}
+					else
+					{
+						WriteBlock(28+30*l,5,4,8,0x41,cursor[aaa=1]);
+						l=(l+keyUD+keyLR+mon_num[aaa=1])%mon_num[aaa=1];
+					} 
+					Refresh();
+					WriteBlock(28+30*l,5,4,8,0x41,cursor[aaa=0]); 
+					Delay(200-delay_time);
+					GetKey(0);
+				}
+			}
+			else if(i==3) //设定
+			{
+				OptSet();
+			}
+			WriteBlock(0,0,160,80,1,Screen);
+			Refresh();
+			keyUD=0;
+		}
+		Block(2+i*30,2,26+i*30,14,2);
+		i=(i+keyUD+keyLR+4)%4;
+	}
+	return 0;
+}
+void BuyItem(long addr)//买道具,道具数默认10
+{
+	int i,p;
+	long price;
+	char yn[12];
+	char it_f[170];
+	for(i=0;i<10;i++)
+	{
+		fseek(f_mon,134*(*(addr+i)),0);
+		fread(&price,1,4,f_mon);
+		fread(it_f+i*16,1,8,f_mon);
+		for(p=0;p<8;p++) if(it_f[i*16+p]==0) break;
+		for(;p<11;p++) it_f[i*16+p]=' ';
+		sprintf(it_f+i*16+11,"%dG",price);
+	}
+	while(1)
+	{
+		i=SelectBox(45,1,16,5,10,it_f,16,0);
+		if(i==-1) break;
+		i=*(addr+i);
+		fseek(f_mon,134*i,0);
+		fread(&price,1,4,f_mon);
+		if(price>money) 
+		{
+			MsgBox(60,25,10,2,"你身上带的钱不够啊！",1);
+			continue;
+		}
+		strcpy(yn,"购买 放弃 ");
+		if(SelectBoxH(120,49,5,2,2,yn,5,0)!=0) continue;
+		money=money-price;
+		AddItem(i);
+		if(myitem_num>=20) break;
+		ShowMoney(1);
+	}
+}
+void SellItem(int discount)//卖道具
+{
+	int i,p;
+	long price;
+	char yn[12];
+	char it_f[321];
+	while(1)
+	{
+		for(i=0;i<myitem_num;i++)
+		{
+			fseek(f_mon,134*myitem[i],0);
+			fread(&price,1,4,f_mon);
+			fread(it_f+i*16,1,8,f_mon);
+			for(p=0;p<8;p++) if(it_f[i*16+p]==0) break;
+			for(;p<11;p++) it_f[i*16+p]=' ';
+			sprintf(it_f+i*16+11,"%dG",price*discount/100);
+		}
+		i=SelectBox(45,1,16,5,myitem_num,it_f,16,0);
+		if(i==-1) break;
+		fseek(f_mon,134*myitem[i],0);
+		fread(&price,1,4,f_mon);
+		price=price*discount/100;
+		if(price+money>99999) 
+		{
+			MsgBox(60,25,10,2,"你身上带的钱太多了！",1);
+			continue;
+		}
+		strcpy(yn,"出售 放弃 ");
+		if(SelectBoxH(120,49,5,2,2,yn,5,0)!=0) continue;
+		money=money+price;
+		DelItem(i);
+		if(myitem_num<=0) break;
+		ShowMoney(1);
+	}
+}
+void BSItem(int discount,long addr)//买卖物品,discount节扣,addr种类地址
+{
+	int i;
+	char bs[16];
+	strcpy(bs,"购买 出售 离开 ");
+	do
+	{
+		ShowMoney(1);
+		i=SelectBoxH(3,18,5,3,3,bs,5,0);
+		if(i==0)//购买
+		{
+			if(myitem_num>=20) 
+			{
+				MsgBox(60,25,10,2,"背包已满，无法购买。",1);
+			}
+			else BuyItem(addr);
+		}
+		else if(i==1)//出售
+		{
+			if(myitem_num<=0) 
+			{
+				MsgBox(60,25,10,2,"背包已空，无物出售。",1);
+			}
+			else SellItem(discount);
+		}
+		else if(i==2) break;
+		Refresh();
+	}while(i!=-1);
+}
+void SaItem()//储存道具,最多40
+{
+	int i,p;
+	char yn[12];
+	char it_f[170];
+	while(1)
+	{
+		for(i=0;i<myitem_num;i++)
+		{
+			fseek(f_mon,4+134*myitem[i],0);
+			fread(it_f+i*8,1,8,f_mon);
+		}
+		i=SelectBox(50,1,8,5,myitem_num,it_f,8,0);
+		if(i==-1) break;
+		strcpy(yn,"储存 放弃 ");
+		if(SelectBoxH(70,49,5,2,2,yn,5,0)!=0) continue;
+		SaveItem(i);
+		if(myitem_num<=0 || saveitem_num>=40) break;
+	}
+}
+void GItem()//取出道具
+{
+	int i,p;
+	char yn[12];
+	char it_f[321];
+	while(1)
+	{
+		for(i=0;i<saveitem_num;i++)
+		{
+			fseek(f_mon,4+134*saveitem[i],0);
+			fread(it_f+i*8,1,8,f_mon);
+		}
+		i=SelectBox(50,1,8,5,saveitem_num,it_f,8,0);
+		if(i==-1) break;
+		strcpy(yn,"取出 放弃 ");
+		if(SelectBoxH(70,49,5,2,2,yn,5,0)!=0) continue;
+		GetItem(i);
+		if(myitem_num>=20 || saveitem_num<=0) break;
+	}
+}
+void SGItem()//储存和取出物品
+{
+	int i;
+	char bs[16];
+	strcpy(bs,"储存 取出 离开 ");
+	do
+	{
+		ShowMoney(1);
+		i=SelectBoxH(3,18,5,3,3,bs,5,0);
+		if(i==0)//储存
+		{
+			if(myitem_num<=0) 
+			{
+				MsgBox(60,25,10,2,"背包已空，无物可存。",1);
+			}
+			else if(saveitem_num>=40) 
+			{
+				MsgBox(60,25,10,2,"仓库已满，无空可存。",1);
+			}
+			else SaItem();
+		}
+		else if(i==1)//取出
+		{
+			if(myitem_num>=20) 
+			{
+				MsgBox(60,25,10,2,"背包已满，无空可存。",1);
+			}
+			else if(saveitem_num<=0)
+			{
+				MsgBox(60,25,10,2,"仓库已空，无物可取。",1);
+			}
+			else GItem();
+		}
+		else if(i==2) break;
+		WriteBlock(0,0,160,80,1,Screen);
+		Refresh();
+	}while(i!=-1);
+}
+int SelBorn()
+{
+	int i,p,j,p1,p2;
+	char str[50];
+	char yn[12];
+	strcpy(str,"配合 孵化 离开 ");
+	strcpy(yn,"确定 放弃 ");
+	while((p=SelectBoxH(3,5,5,3,3,str,5,0))!=-1)
+	{
+		if(p==2) break;
+		if(p==0)
+		{
+			if(field_num<=2) 
+			{
+				MsgBox(25,35,16,2,"必须拥有 3只以上的怪兽才能交配！",1);
+			}
+			else
+			{
+				MsgBox(6,48,24,2,"    选择决定血统的怪兽  ",1);
+				p1=LookMon(3);
+				if(p1!=-1)
+				{
+					DrawMap();
+					MsgBox(6,48,24,2,"     选择交配的对象    ",1);
+					p2=LookMon(3);
+					if(p2!=-1 && p1!=p2)
+					{
+						if(SelectBoxH(1,20,5,2,2,yn,5,0)==0)
+						{
+							if(field_mon[p1].LV<10 || field_mon[p2].LV<10) 
+							{
+								DrawMap();
+								MsgBox(6,48,24,2,"LV10以上的怪兽才能参与交配！ ",1);
+							}
+							else
+							{
+								if((field_mon[p1].monk[aaa=2]+field_mon[p2].monk[aaa=2])%2!=0)
+								{
+									p=Born(field_mon[p1].monk[aaa=1],GetKind(field_mon[p1].monk[aaa=1]),field_mon[p2].monk[aaa=1],GetKind(field_mon[p2].monk[aaa=1]));
+									if(p>=312 || p<0) p=p1;
+									fseek(f_mon,29262+p*371,0);
+									fread(mon_tmp,1,371,f_mon);
+									DrawMap();
+									sprintf(str,"我想会生下%s蛋，继续吗？",mon_tmp.name);
+									MsgBox(6,48,24,2,str,0);
+									Delay(200-delay_time);
+									if(SelectBoxH(115,15,5,2,2,yn,5,0)==0)
+									{
+										flag_mon[p/4]=(flag_mon[p/4]|BitN[p%4*2]);
+										flag_mon[p/4]=(flag_mon[p/4]|BitN[p%4*2+1]);
+										field_mon[aaa=0].monk[aaa=3]=field_mon[p1].monk[aaa=1];
+										field_mon[aaa=0].monk[aaa=4]=field_mon[p2].monk[aaa=1];
+										field_mon[aaa=0].monk[aaa=0]=GetKind(p);
+										field_mon[aaa=0].monk[aaa=2]=rand()%2;
+										field_mon[aaa=0].monk[aaa=1]=p;
+										field_mon[aaa=0].monk[aaa=5]=(field_mon[p1].LV+field_mon[p2].LV)/19+field_mon[p1].monk[aaa=5]+field_mon[p2].monk[aaa=5];
+										field_mon[aaa=0].ability[aaa=0]=RandN(20+mon_tmp.grade*16)+2*field_mon[aaa=0].monk[aaa=5];
+										if(field_mon[aaa=0].ability[aaa=0]>99) field_mon[aaa=0].ability[aaa=0]=99;
+										for(i=1;i<7;i++) 
+										{
+											field_mon[aaa=0].ability[i]=RandN((field_mon[p1].ability[i]+field_mon[p2].ability[i])/4);
+										}
+										field_mon[aaa=0].ability[aaa=7]=0;
+										for(i=0;i<field_mon[p1].skill_num;i++)
+										{
+											field_mon[aaa=0].skill[i]=field_mon[p1].skill[i];
+											if(field_mon[aaa=0].skill[i]<60)
+											{
+												field_mon[aaa=0].skill[i]=field_mon[aaa=0].skill[i]/3*3;
+											}
+										}
+										p=i;
+										for(i=0;i<field_mon[p2].skill_num;i++)
+										{
+											if(field_mon[p2].skill[i]<60) field_mon[p2].skill[i]=field_mon[p2].skill[i]/3*3;
+											for(j=0;j<p;j++)
+											{
+												if(field_mon[aaa=0].skill[j]==field_mon[p2].skill[i]) break;
+											}
+											if(j==p)
+											{
+												field_mon[aaa=0].skill[p]=field_mon[p2].skill[i];
+												p++;
+											}
+										}
+										field_mon[aaa=0].skill_num=p;
+										for(i=0;i<3 && field_mon[aaa=0].skill_num<20;i++)
+										{
+											for(p=0;p<field_mon[aaa=0].skill_num;p++)
+											{
+												if(mon_tmp.skill[i]==field_mon[aaa=0].skill[p]) break;
+											}
+											if(p==field_mon[aaa=0].skill_num)
+											{
+												field_mon[aaa=0].skill[p]=mon_tmp.skill[i];
+												field_mon[aaa=0].skill_num++;
+											}
+										}
+										field_mon[aaa=0].skill[field_mon[aaa=0].skill_num]=-1;
+										field_mon[aaa=0].skill_num=0;
+										field_mon[aaa=0].Exp=Ep[mon_tmp.grow[aaa=0]];
+										field_mon[aaa=0].NetExp=0;
+										field_mon[aaa=0].LV=1;
+										Reset(0);
+
+										if(p2<3+mon_num[aaa=1]) mon_num[aaa=1]--;
+										field_num--;
+										for(p=p2;p<3+field_num;p++) memcpy(field_mon[p],field_mon[p+1],70);
+										if(p1>p2) p1--;
+										if(p1<3+mon_num[aaa=1]) mon_num[aaa=1]--;
+										field_num--;
+										for(p=p1;p<3+field_num;p++) memcpy(field_mon[p],field_mon[p+1],70);
+										if(mon_num[aaa=1]<=0) mon_num[aaa=1]=1;
+										AddEgg(0);
+										MsgBox(6,48,24,2,"   把蛋送到牧场去了！",1);
+									}
+								}
+								else 
+								{
+									DrawMap();
+									MsgBox(6,48,24,2,"无论如何，相同性别是不能交配的",1);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			if(field_egg<=0) continue; 
+			p=LookEgg();
+			if(p!=-1)
+			{
+				DrawMap();
+				MsgBox(6,48,24,2,"    确定要孵化吗？",0);
+				if(SelectBoxH(115,15,5,2,2,yn,5,0)==0)
+				{
+					memcpy(field_mon[aaa=0],field_mon[p],70);
+					DelEgg(p);
+					PassName(field_mon[aaa=0].name);
+					AddMon(0);
+					Refresh();
+					MsgBox(6,48,24,2,"    怪兽送到牧场去了！",1);
+				}
+			}
+		}
+		DrawMap();
+		strcpy(str,"配合 孵化 离开 ");
+	}
+}
+//小金牌事件
+void Gold_plate()
+{
+	int i,p;
+	char str[120];
+	int smon[7][2];
+	smon[aaa=0][aaa=0]=258;
+	smon[aaa=1][aaa=0]=16;
+	smon[aaa=2][aaa=0]=277;
+	smon[aaa=3][aaa=0]=222;
+	smon[aaa=4][aaa=0]=311;
+	smon[aaa=5][aaa=0]=140;
+	smon[aaa=6][aaa=0]=139;
+
+	smon[aaa=0][aaa=1]=5;
+	smon[aaa=1][aaa=1]=15;
+	smon[aaa=2][aaa=1]=20;
+	smon[aaa=3][aaa=1]=35;
+	smon[aaa=4][aaa=1]=40;
+	smon[aaa=5][aaa=1]=100;
+	smon[aaa=6][aaa=1]=100;
+
+	for(i=0;i<myitem_num;i++)
+	{
+		if(myitem[i]==31)
+		{
+			gold_num++;
+			myitem_num--;
+			myitem[i]=myitem[myitem_num];
+			i--;
+		}
+	}
+	sprintf(str,"  我最新喜欢小金牌的！  你保存的小金牌共 %d 枚",gold_num);
+	ShowMsg(str);
+	ShowMsg("　　　交换怪兽吗？");
+	if(SelectBoxH(65,15,5,2,2,"交换 放弃 ",5,0)==0)
+	{
+		for(i=0;i<7;i++)
+		{
+			if(gold_num>=smon[i][aaa=1])
+			{
+				fseek(f_mon,29262+smon[i][aaa=0]*371,0);
+				fread(str+i*16,1,10,f_mon);
+				for(p=0;p<10;p++) if(str[i*16+p]==0) break;
+				for(;p<11;p++) str[i*16+p]=' ';
+				sprintf(str+i*16+11,"%d枚",smon[i][aaa=1]);
+			}
+			else break;
+		}
+		Refresh();
+		if(i==0) 
+		{
+			ShowMsg("  至小要有 5枚小金牌！");
+		}
+		else 
+		{
+			i=SelectBox(45,1,16,5,i,str,16,0);
+			if(i!=-1)
+			{
+				if(SelectBoxH(5,15,5,2,2,"交换 放弃 ",5,0)==0)
+				{
+					field_mon[aaa=0].monk[aaa=1]=smon[i][aaa=0];
+					field_mon[aaa=0].LV=1;
+					mon_num[aaa=0]=1;
+					LoadMon(1);
+					if(AddEgg(0)==-1)
+					{
+						ShowMsg("       牧场已满！");
+					}
+					else 
+					{
+						ShowMsg("  把怪兽蛋送到牧场去了");
+						gold_num=gold_num-smon[i][aaa=1];
+					}
+				}
+			}
+		}
+	}
+	Refresh();
+	ShowMsg("        欢迎再来");
+	Refresh();
+}
+//王妃事件
+void Queen()
+{
+	int i;
+	char str[50];
+	int see_mon[20];
+	see_mon[aaa=0]=2;//飞翼史莱姆
+	see_mon[aaa=1]=59;//飞猫
+	see_mon[aaa=2]=107;//火凤凰
+	see_mon[aaa=3]=121;//邪苹果
+	see_mon[aaa=4]=163;//独角仙
+	see_mon[aaa=5]=185;//地狱守门人
+	see_mon[aaa=6]=237;//金属龙
+	see_mon[aaa=7]=277;//红帽乌贼
+	see_mon[aaa=8]=192;//独眼巨人
+	see_mon[aaa=9]=247;//冰河魔神
+	see_mon[aaa=10]=165;//铁甲蝎
+	see_mon[aaa=11]=52;//天空之龙
+	see_mon[aaa=12]=82;//八爪狮王
+	see_mon[aaa=13]=113;//究级魔鹰
+	see_mon[aaa=14]=217;//苍白之主
+	see_mon[aaa=15]=280;//达宫
+	see_mon[aaa=16]=291;//龙皇
+	see_mon[aaa=17]=293;//哈刚
+	see_mon[aaa=18]=287;//鳞甲魔蛙王
+	see_mon[aaa=19]=255;//黑暗圆盘
+
+	if(queen_num>=20)
+	{
+		if(queen_num==20)
+		{
+			for(i=0;i<79;i++) flag_mon[i]=255;; 
+		}
+		ShowMsg("没想到你能让我见到那么厉害的怪兽，现在图书馆里可以查看所有怪兽的资料");
+		return;
+	}
+	fseek(f_mon,29262+see_mon[queen_num]*371,0);
+	fread(mon_tmp,1,371,f_mon);
+	if(queen_flg==0)
+	{
+		if(queen_num==0) sprintf(str,"我很想见到%s，可以带给我看看吗？",mon_tmp.name);
+		ShowMsg(str);
+		queen_flg=1;
+		return;
+	}
+	for(i=3;i<3+mon_num[aaa=1];i++)
+	{
+		if(field_mon[i].monk[aaa=1]==see_mon[queen_num]) break;
+	}
+	if(i!=3+mon_num[aaa=1])
+	{
+		sprintf(str,"原来这就是%s，你很了不起啊！",mon_tmp.name);
+		ShowMsg(str);
+		sprintf(str,"奖励你 %d枚小金牌，小金牌送到金牌爷爷那里去了",1+mon_tmp.grade);
+		queen_num++;
+		gold_num=gold_num+1+mon_tmp.grade;
+		ShowMsg(str);
+		queen_flg=0;
+	}
+	else
+	{
+		sprintf(str,"怎么没有带%s来？很想见到%s阿",mon_tmp.name,mon_tmp.name);
+		ShowMsg(str);
+	}
+	DrawMap();
+}
+void Field_Even()
+{
+	char str[20],tmp[25];
+	char yn[7];
+	int i,j,p,pp;
+	strcpy(str,"寄存领取探望分手离开");
+	while((i=SelectBoxH(5,3,4,5,5,str,4,0))!=-1)
+	{
+		if(i==0) 
+		{
+			if(mon_num[aaa=1]<2) 
+			{
+				MsgBox(19,35,20,1,"不能和所有同伴分开！",1);
+			}
+			else 
+			{
+				p=SelMon(1);
+				if(p!=-1) 
+				{
+					p=p+3;
+					sprintf(tmp,"%s和%s分开了!",heroname,field_mon[p].name);
+					MsgBox(25,35,18,1,tmp,1);
+					SaveMon(p);
+				}
+			}
+		}
+		else if(i==1)
+		{
+			if(mon_num[aaa=1]>2)
+			{
+				MsgBox(25,35,18,1,"    同伴已满！    ",1);
+			}
+			else if(mon_num[aaa=1]>=field_num)
+			{
+				MsgBox(25,35,18,1,"牧场没有同伴！！！",1);
+			}
+			else
+			{
+				p=LookMon(3+mon_num[aaa=1]);
+				if(p!=-1) 
+				{
+					sprintf(tmp,"%s很高兴和%s见面！",heroname,field_mon[p].name);
+					MsgBox(12,35,22,1,tmp,1);
+					GetMon(p);
+				}
+			}
+		}
+		else if(i==2)
+		{
+			strcpy(yn,"怪兽 蛋   ");
+			j=SelectBoxH(40,25,5,2,2,yn,5,0);
+			if(j==0) 
+			{
+				if(mon_num[aaa=1]>=field_num)
+				{
+					MsgBox(25,35,18,1,"牧场没有同伴！！！",1);
+				}
+				else LookMon(3+mon_num[aaa=1]);
+			}
+			else 
+			{
+				if(field_egg==0)
+				{
+					MsgBox(25,35,18,1,"牧场没有怪兽蛋！！",1);
+				}
+				else LookEgg();
+			}
+		}
+		else if(i==3)
+		{
+			if(field_num<=mon_num[aaa=1])
+			{
+				MsgBox(25,35,18,1,"牧场没有同伴！！！",1);
+			}
+			else
+			{
+				p=LookMon(3+mon_num[aaa=1]);
+				if(p!=-1)
+				{
+					sprintf(tmp,"   与%s分手吗？   ",field_mon[p].name);
+					pp=p;
+					MsgBox(19,4,20,1,tmp,0);
+					strcpy(yn,"确定 放弃 ");
+					j=SelectBoxH(1,20,5,2,2,yn,5,0);
+					if(j==0)
+					{
+						sprintf(tmp,"%s依依不舍的离开了",field_mon[pp].name);
+						MsgBox(19,35,20,1,tmp,1);
+						DelMon(pp);
+					}
+				}
+			}
+		}
+		else break;
+		DrawMap();
+	}
+}
+int ShowMon(int k,int i)
+{
+	int p,l,p_m;
+	char tmp[25];
+	l=mon[k+1]-mon[k];
+	p_m=0;
+	for(;;)
+	{
+		fseek(f_mon,29262+(mon[k]+i-1)*371,0);
+		fread(mon_tmp,1,371,f_mon);
+		ClearScreen();
+		WriteBlock(4,1,48,48,1,mon_tmp.picture);
+		TextOut(8,66,mon_tmp.explain,1);
+		Rectangle(2,64,157,78,1);
+		Rectangle(56,1,158,62,1);
+		TextOut(58,3,mon_tmp.name,1);
+		sprintf(tmp,"Size:%c",mon_tmp.size);
+		TextOut(58,18,tmp,1);
+		if(p_m==0)
+		{
+			for(p=0;p<(mon_tmp.grade-1)/2+1;p++) TextOut(4+p*12,51,"★",1);
+			if(mon_tmp.grade%2!=0) Block(-2+p*12,51,4+p*12,62,0);
+			TextOut(61,33,"技能：",1);
+			Rectangle(100,16,156,60,1);
+			Rectangle(59,31,100,46,2);
+			for(p=0;p<3;p++)
+			{
+				fseek(f_mon,4422+52*mon_tmp.skill[p],0);
+				fread(tmp,1,9,f_mon);
+				TextOut(104,18+p*15,tmp,1);
+			}
+			Refresh();
+		}
+		else if(p_m==1)
+		{
+			Block(57,15,157,61,0);
+			TextOut(61,33,"交配==",1);
+			for(p=0;p<2;p++) 
+			{
+				if(mon_tmp.parent[p]==-1|| (flag_mon[(mon[k]+i-1)/4]&BitN[(mon[k]+i-1)%4*2+1])==0) TextOut(96,25+p*15,"????????",1);
+				else if(mon_tmp.parent[p]<11) TextOut(96,25+p*15,mon_kind[mon_tmp.parent[p]],1);
+				else
+				{ 
+					fseek(f_mon,29262+(mon_tmp.parent[p]-11)*371,0);
+					fread(tmp,1,11,f_mon);
+					TextOut(96,25+p*15,tmp,1);
+				}
+			}
+		}
+		Refresh();
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) { return i;}
+		if(keyUD==2) {p_m=1-p_m;keyUD=0;}
+		i=(i+keyUD+keyLR+l)%l;
+		while((flag_mon[(mon[k]+i-1)/4]&BitN[(mon[k]+i-1)%4*2])==0) i=(i+keyUD+keyLR+l)%l;
+	}
+}
+
+void monster_book()
+{
+	int i,ii,n;
+	char mn[400];
+	mon[aaa=0]=-311;
+	ClearScreen();
+	ii=0;
+	for(i=0;i!=-1;)
+	{
+		i=SelectBox(1,1,8,5,11,mon_kind,9,i);
+		if(i==-1) break;
+		for(ii=0;ii<mon[i+2]-mon[i+1];ii++)
+		{
+			if((flag_mon[(mon[i+1]+ii-1)/4]&BitN[(mon[i+1]+ii-1)%4*(aaa=2)])!=0)
+			{
+				fseek(f_mon,29262+(mon[i+1]+ii-1)*371,0);
+				fread(mn+ii*10,1,10,f_mon);
+			}
+			else
+			{
+				strcpy(mn+ii*10,"？？？？？");
+			}
+		}
+		ii=0;
+		while(ii!=-1)
+		{
+			ii=SelectBox(60,1,10,5,mon[i+2]-mon[i+1],mn,10,ii);
+			if(ii==-1) {ClearScreen();break;}
+			GetBlock(0,0,160,80,0x40,Screen);
+			if((flag_mon[(mon[i+1]+ii-1)/4]&BitN[(mon[i+1]+ii-1)%4*2])!=0) ii=ShowMon(i+1,ii);
+			WriteBlock(0,0,160,80,1,Screen);
+			Refresh();
+		}
+	}
+}
+
+int Maze(int gk_num)
+{
+	int i,j,ix,iy,gi,l;
+	char msg[25];
+	fseek(f_mon,542006+gk_num*152,0);
+	fread(MazeFloor,1,2,f_mon);
+	//MazeFloor[aaa=2]=MazeFloor[aaa=0]-1;
+	MazeFloor[aaa=2]=0;
+	fread(MazeMon,1,5,f_mon);
+	ClearScreen();
+	InitMi(4,4);
+	DrawMMap();
+	while(1)
+	{
+		GetKey(2);
+		if(keyUD==4) continue;
+		if(keyUD==16)
+		{
+			DrawMiMap(4,4);
+			DrawMMap();;
+		}
+		else if(keyUD==8)
+		{
+			j=Option(4);
+			if(j==32) return 0;
+			DrawMMap();
+		}
+		else
+		{
+			if(keyUD==-1) Drct=0;
+			else if(keyUD==1) Drct=1;
+			else if(keyLR==-1) Drct=2;
+			else if(keyLR==1) Drct=3;
+			WriteBlock(0,0,160,80,1,Screen);
+			DrawHero(0,X*16,16*Y);
+			Refresh();
+			if(keyUD!=2)
+			{
+				if(SLine+Y+keyUD<0 || SLine+Y+keyUD>=8)
+				{
+					Page=Page+keyUD*4;
+					if(SLine+Y+keyUD<0) { SLine=3;Y=4;}
+					else if(SLine+Y+keyUD>=8){ SLine=0;Y=0;}
+					DrawMMap();
+					keyUD=0;
+				}
+				else if(X+keyLR<0 || X+keyLR>=10)
+				{
+					Page=Page+keyLR;
+					X=(X+10+keyLR)%10;
+					DrawMMap();
+					keyLR=0;
+				}
+			}
+			else
+			{
+				ix=X;iy=Y;
+				if(Drct==0 && Y>0) iy=Y-1;
+				else if(Drct==1 && Y<4) iy=Y+1;
+				else if(Drct==2 && X>0) ix=X-1;
+				else if(Drct==3 && X<9) ix=X+1;
+				if(ix!=X||iy!=Y)
+				{
+				}
+				keyUD=0;
+			}
+			if(keyUD+keyLR!=0)
+			{
+				if(MazeMap[Page][SLine+Y+keyUD][X+keyLR]==0 || MazeMap[Page][SLine+Y+keyUD][X+keyLR]>=4)
+				{
+					Step--;
+					MoveMHero(keyUD,keyLR);
+					if(Step%5==0)
+					{
+						ix=0;
+						for(gi=3;gi<3+mon_num[aaa=1];gi++)
+						{
+							if(field_mon[gi].HP<=0) continue;
+							if((field_mon[gi].state&BitN[aaa=0]) != 0)
+							{
+								ix++;
+								if(ix==1)
+								{
+									Box(0,0,160,80,1,2);
+									Delay(10);
+									Box(0,0,160,80,1,2);
+								}
+								if(field_mon[gi].HP<=0) continue;
+								if((field_mon[gi].state&BitN[aaa=0]) != 0)
+								{
+									j=1+field_mon[gi].ability[aaa=1]/25;
+									field_mon[gi].HP=field_mon[gi].HP-j;
+									if(field_mon[gi].HP<0)
+									{
+										sprintf(msg,"      %s中毒死亡",field_mon[gi].name);
+										ShowMsg(msg);
+										field_mon[gi].HP=0;
+										for(l=3;l<3+mon_num[aaa=1];l++)
+										{
+											if(field_mon[l].HP>0) break;
+										}
+										if(l==3+mon_num[aaa=1]) 
+										{
+											ShowMsg("     全体怪兽死亡！");
+											return 0;
+										}
+									}
+								}
+							}	
+							else if((field_mon[gi].state&BitN[aaa=1]) == 0)
+							{
+								field_mon[gi].HP=field_mon[gi].HP+1;
+								if(field_mon[gi].HP>=field_mon[gi].ability[aaa=1]) field_mon[gi].HP=field_mon[gi].ability[aaa=1];
+								field_mon[gi].MP=field_mon[gi].MP+1;
+								if(field_mon[gi].MP>=field_mon[gi].ability[aaa=2]) field_mon[gi].MP=field_mon[gi].ability[aaa=2];
+							}
+						}
+					}
+					gi=-1;
+					if(MazeMap[Page][SLine+Y][X]==6)
+					{
+						gi=rand()%4;
+						if(gi>=2) gi++;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==7)
+					{
+						gi=5+rand()%3;
+						if(gi>=6) gi++;
+
+					}
+					else if(MazeMap[Page][SLine+Y][X]==8)
+					{
+						gi=12+rand()%5;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==9)
+					{
+						gi=rand()%5;
+						if(gi==0) gi=31;
+						else gi=50;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==10)
+					{
+						gi=23+rand()%5;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==11)
+					{
+						gi=17+rand()%6;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==12)
+					{
+						gi=9;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==13)
+					{
+						gi=32;
+					}
+					else if(MazeMap[Page][SLine+Y][X]==15)
+					{
+						MazeFloor[aaa=2]++;
+						if(MazeFloor[aaa=2] >= MazeFloor[aaa=0]) 
+						{
+							return 1;
+							ShowMsg("返回出错");
+							exit(0);
+						}
+						InitMi(4,4);
+						DrawMMap();
+						fseek(f_mon,542008+gk_num*152+MazeFloor[aaa=2]*5,0);
+						fread(MazeMon,1,5,f_mon);
+						if(Step<=0) Step=20;
+					}
+					if(gi!=-1)
+					{
+						if(gi==50) 
+						{
+							gi=RandN(60);
+							money=money+gi;
+							sprintf(msg,"   获得金钱 %dG  ",gi);
+							MazeMap[Page][SLine+Y][X]=0;
+						}
+						else 
+						{
+							if(AddItem(gi)==-1) 
+							{
+								sprintf(msg,"    很可惜，背包已满！",RandN(60));
+							}
+							else
+							{
+								sprintf(msg,"   %s 得到了 ",heroname);
+								fseek(f_mon,4+134*gi,0);
+								fread(msg+12,1,9,f_mon);
+								MazeMap[Page][SLine+Y][X]=0;
+							}
+						}
+						ShowMsg(msg);
+						DrawMMap();
+					}
+
+				}
+			}
+		}
+		if(Step<=0)
+		{
+			mon_num[aaa=0]=1+rand()%3;
+			for(j=0;j<mon_num[aaa=0];j++)
+			{
+				field_mon[j].LV=MazeFloor[aaa=1]+MazeFloor[aaa=2]/4;
+				field_mon[j].monk[aaa=1]=MazeMon[rand()%5];
+			}
+			LoadMon(MazeFloor[aaa=1]*2);
+			Battle(0);
+			Step=20;
+			DrawMMap();
+			if( result == -1)
+			{
+				myitem_num=0;
+				//money=money/2;
+				sprintf(msg,"%s的道具被抢走了",heroname);
+				ShowMsg(msg);
+				return 0;
+			}
+		}
+	}
+	exit(0);
+}
+
+int Even(long eEven)
+{
+	int i,p,j;
+	long k;
+	char tmp[25];
+	i=0;
+	while(*(eEven+i)!=0)
+	{ 
+		if(*(eEven+i)<=10)
+		{
+			//移动事件
+			if(*(eEven+i)==1) {MoveHero(keyUD,keyLR);i=i+1;}
+			//跳转事件
+			else if(*(eEven+i)==2)
+			{
+				JumpTo(*(eEven+i+1),*(eEven+i+2),*(eEven+i+3),*(eEven+i+4));
+				i=i+5;
+			}
+			//Y？N事件
+			else if(*(eEven+i)==3) {}
+			//对话事件
+			else if(*(eEven+i)==4) 
+			{
+				ShowDialog(*(eEven+i+1)*256+*(eEven+i+2),*(eEven+i+3));
+				i=i+4;
+			}
+			//交易事件,默认10个物品
+			else if(*(eEven+i)==5)
+			{
+				BSItem(*(eEven+i+1),eEven+i+2);
+				i=i+12;
+			}
+			//交配事件 
+			else if(*(eEven+i)==6)
+			{
+				//普通选择交配
+				if(*(eEven+i+1)==1)
+				{
+					SelBorn();
+					i=i+2;
+				}
+				//特殊事件，与库中k号交配，有动画
+				else
+				{
+					i=i+3;
+				}
+			}
+			//银行事件
+			else if(*(eEven+i)==7)
+			{
+				SGItem();
+				i++;
+			}
+			//物品关联处理
+			else if(*(eEven+i)==8) 
+			{
+				if(itm[*(eEven+i+1)]==0)
+				{
+					if(AddItem(31)==-1) ShowDialog(7,1);
+					else { ShowDialog(6,1);itm[*(eEven+i+1)]=*(eEven+i+2);}
+				}
+				else 
+				{
+					if(itm[*(eEven+i+1)]==16 || itm[*(eEven+i+1)]==17 || itm[*(eEven+i+1)]==21) ShowDialog(itm[*(eEven+i+1)],2);
+					else ShowDialog(itm[*(eEven+i+1)],1);
+				}
+				i=i+3;
+			}
+			//小金币事件
+			else if(*(eEven+i)==9)
+			{
+				Gold_plate();
+				i++;
+			}
+			//战斗，10,怪兽编号（2位），怪兽等级，关卡号
+			else if(*(eEven+i)==10)
+			{
+				p=win_gk[*(eEven+i+4)];
+				if(p>=6)
+				{
+					ShowMsg("我所有的儿子都和你做同伴了，回去吧！");
+				}
+				else
+				{
+					ShowMsg("小子，想单挑还是群殴？？");
+					p=BitN[p];
+					mon_num[aaa=0]=1;
+					field_mon[aaa=0].LV=*(eEven+i+3);
+					if(p!=1) field_mon[aaa=0].LV=field_mon[aaa=0].LV+10;
+					field_mon[aaa=0].monk[aaa=1]=(*(eEven+i+1))*256+(*(eEven+i+2));
+					LoadMon(field_mon[aaa=0].LV*2);
+
+					for(j=1;j<7;j++)
+					{
+						k=p*field_mon[aaa=0].ability[j];
+						if(k>32767) k=32767;
+						field_mon[aaa=0].ability[j]=k;
+					}
+					
+					field_mon[aaa=0].HP=field_mon[aaa=0].ability[aaa=1];
+					field_mon[aaa=0].MP=field_mon[aaa=0].ability[aaa=2];
+
+					Battle(1);
+					if(result==1)
+					{
+						DrawMap();
+						ShowMsg("既然你能赢得了我，就让我儿子和你做同伴吧");
+						field_mon[aaa=0].LV=1;
+						LoadMon(1);
+						DrawMap();
+						if(AddMon(0)==-1)
+						{
+							ShowMsg("     牧场已满！  ");
+						}
+						else
+						{
+							PassName(field_mon[aaa=2+field_num].name);
+							sprintf(tmp," %s 往牧场方向去了。",field_mon[aaa=2+field_num].name);
+							ShowMsg(tmp);
+							ShowMsg("再送你一个小金牌，回去吧");
+							gold_num++;
+							win_gk[*(eEven+i+4)]++;
+						}
+					}
+				}
+				*(eEven+i)=19;
+				*(eEven+i+1)=0;
+			}
+		}
+		else if(*(eEven+i)<=22)
+		{
+			//Enter事件
+			if(*(eEven+i)==11) 
+			{
+				if(keyUD!=2) *(eEven+i+1)=0;
+				i=i+1;
+			}
+			//〉=事件（12，事件号，需要大于的数值）
+			else if(*(eEven+i)==12){}
+			//地图影射
+			else if(*(eEven+i)==13){}
+			//判断技能
+			else if(*(eEven+i)==14){}
+			//王妃事件
+			else if(*(eEven+i)==15)
+			{
+				Queen();
+				i++;
+			}
+			//休息事件，带屏幕闪烁
+			else if(*(eEven+i)==16)
+			{
+				Box(0,0,160,80,1,2);
+				for(p=0;p<mon_num[aaa=1];p++) Reset(3+p);
+				Box(0,0,160,80,1,2);
+				i++;
+			}
+			//牧场事件
+			else if(*(eEven+i)==17)
+			{
+				Field_Even();
+				i++;
+			}
+			//竞技场事件
+			else if(*(eEven+i)==18)
+			{
+				Arena();
+				i++;
+			}
+			//回城事件
+			else if(*(eEven+i)==19)
+			{
+				Drct=2;
+				JumpTo(73,3,4,2);
+				ShowMsg("勇敢的少年，努力吧！");
+				Box(0,0,160,80,1,2);
+				Delay(100);
+				for(p=0;p<mon_num[aaa=1];p++) Reset(3+p);
+				Box(0,0,160,80,1,2);
+				i++;
+			}
+			//祝福事件
+			else if(*(eEven+i)==20)
+			{
+				Bless();
+				i++;
+			}
+			//图书馆事件
+			else if(*(eEven+i)==21)
+			{
+				ClearScreen();
+				Refresh();
+				monster_book();
+				DrawMap();
+				i++;
+			}
+			//进入关卡
+			else if(*(eEven+i)==22)
+			{
+				if(WinGK<7 && (*(eEven+i+1)+1)/2>WinGK) 
+				{
+					p=(*(eEven+i+1)+1)/2;
+					if(p==1) ShowMsg("　通过竞技场Ｇ级再来吧");
+					else if(p==2) ShowMsg("　通过竞技场Ｆ级再来吧");
+					else if(p==3) ShowMsg("　通过竞技场Ｅ级再来吧");
+					else if(p==4) ShowMsg("　通过竞技场Ｄ级再来吧");
+					else if(p==5) ShowMsg("　通过竞技场Ｃ级再来吧");
+					else if(p==6) ShowMsg("　通过竞技场Ｂ级再来吧");
+					else if(p==7) ShowMsg("　通过竞技场Ａ级再来吧");
+					else 
+					{
+						ShowMsg("　通过竞技场Ｓ级再来吧");
+					}
+					*(eEven+i)=0;
+				}
+				else
+				{
+					F_exp=0;
+					j=*(eEven+i+1);
+					p=Maze(j);
+					if(field_num>mon_num[aaa=1] && F_exp>100*(field_num-mon_num[aaa=1]))
+					{
+						F_exp=F_exp/100/(field_num-mon_num[aaa=1]);
+						for(j=3+mon_num[aaa=1];j<3+field_num;j++)
+						{
+							field_mon[j].NetExp=field_mon[j].NetExp+F_exp;
+							UpdateMon(j);
+							Reset(j);
+						}
+					}
+					if(p!=1 || (*(eEven+i+2))!=2)
+					{
+						*(eEven+i)=19;
+						*(eEven+i+1)=0;
+					}
+					else i=i+2;
+				}
+			}
+		}
+		else *(eEven+i)=0;
+	}
+}
+void StartGame()
+{
+	int i,ix,iy;
+	char evn[30];
+	ClearScreen();
+	Page=73;
+	SLine=3;
+	X=4;
+	Y=2;
+	Drct=2;
+	for(i=0;i<mon_num[aaa=1];i++) Reset(3+i);
+	DrawMap();
+	while(1)
+	{
+		GetKey(1);
+		if(keyUD==4) continue;
+		if(keyUD==8)
+		{
+			Option(2);
+			DrawMap();
+		}
+		else
+		{
+			if(keyUD==-1) Drct=0;
+			else if(keyUD==1) Drct=1;
+			else if(keyLR==-1) Drct=2;
+			else if(keyLR==1) Drct=3;
+			WriteBlock(0,0,160,80,1,Screen);
+			DrawHero(0,X*16,16*Y);
+			Refresh();
+			if(keyUD!=2)
+			{
+				if(SLine+Y+keyUD<0 || SLine+Y+keyUD>=8)
+				{
+					fseek(f_mon,21582+Meven[SLine*10+Y*10+X]*30,0);
+					fread(evn,1,30,f_mon);
+					if(evn[aaa=1]!=2)
+					{
+						Page=Page+keyUD*9;
+						if(SLine+Y+keyUD<0) { SLine=3;Y=4;}
+						else if(SLine+Y+keyUD>=8){ SLine=0;Y=0;}
+						DrawMap();
+						keyUD=0;
+					}
+					else Even(evn);
+				}
+				else if(X+keyLR<0 || X+keyLR>=10)
+				{
+					Page=Page+keyLR;
+					X=(X+10+keyLR)%10;
+					DrawMap();
+				}
+			}
+			else
+			{
+				ix=X;iy=Y;
+				if(Drct==0 && Y>0) iy=Y-1;
+				else if(Drct==1 && Y<4) iy=Y+1;
+				else if(Drct==2 && X>0) ix=X-1;
+				else if(Drct==3 && X<9) ix=X+1;
+				if(ix!=X||iy!=Y)
+				{
+					fseek(f_mon,21582+Meven[SLine*10+iy*10+ix]*30,0);
+					fread(evn,1,30,f_mon);
+					//if(......判断是否特殊事件
+					if(evn[aaa=0]==11) Even(evn);
+				}
+				keyUD=0;
+			}
+			if(keyUD+keyLR!=0)
+			{
+				fseek(f_mon,21582+Meven[SLine*10+Y*10+X+keyUD*10+keyLR]*30,0);
+				fread(evn,1,30,f_mon);
+				Even(evn);
+				DrawMap();
+			}
+		}
+	}
+	exit(0);
+}
+
+
+void main()
+{
+	int i,j;
+	char fp;
+	ClearScreen();
+	Refresh();
+	if ((f_mon=fopen("/LavaData/DQM2.dat","r"))==0)
+	{
+		printf("打开文件 /LavaData/DQM2.dat 失败!");
+		exit(0);
+	}
+
+	fseek(f_mon,444534,0);
+	fread(Screen,1,1600,f_mon);
+	WriteBlock(0,0,160,80,1,Screen);
+	Refresh();
+	Delay(200-delay_time);
+	GetKey(0);
+	fread(Screen,1,1600,f_mon);
+	fread(hero,1,256,f_mon);
+	fread(mask,1,256,f_mon);
+	WriteBlock(0,0,160,80,1,Screen);
+	Refresh();
+	i=0;j=0;
+	while(1)
+	{
+		Refresh();
+		WriteBlock(10+j*72,49+i*16,4,8,0x41,cursor[aaa=0]);
+		Delay(200-delay_time);
+		GetKey(0);
+		if(keyUD==4) {getchar();exit(0);}
+		if(keyUD==2)
+		{
+			if(i==0 && j==0) 
+			{
+				LoadGame(0);
+				break;
+			}
+			else if(i==0 && j==1) 
+			{
+				i=SelectBoxH(90,25,8,3,3,"默认存档 存档一  存档二 ",8,0);
+				if(i>=0)
+				{
+					if(i==0) fp=fopen("/LavaData/DQM_save.dat","rb");
+					else if(i==1) fp=fopen("/LavaData/DQM_save1.dat","rb");
+					else if(i==2) fp=fopen("/LavaData/DQM_save2.dat","rb");
+					LoadGame(fp);
+					fclose(fp);
+					break;
+				}
+				i=0;
+			}
+			else if(i==1 && j==0) { MsgBox(60,2,15,5," 勇 者 斗 恶 龙怪兽篇1.0(测试)  程序: 朱剑新   qq:25350743  loglave@163.com",1);}///版本信息
+			else if(i==1 && j==1) {getchar();exit(0);}
+			keyUD=0;
+		}
+		i=(i+keyUD+2)%2;
+		j=(j+keyLR+2)%2;
+	}
+	StartGame();
+}

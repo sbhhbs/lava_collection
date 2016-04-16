@@ -1,0 +1,363 @@
+long aaa;
+//系统版本0.38
+
+
+
+int i,j;
+int x,y;//人物所在位值的坐标
+int mx,my;//地图输出的起始位置坐标
+int fx,fy;//滚屏控制变量
+int foot;//当前移动步长位置
+int arrow;//人物方向
+int sky;//当前空中运动步长位置
+int down;//自由落体判定控制
+int jump;//跳跃判定控制
+int time=20;
+char key,fp;
+char picture[1600];
+char pic[][8]={
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0xff,0x81,0xdf,0xff,0xff,0xff,0xff,0xff
+};
+char blank[80]={
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+};
+char ball[]={
+0x3c,0x7e,0xff,0xff,0xff,0xff,0x7e,0x3c
+};
+int step[19]=
+{
+0xfffe,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,0xffff,
+0,
+1,1,1,1,1,1,1,1,2
+};//移动步长
+int high[11]=
+{
+4,4,3,3,2,2,2,2,1,1,0
+};//空中运动步长
+char map[40][80];
+char zy[]={19,35,51};
+void menu()
+{
+char z;
+z=0;
+for (;;)
+{
+ClearScreen();
+Rectangle(1,0,159,79,1);
+TextOut(5,2,"ActDemo",1);
+TextOut(20,14,"Map1",1);
+TextOut(20,30,"Map2",1);
+TextOut(20,46,"Exit",1);
+TextOut(80,60,"---FireFox",1);
+Block(13,zy[z],16,zy[z]+1,1);
+Refresh();
+key=getchar();
+if (key==20 && z>0) z--;
+if (key==21 && z<2) z++;
+if (key==13)
+{
+if (z==0 || z==1) 
+{
+ClearScreen();
+TextOut(5,5,"Loading...",1);
+Refresh();
+fp=fopen("/LavaData/DemoMap.dat","r");
+fseek(fp,(z-1)*6400,0);
+for (i=0;i<40;i++)
+{
+for (j=0;j<80;j++)
+{
+fread(&map[i][j],1,2,fp);
+}
+
+}
+fclose(fp);
+break;
+}
+if (z==2) exit(0);
+}
+}
+}
+void roll()
+{
+//滚屏控制
+
+//右滚屏
+if ((x>90 && mx<60 && foot>9) || (x>90 && foot>9 && mx==60 && fx<0)) 
+   {
+//横向坐标控制   
+
+    x=x-step[foot];
+    fx=fx+step[foot];
+
+//输出边缘图片(右)
+if (fx>=8)
+//步长为8
+//重新调整图片
+  {
+  for (i=0;i<10;i++)
+   {
+      WriteBlock(152,i*8,8,8,1,pic[map[i+my][aaa=20+mx]]);
+   }
+WriteBlock(-8,0,160,80,1,picture);
+//截下当前画面
+GetBlock(0,0,160,80,1,picture);
+       fx=fx-8;
+       mx++;
+  }
+   }
+//左滚屏
+else if ((x<70 && mx>0 && foot<9) || (x<70 && foot<9 && mx==0 && fx>0)) 
+   {
+//横向坐标控制   
+
+    x=x-step[foot];
+    fx=fx+step[foot];
+
+//输出边缘图片(左)
+if (fx<=-8) 
+//步长为-8
+//重新调整图片
+  {
+  for (i=0;i<10;i++)
+   {
+     WriteBlock(0,i*8,8,8,1,pic[map[i+my][-1+mx]]);
+   }
+WriteBlock(8,0,160,80,1,picture);
+//截下当前画面
+GetBlock(0,0,160,80,1,picture);
+       fx=fx+8;
+       mx--;   
+  }        
+   }
+//上下滚屏控制
+//上滚
+if (y<41 && sky<10 && jump==1 && my>0)
+   {
+   fy=fy-high[sky];
+   y=y+high[sky];
+   
+if (fy>-8)
+        {
+         if (fx<0 && mx>0)
+          {
+            for (i=-1;i<20;i++)
+                  {
+                    WriteBlock(-fx+i*8,-fy-8,8,8,1,pic[map[my-1][i+mx]]);
+                  }
+          }
+         else
+          {
+            for (i=0;i<21;i++)
+                  {
+                    WriteBlock(-fx+i*8,-fy-8,8,8,1,pic[map[my-1][i+mx]]);
+                  }
+          }
+        }   
+else
+        {
+            for (i=0;i<20;i++)
+                  {
+                    WriteBlock(i*8,0,8,8,1,pic[map[my-1][i+mx]]);
+                  }
+WriteBlock(0,8,160,80,1,picture);
+//截下当前画面
+GetBlock(0,0,160,80,1,picture);
+       fy=0;
+       my--;
+        }   
+   }
+//下滚
+else if (y>39 && my<30 && down==1 && sky<10)
+   {
+   fy=fy+high[sky];
+   y=y-high[sky];
+   
+if (fy<8)
+        {
+         if (fx<0 && mx>0)
+          {
+            for (i=-1;i<20;i++)
+                  {
+                    WriteBlock(-fx+i*8,-fy+80,8,8,1,pic[map[my+10][i+mx]]);
+                  }
+          }
+         else
+          {
+            for (i=0;i<21;i++)
+                  {
+                    WriteBlock(-fx+i*8,-fy+80,8,8,1,pic[map[my+10][i+mx]]);
+                  }
+          }
+        }   
+else
+        {
+            for (i=0;i<20;i++)
+                  {
+                    WriteBlock(i*8,72,8,8,1,pic[map[my+10][i+mx]]);
+                  }
+WriteBlock(0,-8,160,80,1,picture);
+//截下当前画面
+GetBlock(0,0,160,80,1,picture);
+       fy=0;
+       my++;
+        }   
+   }
+
+
+}
+
+void prevent()
+{
+//右方障碍判断
+if (map[(y+7+fy)/8+my][(x+7+fx)/8+mx]==1 || map[(y+fy)/8+my][(x+7+fx)/8+mx]==1 && x<151) 
+{
+foot=9;
+x=((x+7+fx)/8)*8-8-fx;
+}
+
+//左方障碍判断
+if (map[(y+7+fy)/8+my][(x+fx)/8+mx]==1 || map[(y+fy)/8+my][(x+fx)/8+mx]==1 && x>1) 
+{
+foot=9;
+x=((x+fx)/8)*8+8-fx;
+}
+
+}
+
+void control()
+{
+key=CheckKey(128);
+if (key==27) menu();
+
+///
+if (key==97 && time>5) time--;
+if (key==115) time++;
+///
+//右移
+if (key==22 && foot<18) 
+{
+foot++;
+arrow=2;
+}
+
+//左移
+if (key==23 && foot>0) 
+{
+foot--;
+arrow=1;
+}
+//跳跃     
+  if (jump==1) 
+     {
+     y=y-high[sky];
+     sky++;
+     if (sky>10) {jump=0;}
+     if (y<0) {jump=0;sky=10;y=0;}
+     if (map[(y+fy-1)/8+my][(x+fx)/8+mx]>0 || map[(y+fy-1)/8+my][(x+7+fx)/8+mx]>0) {jump=0;y=((y+fy-1)/8)*8+8;fy=0;}//遇到上方障碍
+     }
+  else if (Inkey()==113 && jump==0 && down==0) 
+     {
+     jump=1;
+     sky=0;
+     }
+
+//落体
+  if (down==1)
+      {
+      y=y+high[sky];
+      if (sky>0) sky--;
+      if (map[(y+8+fy)/8+my][(x+fx)/8+mx]>0 || map[(y+8+fy)/8+my][(x+7+fx)/8+mx]>0) {down=0;y=((y+8+fy)/8)*8-8;fy=0;}//遇到下方障碍
+      }
+  else if (map[(y+8+fy)/8+my][(x+fx)/8+mx]==0 && map[(y+8+fy)/8+my][(x+7+fx)/8+mx]==0 && jump==0) 
+      {
+      down=1;
+      sky=10;
+      }
+
+//地图
+if (key==109)
+{
+ClearScreen();
+for (i=0;i<40;i++)
+{
+for (j=0;j<80;j++)
+{
+if (map[i][j]>0) Block(j*2,i*2,j*2+1,i*2+1,1);
+}
+}
+Block((mx+x/8)*2,(my+y/8)*2,(mx+x/8)*2+1,(my+y/8)*2,1);
+Refresh();
+getchar();
+getchar();
+ClearScreen();
+
+}
+
+
+
+}
+
+void main()
+{
+
+menu();
+x=60;
+foot=9;
+y=44;
+mx=15;
+my=30;
+sky=10;
+
+//输出原始地图
+ClearScreen();
+for (i=0;i<20;i++)
+  {
+     for (j=0;j<10;j++) 
+       {
+         WriteBlock(i*8,j*8,8,8,1,pic[map[j+my][i+mx]]);
+
+       }
+  
+  }
+  
+GetBlock(0,0,160,80,1,picture);
+
+for (;;)
+{
+ClearScreen();
+
+//////惯性控制
+if (foot!=9 && key!=22 && key!=23 && jump==0 && down==0) 
+    {
+        if (foot>9) {foot--;} else {foot++;}
+    }
+//////
+
+x=x+step[foot];
+prevent();
+roll();
+control();
+
+WriteBlock(-fx,-fy,160,80,1,picture);
+
+if (x<8) x=8;
+if (x>144) x=144;
+
+WriteBlock(x,y,8,8,1,ball);
+WriteBlock(0,0,8,80,1,blank);
+WriteBlock(152,0,8,80,1,blank);
+Refresh();
+Delay(time);
+}
+}

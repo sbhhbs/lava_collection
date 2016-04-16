@@ -1,0 +1,127 @@
+long pow(long x, long y)//指数函数(x的y次方)
+{
+	long i, sum;
+
+	sum = 1;
+	for (i = 0; i < y; i++) sum = sum * x;
+	return(sum);
+}
+
+int tan(int x)
+{
+	return((Sin(x) << 10) / Cos(x));
+}
+/*
+long sqrt(long m)
+{
+	int n, i;
+	long tmp, ttp;
+
+	if (m == (n = 0)) return(0);
+	tmp = m >> 30;
+	m = m << 2;
+	if (tmp > 1)
+	{
+		n++;
+		tmp = tmp - n;
+	} 
+	for (i = 15; i > 0; i--)
+	{
+		n = n << 1;
+		tmp = tmp << 2;
+		tmp = tmp + (-(m < 0)) * 2 + ((m&0x7fffffff) >> 30);
+		ttp = n;
+		ttp = (ttp << 1) + 1;
+		m = m << 2;
+		if (tmp >= ttp)
+		{
+			tmp = tmp - ttp;
+			n++;
+		} 
+	}
+	return(n);
+}
+*/
+long sqrt(long x)
+{
+	long a, b;
+
+	if (x <= 0) return x < 0;
+	a = (x >> 3) + 1;
+	for(;;)
+	{
+		b = ((a + 1) >> 1) + ((x / a) >> 1);
+		if (a - b < 2) return b - 1 + ((x - b * b + (b << 2)) / b >> 2);
+		a = b;
+	}
+}
+
+long cub(long x)
+{
+	long low, high, mid;
+	int sgn;
+
+	sgn = -1 - ((x > 0) << 1);
+	x = abs(x);
+	low = 0;
+	high = 1291;
+	while(high - low > 1)
+	{
+		mid = (high + low) >> 1;
+		if (mid * mid * mid > x)
+		{
+			high = mid;
+		}
+		else
+		{
+			low = mid;
+		}
+	}
+	return low * sgn; 
+}
+
+int isleap(int year)
+{
+	if(!(year%4) && year%100 || !(year%400)) return(1);
+}
+
+int isprime(long m)
+{
+	long i, k;
+
+	if (m <= 1) return(0);
+	if (m == 2) return(1);
+	k = sqrt(m);
+	for (i = 3; i <= k; i = i + 2)
+	{
+		if (!(m % i)) return(0);
+	}
+	return(1);
+}
+
+long hcf(long u, long v)
+{
+	long r, t;
+
+	if (v > u)
+	{
+		t = u;
+		u = v;
+		v = t;
+	}
+	while (r = u % v)
+	{
+		u = v;
+		v = r;
+	}
+	return(v);
+}
+
+long lcd(long u, long v)
+{
+	return(u * v / hcf(u, v));
+}
+
+void main()
+{
+}

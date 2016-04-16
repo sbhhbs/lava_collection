@@ -1,0 +1,49 @@
+原型:void GetArg(long &arg[], char n);
+功能:取出函数参数保存到arg所指的地址中。
+说明:n为要取出函数参数的个数，最多可取16个函数参数。该函数必须配合#attr使用，实现不定参数的函数（请看示例）！
+注意:调用该库的程序无法通过优化系统优化，这是正常的（不是程序有bug）。
+举例:
+#include <GetArg.y>
+
+void fun1(char n)//不定参数的函数fun1有且只有一个参数n（值为参数个数）
+{
+ char i;
+ long arg[9];
+
+ #attr(fun1, -1, -1, -1, 7, -1, -1, -1, -1, 0);//修改函数fun1为不定参数函数，其中的7表示该函数（fun1）为void型，如果为8表示long型，#attr用法请看帮助->语法->命令
+ GetArg(arg, n);
+ printf("fun1: %d个参数\n", n);
+ for (i = 0; i < n; i++)
+ {
+  printf("%d ", arg[i]);
+ }
+ printf("\n");
+ getchar();
+}
+
+long fun2(char n)
+{
+ char i;
+ long arg[9];
+
+ #attr(fun2, -1, -1, -1, 8, -1, -1, -1, -1, 0);//修改函数fun2为不定参数函数，其中的8表示该函数（fun2）为long型
+ GetArg(arg, n);
+ printf("fun2: %d参数\n", n);
+ for (i = 0; i < n; i++)
+ {
+  printf("%d ", arg[i]);
+ }
+ printf("\n");
+ getchar();
+}
+
+void main()
+{
+ SetScreen(1);
+ fun1(10);//一个参数
+ fun1(30, 20, 14);//三个参数
+ fun1();//没有参数
+ fun2(18, 90);
+ fun2(156, 987, 2120, 103);
+ fun2();
+}

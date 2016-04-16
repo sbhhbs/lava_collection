@@ -1,0 +1,95 @@
+long TBLtan[]={0,18,36,54,72,90,108,126,144,163,181,200,218,237,256,275,294,314,333,353,373,394,414,435,456,478,500,522,545,568,592,616,640,665,691,718,744,772,801,830,860,891,923,955,989,1024,1061,1099,1138,1178,1221,1265,1311,1359,1410,1463,1519,1577,1639,1705,1774,1848,1926,2010,2100,2196,2300,2413,2535,2668,2814,2974,3152,3350,3572,3822,4108,4436,4818,5269,5808,6466,7287,8340,9743,11704,14644,19540,29324,58664,0xfffffff};
+
+int sin(int x)
+{
+	if (x > 0) return Sin(x);
+	return -Sin(-x);
+}
+
+int asin(int x)
+{
+	int low, high, mid, sign;
+
+	sign = ((x < 0) << 1) + 1;
+	x = abs(x);
+	low = 0;
+	high = 91;
+	while (high > low + 1)
+	{
+		mid = (low + high) >> 1;
+		if (Sin(mid) > x)
+		{
+			high = mid;
+		}
+		else
+		{
+			low = mid;
+		}
+	}
+	return low * sign;
+}
+
+int cos(int x)
+{
+	return Cos(abs(x));
+}
+
+int acos(int x)
+{
+	int low, high, mid, sign;
+
+	sign = ((x < 0) << 1) + 1;
+	x = abs(x);
+	low = 0;
+	high = 91;
+	while (high > low + 1)
+	{
+		mid = (low + high) >> 1;
+		if (Cos(mid) < x)
+		{
+			high = mid;
+		}
+		else
+		{
+			low = mid;
+		}
+	}
+	return low * sign - 180 * (sign < 0);
+}
+
+long tan(int x)
+{
+	x = x % 180;
+	if (x > 90)		return -TBLtan[180 - x];
+	if (x >= 0)		return TBLtan[x];
+	if (x >= -90)	return -TBLtan[-x];
+	return TBLtan[x + 180];
+}
+
+int atan(long x)
+{
+	int low, high, mid, sign;
+
+	sign = ((x < 0) << 1) + 1;
+	x = abs(x);
+	high = 91;
+	low = 0;
+	while (high >low + 1)
+	{
+		mid = (low + high) >> 1;
+		if (TBLtan[mid] > x)
+		{
+			high = mid;
+		}
+		else
+		{
+			low = mid;
+		}
+	}
+	return low * sign;
+}
+
+void main()
+{
+} 
+ 

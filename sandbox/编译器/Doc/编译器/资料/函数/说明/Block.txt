@@ -1,0 +1,18 @@
+原型:void Block(int x0, int y0, int x1, int y1, int type);
+功能:在屏幕缓冲区画一实心矩形
+说明:(x0,y0)指定左上角坐标,(x1,y1)指定右下角坐标
+     type决定画图方式,其值含义如下:
+     0:清除方式
+     1:正常方式
+     2:反相方式
+举例:
+void main()
+{
+ ClearScreen();
+ Block(10, 20, 100, 60, 1);
+ Refresh();
+ getchar();
+ Block(30, 10, 80, 70, 2);
+ Refresh();
+ getchar();
+}

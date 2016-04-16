@@ -1,0 +1,23 @@
+原型:int getc(char fp);
+功能:从文件读一个字符
+说明:从句柄为fp的文件中读入一个字符
+     返回所读的字符.若文件结束或出错,返回-1
+举例:
+void main()
+{
+ char fp;
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!");
+ }
+ else
+ {
+  printf("创建文件成功!");
+  putc('A', fp);
+  rewind(fp);
+  printf("\n%c", getc(fp));
+  fclose(fp);
+ }
+ getchar();
+}

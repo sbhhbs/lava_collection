@@ -1,0 +1,1251 @@
+//******本游戏版权归 马保祥(网名:星星之火DR) 个人所有
+//******如转载请保持代码完整性并注明作者信息********
+//******游戏代码中包含:深度优先遍历生成迷宫,
+//******广度优先遍历寻找最短路径,深度优先寻路....
+//******希望能对想学习以上内容的朋友有所帮助.
+
+
+#define ROW 15	//迷宫宽
+#define COL 20	//高
+#define GRIDWIDTH   4
+#define GRIDHEIGHT  4
+char net[6][4]=
+{
+	0,16,76,159,12,21,72,148,55,37,55,105,65,41,51,95,70,43,49,90,75,45,47,85
+};//这里是在转为3D效果时用到的屏幕坐标.
+
+char arrow[4] = {1, 2, 4, 8};//这里表示一个方块四周挡板情况(右下左上).
+char arrow2[9] = {0, 4, 8, 0, 1, 0, 0, 0, 2};
+char qx[ROW*COL] = {0};
+char qy[ROW*COL] = {0};//生成迷宫时做栈,寻路时做队列使用
+char wall[ROW][COL],wall2[5][5],hname[10]="mbx";
+char tool[15][20];
+int qt,mx,my,time;
+long sec,htime=1000000;
+char face,min,step,tool2,tool3;
+
+char word2[4][9]=
+{
+	"开始游戏",
+	"新建迷宫",
+	"最高记录",
+	"退出游戏"
+};
+char pic1[7]=
+{
+	16,40,68,130,68,40,16
+};
+char pic[7][22]=
+{
+	//方向
+	0x0,0x0,0x0,0x0,0x2,0x0,0x3,0x0,0x7e,0x80,0x40,0x40,0x7e,0x80,0x3,0x0,0x2,0x0,0x0,0x0,0x0,0x0,
+	0x0,0x0,0xe,0x0,0xa,0x0,0xa,0x0,0xa,0x0,0xa,0x0,0x3b,0x80,0x11,0x0,0xa,0x0,0x4,0x0,0x0,0x0,
+	0x0,0x0,0x0,0x0,0x8,0x0,0x18,0x0,0x2f,0xc0,0x40,0x40,0x2f,0xc0,0x18,0x0,0x8,0x0,0x0,0x0,0x0,0x0,
+	0x0,0x0,0x4,0x0,0xa,0x0,0x11,0x0,0x3b,0x80,0xa,0x0,0xa,0x0,0xa,0x0,0xa,0x0,0xe,0x0,0x0,0x0,
+	//卫星2,3
+	0x82,0x0,0x46,0xe0,0x2a,0x20,0x12,0xe0,0x2e,0x20,0x4c,0xe0,0xfa,0x0,0x5,0x0,0xa,0x0,0x14,0x0,0xff,0x80,
+	0x82,0x0,0x46,0xe0,0x2a,0x20,0x12,0xe0,0x2e,0x80,0x4c,0xe0,0xfa,0x0,0x5,0x0,0xa,0x0,0x14,0x0,0xff,0x80,
+	//炸弹
+	0x0,0x0,0x6,0x0,0x8,0x0,0x1e,0x0,0xc,0x0,0x1e,0x0,0x2b,0x0,0x55,0x80,0x6a,0x80,0x35,0x0,0x1e,0x0
+	
+	
+	
+};
+char wordpic[96][4]=
+{
+	0x0,0x0,0x0,0x0,0x3,0xc0,0xfe,0x0,0x3e,0x60,0xef,0xc0,0x30,0x70,0xe2,0xe0,0x30,0x68,0xe2,0xe0,0x30,0x60,0xe1,0xf0,0x30,0xf4,0xe3,0x78,0x39,0x72,0xe2,0x24,
+	0x39,0x72,0xe2,0x24,0x1d,0x72,0xe2,0x22,0xf,0x62,0xe2,0x22,0x1,0xc2,0xe2,0x22,0x1,0x82,0xe2,0x22,0x3,0x82,0xe2,0x22,0x7,0xe6,0xe2,0x22,0x2,0xe8,0xc2,0x22,
+	0x1,0x70,0xc2,0x22,0x0,0xe8,0xc2,0x22,0x0,0xe4,0xc2,0x62,0x0,0x62,0xc4,0x62,0x0,0x62,0xc4,0xe2,0x60,0x62,0xc4,0xc2,0x78,0x62,0xc4,0xc2,0x44,0x62,0xc7,0x82,
+	0x42,0x42,0xc3,0x2,0x63,0xc2,0xc7,0x2,0x3f,0x87,0xfe,0xc,0x10,0x6,0x4,0x10,0x8,0x7,0x2,0x30,0x6,0x1d,0x2,0x60,0x1,0xf8,0xff,0x80,0x0,0x0,0x0,0x0,
+
+	0x6,0x0,0x7c,0x0,0xb,0x6,0x98,0x20,0x13,0x8b,0x18,0x70,0x23,0x93,0x98,0xf0,0x41,0x21,0x99,0xe0,0x22,0x41,0x9b,0xc0,0x24,0x80,0x7f,0x80,0x3f,0x7f,0xfe,0x18,
+	0x40,0xbf,0xff,0xfc,0x41,0xc0,0x78,0x4,0x82,0x80,0xbe,0x8,0xfc,0xfd,0x7b,0x10,0x10,0x82,0xd9,0xa0,0x10,0x85,0x98,0xc0,0x10,0x85,0x18,0x70,0x10,0x87,0x18,0x38,
+	0x10,0x8e,0x18,0x38,0x10,0x9a,0x18,0x18,0x13,0xb2,0x18,0x8,0x14,0x62,0x18,0x10,0x3c,0x31,0xfc,0x20,0x20,0x1f,0xe3,0xc0,0x40,0x3,0xff,0xfe,0x98,0x0,0x7f,0xfc,
+	0x66,0x0,0x0,0x8,0x1,0x0,0x0,0x10,0x0,0x80,0x0,0x20,0x0,0x7f,0x80,0x40,0x0,0x0,0xff,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+
+	0x0,0x0,0x0,0x0,0x0,0x3,0xc0,0x0,0x0,0xf,0xc0,0x0,0x0,0x30,0x40,0x0,0xf,0xff,0xff,0xf8,0x1f,0x0,0x0,0x3c,0x27,0x0,0x0,0x5c,0x2e,0x7f,0xfe,0xb8,
+	0x4c,0xe0,0x3,0x30,0x55,0x20,0x6,0xe0,0x22,0x20,0xa,0x0,0x4,0x3f,0xf2,0x0,0x4,0x20,0x12,0x0,0x4,0x3f,0xfe,0x0,0x4,0x20,0x2,0x0,0x4,0x40,0x4,0x0,
+	0x5,0x80,0x8,0x0,0x7,0xff,0xff,0xc0,0x2,0x80,0x0,0xe0,0x4,0x80,0x1,0xc0,0x8,0x80,0x2,0xc0,0x8,0xff,0xfc,0xc0,0x8,0x80,0x8,0xc0,0x8,0x80,0x8,0xc0,
+	0x8,0xff,0xff,0xc0,0x9,0x80,0x0,0xc0,0xa,0x0,0x1,0xc0,0xf,0xff,0xf3,0x80,0xc,0x0,0xf,0x0,0x0,0x0,0xe,0x0,0x0,0x0,0x8,0x0,0x0,0x0,0x0,0x0
+	
+};
+char studio[3][72]=
+{
+	0xff,0xff,0xff,0xfe,0x0,0x1f,0xf8,0xff,0xef,0xf1,0xff,0xf7,0xef,0x80,0xf7,0xef,0x1e,0xf7,0xef,0xff,0xe7,0xe7,0x81,0xe7,0xf7,0xff,0xcf,0xf1,0xfe,0xf,0xe0,0x3f,
+	0xef,0xb9,0xff,0xef,0xbf,0xfe,0x1f,0xbf,0x9e,0x3f,0xbf,0x7f,0x3f,0xdc,0xff,0xdf,0xe1,0xff,0xdf,0xf9,0xff,0xf,0xfc,0x3f,0x7,0xf8,0xff,0xf3,0xf7,0xff,0xff,0xf3,
+	0xf8,0x3,0xf8,0x3,0xff,0xff,0xff,0xff,
+	0xff,0xff,0xff,0xfe,0x3,0xff,0xfc,0xfc,0xff,0xfe,0x7e,0xff,0xfc,0x7e,0xff,0xf9,0xe0,0x7f,0xe6,0xf,0xdf,0xc8,0x7f,0xdf,0x93,0xff,0xdf,0xbf,0xff,0x3f,0xbf,0xfc,
+	0x7f,0xbe,0xf9,0xff,0xd9,0xe3,0xff,0xc7,0xc7,0xff,0x9f,0x3,0xff,0x3f,0xf0,0x1,0x7f,0xff,0xfc,0x60,0x7f,0xfe,0xf,0xf,0xfc,0xff,0xe1,0xf1,0xff,0xf8,0x3,0xff,
+	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+	0xff,0xf,0xff,0xfe,0xe7,0xff,0xfc,0xf7,0xff,0xfc,0x3b,0xff,0xfe,0x39,0xff,0xff,0x3d,0xff,0xff,0x3e,0x3f,0xff,0x33,0xdf,0xf0,0x37,0xdf,0xf6,0xf7,0xdf,0xf7,0xff,
+	0xbf,0xf7,0xfe,0x3f,0xfb,0xf0,0x7f,0xfb,0xf0,0xff,0xfc,0xf8,0xff,0xfd,0xfc,0x7f,0xf9,0xef,0x9f,0xf3,0xc7,0xe7,0xc7,0x9b,0xf8,0x8e,0x7d,0xff,0xb9,0xfe,0xfc,0xc3,
+	0xff,0x1,0xff,0xff,0xff,0xff,0xff,0xff
+	
+};
+
+char word[27]=" Copyright (c) MicroSpark ";
+
+void yuan(char m)
+{
+	char j,i;
+	for(i=5;i<=m;i=i+2)
+	{
+		j=i-2;
+		
+		Block(102-(j*5/2),17+j*j/20,108-(j*5/2),23+i*i/20,0);
+		WriteBlock(105-(i*5/2)-3,20+i*i/20-3,7,7,1,pic1);
+		Refresh();
+		Delay(80-i);
+	}
+	
+}
+
+void begain()
+{
+	char star[5],w1[3],bx,by;
+	int i,j,k;
+	star[0]=0x20;star[1]=0x20;star[2]=0xf8;star[3]=0x50;star[4]=0x88;
+	Block(0,0,159,79,1);
+	for(i=0;i<40;i++)
+	{
+		Block(20,0,45,79,1);
+		WriteBlock(20,i-20,24,24,1,studio[0]);
+		Refresh();
+		Delay(10);
+	}
+	for(i=0;i<62;i++)
+	{
+		Block(50,0,76,79,1);
+		WriteBlock(50,80-i,24,24,1,studio[0]);
+		Refresh();
+		Delay(10);
+	}
+	for(i=0;i<40;i++)
+	{
+		Block(80,0,105,79,1);
+		WriteBlock(80,i-20,24,24,1,studio[1]);
+		Refresh();
+		Delay(10);
+	}
+	for(i=0;i<62;i++)
+	{
+		Block(110,0,135,79,1);
+		WriteBlock(110,80-i,24,24,1,studio[2]);
+		Refresh();
+		Delay(10);
+	}
+	
+	
+	for(bx=0;bx<160;bx=bx+6)
+	{
+		Block(0,50,159,79,1);
+		
+		for(i=30;i<60;i=i+6)
+		{
+			by=Sin(6*i)/85+67;
+			memset(w1,0,2);
+			sprintf(w1,"%c",word[(bx+i-30)/6]);
+			TextOut(bx+i-28,by,w1,8);
+			
+		
+		}
+		
+		for(j=0;j<bx;j=j+6)
+		{
+			memset(w1,0,2);
+			sprintf(w1,"%c",word[j/6]);
+			TextOut(j+2,67,w1,8);
+			
+		}
+		for(j=bx+30;j<160;j=j+6)
+		{
+			
+			memset(w1,0,2);
+			sprintf(w1,"%c",word[j/6]);
+			TextOut(j+2,67,w1,8);
+			
+		
+		}
+		Refresh();
+		for(i=1;i<10;i++)
+		WriteBlock(rand()%140+10,rand()%30+10,5,5,72,star);
+		
+		Delay(50);
+	
+		
+	}
+	TextOut(100,43,"-studio",8);
+	TextOut(44,53,"QQ:270182215",8);
+	ReleaseKey(128);
+	for(;;)
+	{
+		Refresh();
+		for(i=1;i<10;i++)
+		WriteBlock(rand()%140+10,rand()%30+10,5,5,72,star);
+		Delay(100);
+		if(Inkey())break;
+	}
+	TextOut(41,3,"数据载入中...",9);
+	Refresh();
+	
+}
+void showhead()
+{
+	char name[20];
+	Block(0,0,159,14,0);
+	TextOut(1,1,"方向:",1);
+	WriteBlock(32,1,11,11,1,pic[face]);
+	
+	TextOut(80,1,"用时:",1);
+	memset(name,0,20);
+	sprintf(name,"%d秒",sec);
+	TextOut(111,1,name,1);
+	
+	WriteBlock(50,1,11,11,1,pic[4]);
+	memset(name,0,20);
+	sprintf(name,":%d",tool3);
+	TextOut(61,1,name,1);
+	Refresh();
+}
+void us()
+{
+	char i,j,k;
+	for(i=0;i<3;i++)
+	{
+		for(j=0;j<80;j=j+3)
+		Line(0,j+i,159,j+i,0);
+		Delay(200);
+	}
+	
+	Box(0,0,159,79,0,1);
+	Block(0,0,159,79,0);
+	
+	TextOut(3,35,"    程序设计:马保祥",1);
+	TextOut(3,49,"QQ:270182215",1);
+	TextOut(3,63,"邮箱:mbxiwzd@eyou.com",1);
+	TextOut(3,2,"衷心感谢您对星星之火工作室",1);
+	TextOut(3,15,"的支持!!!",1);
+	Rectangle(1,0,159,79,1);
+	Rectangle(1,0,159,28,1);
+	Refresh();
+	getchar();
+	Block(0,0,159,79,0);
+	Refresh();
+	exit(0);
+}
+
+int menu()
+{
+	char y[4],x[4],i,j,k,r,m,frame1,frame2,fp;
+	long h[2];
+	
+	fp=fopen("/LavaData/maze.dat","r");
+	if(fp==0)
+	{
+		Box(1,0,159,79,1,0);
+		Box(1,0,159,79,0,1);
+		TextOut(41,20,"缺少迷宫数据:",64);
+		TextOut(41,40,"maze.dat",64);
+		getchar();
+		us();
+	}
+	else
+	{
+		rewind(fp);
+		fseek(fp,900,0);
+		fread(hname,1,10,fp);
+		fread(h,1,4,fp);
+		htime=h[0];
+		fclose(fp);
+	}
+	
+	y[0]=9;y[1]=22;y[2]=36;y[3]=56;
+	x[0]=100;x[1]=73;x[2]=53;x[3]=33;
+	
+	Block(0,0,159,79,0);
+	
+	for(i=30;i<160;i=i+10)
+	{
+		Line(1,159-i,i,1,65);
+	//	Refresh();
+	//	Delay(200);
+	}
+	Line(4,79,10,1,65);
+	Line(9,79,20,1,65);
+
+	//这里是一个不错的效果只一个语句:
+	//for(i=0;i<160;i=i+10)Line(0,160-i,i,0,1);
+	
+
+	for(i=29;i>5;i=i-8)
+	yuan(i);
+		
+	WriteBlock(97,12,7,7,1,pic1);
+	
+	Refresh();
+	for(i=0;i<4;i++)
+	word2[i][8]=0;
+	for(j=110;j>34;j=j-2)
+	{
+		for(i=0;i<4;i++)
+		{
+			if(j>=x[i]+10)
+			{
+				Block(j,y[i]+1,159,y[i]+13,0);
+				TextOut(j,y[i]+1,word2[i],1);
+			}
+		}
+		Refresh();
+		Delay(j>>3);
+	}
+	Rectangle(116,38,157,77,1);
+	Block(118,77,159,79,1);Block(158,40,159,79,1);
+	i=0;r=0;m=0;frame1=0;
+	for(;;)
+	{
+		frame1=1-frame1;
+		if(frame1==1)
+		{
+			r=2-r;
+			Block(x[i]-3,y[i]+1,x[i]+3,y[i]+9,0);
+			WriteBlock(x[i]-3,y[i]+3-r,7,7,1,pic1);
+			Rectangle(x[i]+9,y[i],x[i]+59,y[i]+13,1);
+		}
+		if(m<=64)
+		WriteBlock(120,42,32,32,1,wordpic[m]);
+		else if(m>64)
+		{
+			WriteBlock(120,42,32,(95-m),1,wordpic[m]);
+			
+			WriteBlock(120,42+(95-m),32,32-(95-m),1,wordpic[0]);
+			
+			if(m>=94)m=0;
+		}
+		m++;
+		Refresh();
+		Delay(100);
+		k=0;
+		k=Inkey();
+		if(k==20&&i>0)
+		{
+			Block(x[i]-3,y[i]+1,x[i]+3,y[i]+9,0);
+			WriteBlock(x[i]-3,y[i]+3,7,7,1,pic1);
+			Rectangle(x[i]+9,y[i],x[i]+59,y[i]+13,0);
+			i--;
+		}
+		else if(k==21&&i<3)
+		{
+			Block(x[i]-3,y[i]+1,x[i]+3,y[i]+9,0);
+			WriteBlock(x[i]-3,y[i]+3,7,7,1,pic1);
+			Rectangle(x[i]+9,y[i],x[i]+59,y[i]+13,0);
+			i++;
+		}
+		else if(k==13)break;
+		else if(k==27)us();
+	}
+	return i&0xffff;
+}
+
+void makemaze()//生成迷宫(15行*20列),
+{
+	int i, j, x, y, nx, ny, dead, tm,n;
+    memset(wall, 0,300);
+   // memset(qx,255,ROW*COL);memset(qy,255,ROW*COL);
+    qt = 0;//堆栈指针
+    x = 0;
+    y = 0;
+    n=0;
+    Box(41,60,119,65,0,1);
+    do
+    {
+        for (i=3; i>0; i--)
+        {
+            j = rand() % i;
+            tm = arrow[i];
+            arrow[i] = arrow[j];
+            arrow[j] = tm;
+        }//打乱顺序
+        
+        for (i=0; i<4; i++)//判断四个方向有无可行.
+        {
+            nx = x;
+            ny = y;
+            if (arrow[i] == 1)  nx++;//右
+            else if (arrow[i] == 2)  ny++;//下
+            else if (arrow[i] == 4)  nx--;//左
+            else if (arrow[i] == 8)  ny--;//上
+            if (nx >= 0 && nx < COL && ny >= 0 && ny < ROW)
+            {
+                if (wall[ny][nx] == 0)//下一点没被访问过
+                {
+		            wall[y][x] = wall[y][x] | arrow[i];
+		            wall[ny][nx] = wall[ny][nx] | arrow2[arrow[i]];
+		            qx[qt] = x;
+		            qy[qt] = y;
+		            qt++;		//如果下一步可行则将该点压栈
+		            x = nx;
+		            y = ny;//准备判下一点
+		       		n++;
+		            goto loop;
+                }
+            }
+        }
+        
+       	qt--;
+        x = qx[qt];
+        y = qy[qt];
+        //如果四个方向均不可行则,弹栈返回上一点,
+        
+loop:
+	Box(43,62,43+(n>>2),63,1,1);//显示进度条
+      //  Delay(10);
+    }while(qt != 0);
+    //QT==0时也即所有点都被访问过,这样生成的迷宫任意两点间有且只有一条通路
+
+}
+
+void showmaze2()//显示迷宫(平面图)
+{
+	int i,j,x,y;
+	char name[5];
+	Block(0,15,159,79,0);
+	
+	for (i=0; i<ROW; i++){
+        for (j=0; j<COL; j++){
+            x = j * GRIDWIDTH + 40;
+            y = i * GRIDHEIGHT + 17;
+            if (!(wall[i][j] & 1)) Line(x + GRIDWIDTH, y, x + GRIDWIDTH, y + GRIDHEIGHT,  0x41);//右边
+            if (!(wall[i][j] & 2)) Line(x, y + GRIDHEIGHT, x + GRIDWIDTH, y + GRIDHEIGHT,  0x41);//下边
+        }
+    }
+	Rectangle(40,17,120,77,1);
+	Rectangle(38,15,122,79,1);
+	Line(41,17,42,17,64);
+	
+	TextOut(5,20,"卫星",1);
+	TextOut(5,33,"导航",1);
+	TextOut(5,45,"仪2D:",1);
+	WriteBlock(5,60,11,11,1,pic[5]);
+	memset(name,0,5);
+	sprintf(name,"*%d",tool2);
+	TextOut(18,60,name,1);
+	
+	if(tool2)
+	{
+		TextOut(125,20,"-求助-",1);
+		TextOut(125,33,"键:",1);
+		TextOut(130,50,"导航",1);
+	}
+	Refresh();
+}
+
+void cellwall(char num)//从标准(有且只有一条通路)迷宫中随机去掉一些挡板,
+{
+	char i,j,k,m;
+	m=0;
+	do
+	{
+		i=rand()%18+1;
+		j=rand()%13+1;
+		k=rand()%4;
+		if(!(wall[j][i]&arrow[k]))
+		{
+			wall[j][i]=(wall[j][i]|arrow[k]);
+			
+			if(arrow[k]==1)wall[j][i+1]=(wall[j][i+1]|arrow2[arrow[k]]);
+			else if(arrow[k]==2)wall[j+1][i]=(wall[j+1][i]|arrow2[arrow[k]]);
+			else if(arrow[k]==4)wall[j][i-1]=(wall[j][i-1]|arrow2[arrow[k]]);
+			else if(arrow[k]==8)wall[j-1][i]=(wall[j-1][i]|arrow2[arrow[k]]);
+			
+			m++;
+		}
+		
+	}while(m<num)
+}
+int findpath(int x,int y,int fx,int fy)//深度优先(栈)非遍历,(起点,终点)
+//该游戏并未使用这种寻路方式,它只能保证找出一条路对于多条通路的MAP不能保证是最佳路径.
+//对于只有一条通路的迷宫当然是可行的.
+//总认为这种方法寻路会更快但并未证实
+{
+	int i,j,nx,ny,finish;
+	char k;
+	qt=10;
+	qx[qt]=x;qy[qt]=y;
+	do
+	{
+		for(i=0;i<4;i++)
+		{
+			nx = x;
+            ny = y;
+            k=0;
+            
+            if (arrow[i] == 4)  {nx--;}//左
+            else if (arrow[i] == 8)  {ny--;}//上
+            else if (arrow[i] == 1){nx++;}//右
+            else if (arrow[i] == 2) { ny++;}//下
+            if (nx >= 0 && nx < COL && ny >= 0 && ny < ROW)
+            {
+            	if(wall[ny][nx]<120&&(wall[y][x]&arrow[i]))
+            	{
+            		
+            		
+            		wall[ny][nx]=wall[ny][nx]|128;//这里是为了标记已被访问过
+            		qt++;
+            		qx[qt]=nx;
+            		qy[qt]=ny;
+            		x=nx;y=ny;
+            		goto loop2;
+            		
+            	}
+            }
+		}
+		
+		qt--;
+		x = qx[qt];
+       		 y = qy[qt];
+	//这里弹栈是为了去掉那些试探过但又行不通的点.	
+	loop2:
+		
+	}while(x!=fx||y!=fy)
+	
+	
+	finish=qt;
+	
+	for(i=0;i<COL;i++)
+	for(j=0;j<ROW;j++)
+	wall[j][i]=(wall[j][i]&0x7f);//释放所有节点以备下次寻路用
+	
+	return finish&0xffff;
+}
+
+
+
+//*****广度优先(最短路径)原理:
+//*****先将起点坐标放入队列中,读出队列中第一个坐标数据,
+//在MAP中寻找出可以到达并未被访问的相临点,放入队列,
+//将这些相临点的深度写入TEMP中,然后再读出第一个数据,重复以上步骤
+//直到到达终点,如果队列指针减为0仍未到达终点那说明无路可通,
+
+int find2(int x,int y,int fx,int fy)//广度优先(最短路径)
+//这里是寻找最佳路径部分在游戏开发中占有非常重要的地位
+//几乎所有大型游戏中的人物移动都会用到
+{
+	int temp[15][20];//建立与原MAP一样大的临时内存(因为15*20>255)所以必须用INT型,它将用来记录寻路深度,(也就是离开起点多少步)
+	int i,j,k,tx,ty,finish;
+	
+	
+	memset(qx,255,300);memset(qy,255,300);	
+	memset(temp,0,600);
+	//这里QX,QY作为队列使用,
+	//队列与栈的区别是(队列先进先出,堆栈先进后出)
+	tx=x;ty=y;temp[y][x]=1;
+	qx[0]=x;qy[0]=y;
+	qt=1;//队列指针
+	do
+	{
+		
+		//提取队列数据
+		tx=qx[0];ty=qy[0];
+		for(i=0;i<qt;i++)
+		{
+			qx[i]=qx[i+1];
+			qy[i]=qy[i+1];
+		//	if(qy[i]==255)break;
+		}//提取队列数据后,队列中数据前移一位
+		qt--;//队列指针前移
+		
+		if((wall[ty][tx]&1)&&temp[ty][tx+1]==0)
+		{
+			temp[ty][tx+1]=temp[ty][tx]+1;
+			qt++;
+			qx[qt]=tx+1;qy[qt]=ty;
+		}//向右试探
+		if((wall[ty][tx]&2)&&temp[ty+1][tx]==0)
+		{
+			temp[ty+1][tx]=temp[ty][tx]+1;
+			qt++;
+			qx[qt]=tx;qy[qt]=ty+1;
+		}//向下试探
+		if((wall[ty][tx]&4)&&temp[ty][tx-1]==0)
+		{
+			temp[ty][tx-1]=temp[ty][tx]+1;
+			qt++;
+			qx[qt]=tx-1;qy[qt]=ty;
+		}//向左试探
+		if((wall[ty][tx]&8)&&temp[ty-1][tx]==0)
+		{
+			temp[ty-1][tx]=temp[ty][tx]+1;
+			qt++;
+			qx[qt]=tx;qy[qt]=ty-1;
+		}//向上试探
+		
+	}while(temp[fy][fx]==0)
+	//当TEMP[FY][FX]!=0时说明已经有路到达终点
+	//至此我们已经在TEMP中写入了起点到终点的路径深度
+	//然后再沿着路线找回到起点.并保存各点坐标
+
+	//保存最短路径
+	
+	qt=temp[fy][fx];
+	finish=qt;//共走的步数
+	memset(qx,255,300);memset(qy,255,300);
+	qx[qt]=fx;qy[qt]=fy;	
+	do
+	{
+		
+		if((wall[fy][fx]&1)&&temp[fy][fx+1]==qt-1)
+		{
+			fx++;
+			qt--;
+			qx[qt]=fx;qy[qt]=fy;
+		}
+		else if((wall[fy][fx]&2)&&temp[fy+1][fx]==qt-1)
+		{
+			fy++;
+			qt--;
+			qx[qt]=fx;qy[qt]=fy;
+		}
+		else if((wall[fy][fx]&4)&&temp[fy][fx-1]==qt-1)
+		{
+			fx--;
+			qt--;
+			qx[qt]=fx;qy[qt]=fy;
+		}
+		else if((wall[fy][fx]&8)&&temp[fy-1][fx]==qt-1)
+		{
+			fy--;
+			qt--;
+			qx[qt]=fx;qy[qt]=fy;
+		}
+		
+	}while(qt>1)
+	
+	return finish&0xffff;
+	
+}
+void get5(char turn,int x,int y)
+{
+	char change[9],m;
+	int i,j,k;
+	memset(change,0,9);
+	memset(wall2,0,25);
+	if(turn==0)//向右走
+	{
+		change[1]=8;change[2]=1;change[4]=2;change[8]=4;
+		for(i=0;i<5;i++)
+		for(j=0;j<5;j++)//原列
+		{
+			if((x+j)<COL)
+			{
+				if((y+i-2)>=0&&(y+i-2)<ROW)
+				{
+					for(m=0;m<4;m++)
+					if(wall[y+i-2][x+j]&arrow[m])wall2[4-j][i]=wall2[4-j][i]|change[arrow[m]];
+				}
+			
+			}
+		}
+	}
+	else if(turn==1)//向下
+	{
+		change[1]=4;change[2]=8;change[4]=1;change[8]=2;
+		for(i=0;i<5;i++)
+		for(j=0;j<5;j++)//原行
+		{
+			if((y+j)<ROW)
+			{
+				if((x+i-2)>=0&&(x+i-2)<COL)
+				{
+					for(m=0;m<4;m++)
+					if(wall[y+j][x+i-2]&arrow[m])wall2[4-j][4-i]=wall2[4-j][4-i]|change[arrow[m]];
+				}
+			}
+		}
+		
+		
+	}
+	else if(turn==2)//向左
+	{
+		change[1]=2;change[2]=4;change[4]=8;change[8]=1;
+		for(i=0;i<5;i++)
+		for(j=0;j<5;j++)//原列
+		{
+			if((x-j)>=0)
+			{
+				if((y+i-2)>=0&&(y+i-2)<ROW)
+				{
+					for(m=0;m<4;m++)
+					if(wall[y+i-2][x-j]&arrow[m])wall2[4-j][4-i]=wall2[4-j][4-i]|change[arrow[m]];
+				}
+			}
+		}
+		
+	}
+	else if(turn==3)//向上
+	{
+		for(i=0;i<5;i++)
+		for(j=0;j<5;j++)//原行
+		{
+			if((y-j)>=0)
+			{
+				if((x+i-2)>=0&&(x+i-2)<COL)
+				{
+					for(m=0;m<4;m++)
+					if(wall[y-j][x+i-2]&arrow[m])wall2[4-j][i]=wall2[4-j][i]|arrow[m];
+				}
+			}
+		}
+	}
+	
+}
+void showmaze3()
+{
+	int i,j,k;
+	Block(0,15,159,79,0);
+	
+	for(i=4;i>=0;i--)
+	{
+		
+		if((wall2[i][2]&4)==0)//左边墙
+		{
+			Line(net[4-i][0],net[4-i][1],net[4-i][0],net[4-i][2],65);
+			Line(net[5-i][0],net[5-i][1],net[5-i][0],net[5-i][2],65);
+			
+			Line(net[4-i][0],net[4-i][1],net[5-i][0],net[5-i][1],65);
+			Line(net[4-i][0],net[4-i][2],net[5-i][0],net[5-i][2],65);
+			
+		}
+		else if((wall2[i][1]&8)==0)
+		{
+			Rectangle(net[4-i][0],net[5-i][1],net[5-i][0],net[5-i][2],1);
+		}
+		
+		if(!(wall2[i][2]&1))//右边
+		{
+			Line(net[4-i][3],net[4-i][1],net[4-i][3],net[4-i][2],65);
+			Line(net[5-i][3],net[5-i][1],net[5-i][3],net[5-i][2],65);
+			
+			Line(net[4-i][3],net[4-i][1],net[5-i][3],net[5-i][1],65);
+			Line(net[4-i][3],net[4-i][2],net[5-i][3],net[5-i][2],65);
+		}
+		else if(!(wall2[i][3]&8))
+		{
+			Rectangle(net[5-i][3],net[5-i][1],net[4-i][3],net[5-i][2],1);
+		}
+		
+		if(!(wall2[i][2]&8))
+		{
+			Rectangle(net[5-i][0],net[5-i][1],net[5-i][3],net[5-i][2],1);
+			break;
+		}
+	}
+	
+	if(i==4)
+	{
+		Line(159,0,159,79,64);
+		Line(0,0,0,79,64);
+		return;
+	}
+	//左边透视
+	if((wall2[3][1]&1)&&(wall2[3][1]&8))
+	{
+		if(!(wall2[2][1]&8))//画左1横
+		{
+			if(!(wall2[2][1]&1))//
+			{
+				Block(net[2][0]-10,net[3][1]+1,net[2][0]-1,net[3][2]-1,0);
+				Rectangle(net[2][0]-11,net[3][1],net[2][0],net[3][2],1);
+				
+			}
+			else if((wall2[2][1]&1))
+			{
+				if(i<3)
+				{
+					Block(net[2][0]-10,net[3][1]+1,net[3][0]-1,net[3][2]-1,0);
+					Rectangle(net[2][0]-11,net[3][1],net[3][0],net[3][2],1);
+				}
+				else if(i==3)
+				{
+					Block(net[2][0]-10,net[3][1]+1,net[2][0]-1,net[3][2]-1,0);
+					Rectangle(net[2][0]-11,net[3][1],net[2][0],net[3][2],1);
+				}
+			}
+		}
+		
+		if(!(wall2[2][1]&4))//左1侧
+		{
+			Line(net[2][0]-11,net[3][1],net[2][0]-11,net[3][2],65);
+			
+			Line(net[2][0]-11,net[3][1],net[1][0],net[2][1],65);
+			Line(net[2][0]-11,net[3][2],net[1][0],net[2][2],65);
+		}
+		else if((wall2[2][1]&4))
+		{
+			if(!(wall2[2][0]&8))//左2横
+			{
+				Block(net[1][0]+1,net[3][1]+1,net[2][0]-10,net[3][2]-1,0);
+				Rectangle(net[1][0],net[3][1],net[2][0]-11,net[3][2],1);
+			}
+		}
+		
+		
+		
+	}
+	
+	//右边透视
+	
+	if((wall2[3][3]&4)&&(wall2[3][3]&8))
+	{
+		if(!(wall2[2][3]&8))//画右1横
+		{
+			if(!(wall2[2][2]&1))//
+			{
+				Block(net[2][3]+1,net[3][1]+1,net[2][3]+10,net[3][2]-1,0);
+				Rectangle(net[2][3],net[3][1],net[2][3]+11,net[3][2],1);
+				
+			}
+			else if((wall2[2][2]&1))
+			{
+				if(i<3)
+				{
+					Block(net[3][3]+1,net[3][1]+1,net[2][3]+10,net[3][2]-1,0);
+					Rectangle(net[3][3],net[3][1],net[2][3]+11,net[3][2],1);
+				}
+				else if(i==3)
+				{
+					Block(net[2][3]+1,net[3][1]+1,net[2][3]+10,net[3][2]-1,0);
+					Rectangle(net[2][3],net[3][1],net[2][3]+11,net[3][2],1);
+				}
+			}
+		}
+		
+		if(!(wall2[2][3]&1))//右1侧
+		{
+			Line(net[2][3]+11,net[3][1],net[2][3]+11,net[3][2],65);
+			
+			Line(net[2][3]+11,net[3][1],net[1][3],net[2][1],65);
+			Line(net[2][3]+11,net[3][2],net[1][3],net[2][2],65);
+		}
+		else if((wall2[2][3]&1))
+		{
+			if(!(wall2[2][4]&8))//右2横
+			{
+				Block(net[2][3]+12,net[3][1]+1,net[1][3]-1,net[3][2]-1,0);
+				Rectangle(net[2][3]+11,net[3][1],net[1][3],net[3][2],1);
+			}
+			
+		}
+	
+	}
+	
+	
+	
+	Line(159,0,159,79,64);
+	Line(0,0,0,79,64);
+	
+}
+char move()
+{
+	char key,m,k,i,j;
+	int k1,k2,k3,k4,k5,finish;
+	m=0;
+	k=Inkey();
+	if(step>0)
+	{
+		mx=qx[11-step];
+		my=qy[11-step];
+		step--;
+		Delay(200);
+		time=time+2;
+		return 1;
+	}
+	if(k==27)
+	{
+		Box(44,22,116,52,1,0);
+		
+		TextOut(48,25,"确定退出吗?",64);
+		Box(44,22,116,52,0,1);
+		Box(46,24,114,50,0,1);
+		TextOut(71,37,"Y/N",64);
+		if(getchar()=='y')us();
+		else Refresh();
+	}
+	else if(k==25)
+	{
+		if(tool3>0)
+		{
+			face=3;
+			step=10;
+			tool3--;
+			Box(36,26,124,46,1,0);
+			Box(36,26,124,46,0,1);
+			Box(38,28,122,44,0,1);
+			TextOut(40,30,"路径搜寻中...",64);
+			
+			finish=find2(mx,my,0,0);
+			Refresh();
+		}
+	}
+	else if(k==14){if(face==3)face=0;else face++;return 1;}
+	else if(k==19){if(face>0)face--;else face=3;return 1;}
+	else if(k==20&&(wall2[4][2]&8))
+	{
+		if(face==0)mx++;
+		else if(face==1)my++;
+		else if(face==2)mx--;
+		else if(face==3)my--;
+		return 1;
+	}
+	else if(k==21&&(wall2[4][2]&2))
+	{
+		if(face==0)mx--;
+		else if(face==1)my--;
+		else if(face==2)mx++;
+		else if(face==3)my++;
+		return 1;
+	}
+	else if(k==23&&(wall2[4][2]&4))
+	{
+		if(face==0)my--;
+		else if(face==1)mx++;
+		else if(face==2)my++;
+		else if(face==3)mx--;
+		return 1;
+	}
+	else if(k==22&&(wall2[4][2]&1))
+	{
+		if(face==0)my++;
+		else if(face==1)mx--;
+		else if(face==2)my--;
+		else if(face==3)mx++;
+		return 1;
+	}
+	else if(k==13)
+	{
+		showmaze2();
+		for(i=0;i<15;i++)
+		for(j=0;j<20;j++)
+		if(tool[i][j])Block(j*4+42,i*4+19,j*4+42,i*4+19,1);
+		Refresh();
+		for(;;)
+		{
+			key=Inkey();
+			if(key==25)
+			{
+				if(tool2>0)
+				{
+					Box(36,26,124,46,1,0);
+					Box(36,26,124,46,0,1);
+					Box(38,28,122,44,0,1);
+					TextOut(40,30,"路径搜寻中...",64);
+				//	getchar();
+					finish=find2(mx,my,0,0);
+					Refresh();
+					for(k5=1;k5<finish;k5++)
+					{
+						k1=qx[k5]*4+42;k3=qy[k5]*4+19;
+						k2=qx[k5+1]*4+42;k4=qy[k5+1]*4+19;
+		
+						Point(k1,k3,1);
+						Point(k2,k4,1);
+						Point((k2+k1)>>1,(k3+k4)>>1,1);
+						Delay(50);
+						//getchar();
+					}
+					Box(122,60,158,65,0,1);
+					Box(124,62,156,63,1,1);
+					for(i=32;i>0;i--)
+					{
+						Delay(300);
+						Box(123+i,62,156,63,1,0);
+					}
+					for(k5=1;k5<finish;k5++)
+					{
+						k1=qx[k5]*4+42;k3=qy[k5]*4+19;
+						k2=qx[k5+1]*4+42;k4=qy[k5+1]*4+19;
+		
+						Point(k1,k3,0);
+						Point(k2,k4,0);
+						Point((k2+k1)>>1,(k3+k4)>>1,0);
+						Delay(100);
+					}
+					tool2--;
+					
+					break;
+				}
+			}
+			else if(key==27)break;
+			Box(mx*4+41,my*4+18,mx*4+43,my*4+20,1,2);
+			Delay(100);
+			time++;
+			if(time>10)
+			{
+				time=0;sec++;
+				showhead();
+				Refresh();
+			}
+			
+		}
+		showmaze3();
+		Refresh();
+		return 0;
+	}
+	
+	Delay(100);
+	time++;
+	if(time>10)
+	{
+		time=0;sec++;
+		showhead();
+		Refresh();
+	}
+	return 0;
+}
+void newmaze()
+{
+	char fp;
+	long h[2];
+	Box(1,0,159,79,1,0);
+	Box(1,0,159,79,0,1);
+	TextOut(7,3,"新建迷宫将覆盖当前迷宫的",64);
+	TextOut(7,16,"所有信息(包括最高记录)",64);
+	TextOut(23,30,"确定要新建吗? Y/N",64);
+	if(getchar()=='y')
+	{
+		hname[0]='m';hname[1]='b';hname[2]='x';
+		hname[4]=0;htime=1000000;
+		TextOut(23,44,"迷宫生成中:高级",64);
+		fp=fopen("/LavaData/maze.dat","w");
+		makemaze();
+		fwrite(wall,1,300,fp);
+		Box(90,44,150,57,1,0);
+		TextOut(90,44,"中级",64);
+		cellwall(20);
+		fwrite(wall,1,300,fp);
+		Box(90,44,150,57,1,0);
+		TextOut(90,44,"初级",64);
+		cellwall(30);
+		fwrite(wall,1,300,fp);
+		fwrite(hname,1,10,fp);
+		h[0]=htime;
+		fwrite(h,1,4,fp);
+		fclose(fp);
+		Box(23,44,150,57,1,0);
+		TextOut(23,44,"新迷宫已生成",64);
+		getchar();
+		
+	}
+	
+}
+void entername()
+{
+	char k,i;
+	Block(0,0,159,79,0);
+	TextOut(15,20,"请输入你的尊姓大名:",1);
+	TextOut(25,35,"name:",1);
+	Rectangle(56,35,108,53,1);
+	Refresh();
+	memset(hname,0,10);
+	i=0;Line(58+i*6,51,64+i*6,51,1);
+	k=0;ReleaseKey(128);
+	for(;;)
+	{
+		k=getchar();
+		if(k==13)
+		{
+			if(hname[0])break;
+		}
+		else if(k==23)
+		{if(i>0)i--;hname[i]=0;}
+		
+		else
+		{
+			if(isalpha(k))
+			{
+				hname[i]=k;
+				i++;
+			}
+		}
+		Refresh();
+		Line(58+i*6,51,64+i*6,51,1);
+		TextOut(58,37,hname,64);
+		if(i>7)break;	
+	}
+	
+}
+void finishgame()
+{
+	char name[20],fp;
+	long h[2];
+	//sec=10000000;
+	Box(0,0,159,79,1,0);
+	TextOut(50,1,"*游戏结束*",64);
+	TextOut(10,13,"您的用时总计:",64);
+	memset(name,0,20);
+	sprintf(name,"%d秒",sec);
+	TextOut(10,26,name,64);
+	if(sec<htime)
+	{
+		TextOut(44,39,"打破当前记录",64);
+		getchar();
+		entername();
+		fp=fopen("/LavaData/maze.dat","r+");
+		fseek(fp,900,0);
+		fwrite(hname,1,10,fp);
+		h[0]=sec;
+		fwrite(h,1,4,fp);
+		fclose(fp);
+	}
+	else
+	{
+		TextOut(32,39,"没有打破当前记录",64);
+		getchar();
+	}
+	
+}
+void high()
+{
+	char c[30];
+	Box(1,0,159,79,1,0);
+	Box(1,0,159,79,0,1);
+	TextOut(10,10,"当前地图最高记录为:",64);
+	TextOut(10,25,hname,64);
+	memset(c,0,30);
+	sprintf(c,"用时总计:%d秒",htime);
+	TextOut(10,40,c,64);
+	getchar();
+}
+void loadgame(char stage)
+{
+	char fp,i,m,n;
+	memset(wall,0,300);memset(tool,0,300);
+	fp=fopen("/LavaData/maze.dat","r");
+	rewind(fp);
+	fseek(fp,(600-stage*300),0);
+	fread(wall,1,300,fp);
+	fclose(fp);
+	if(stage==0)
+	{
+		i=0;
+		do
+		{
+			m=rand()%13+1;n=rand()%18+1;
+			if(tool[m][n]==0)
+			{
+				tool[m][n]=(rand()%2+1);
+				i++;
+			}
+		}while(i<4)	
+	}
+	else if(stage==1)
+	{
+		i=0;
+		do
+		{
+			m=rand()%13+1;n=rand()%18+1;
+			if(tool[m][n]==0)
+			{
+				tool[m][n]=2;
+				i++;
+			}
+		}while(i<6)
+	}
+}
+void main()
+{
+	int i,m,k1,k2,k3,k4;
+	int finish,x,y,turn,menu2;
+	char name[30],key,stage;
+	Block(0,0,159,79,0);
+	begain();
+	
+kaishi:;
+	menu2=menu();
+	if(menu2==1)
+	{
+		newmaze();
+		goto kaishi;
+	}
+	else if(menu2==2)
+	{
+		high();
+		goto kaishi;
+	}
+	else if(menu2==3)
+	us();
+	
+	
+	/*finish=findpath(0,0,19,14);
+	
+	getchar();
+	*/
+	
+	stage=0;time=0;tool2=0;tool3=0;
+loop2:;
+	Block(0,0,159,79,0);
+	Refresh();
+	mx=19;my=14;face=rand()%4;
+	step=0;
+	if(stage==0)
+	TextOut(16,30,"<<初级>>载入中....",64);
+	else if(stage==1)
+	TextOut(16,30,"<<中级>>载入中....",64);
+	else if(stage==2)
+	TextOut(16,30,"<<高级>>载入中....",64);
+	//getchar();
+	else if(stage==3)
+	{
+		finishgame();
+		goto kaishi;
+	}
+	loadgame(stage);
+	
+	get5(face,mx,my);	
+	showmaze3();
+	Refresh();
+	for(;;)
+	{
+		showhead();
+		if(move())
+		{
+			
+			get5(face,mx,my);	
+			showmaze3();
+			Refresh();	
+		}
+		if(mx==0&&my==0)
+		{
+			Box(49,26,111,45,1,0);
+			Box(49,26,111,45,0,1);
+			Box(51,28,109,43,0,1);
+			TextOut(53,30,"恭喜过关!",64);
+			getchar();
+			stage++;
+			goto loop2;
+		}
+		if(tool[my][mx]==1)
+		{
+			tool2++;
+			Box(28,26,132,46,1,0);
+			Box(28,26,132,46,0,1);
+			Box(30,28,130,44,0,1);
+			TextOut(32,30,"得到2D卫星导航仪",64);
+			tool[my][mx]=0;
+			getchar();
+			Refresh();
+		}
+		else if(tool[my][mx]==2)
+		{
+			tool3++;
+			Box(28,26,132,46,1,0);
+			Box(28,26,132,46,0,1);
+			Box(30,28,130,44,0,1);
+			TextOut(32,30,"得到3D卫星导航仪",64);
+			tool[my][mx]=0;
+			getchar();
+			Refresh();
+		}
+		
+	}
+
+}

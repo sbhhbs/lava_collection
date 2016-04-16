@@ -1,0 +1,27 @@
+原型:long fseek(char fp, long offset, char base);
+功能:文件指针定位
+说明:将句柄为fp的文件的位置指针移到以base所指出的位置为基准,以offset为位移量的位置
+     返回当前位置.若出错,返回-1
+举例:
+char s[]="www.ggv.com.cn";
+
+void main()
+{
+ char fp;
+ char t[20];
+
+ if ((fp = fopen("/LavaData/tmp.dat", "w+")) == 0)
+ {
+  printf("创建文件失败!"); 
+ }
+ else
+ {
+  printf("创建文件成功!");
+  fwrite(s, 1, strlen(s) + 1, fp);
+  fseek(fp, 4, 0);
+  fread(t, 1, strlen(s) + 1, fp);
+  printf("\n%s", t);
+  fclose(fp);
+ }
+ getchar();
+}

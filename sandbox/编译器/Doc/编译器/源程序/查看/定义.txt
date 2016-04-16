@@ -1,0 +1,67 @@
+#ifndef TIME_DELAY
+#define TIME_DELAY  64													//输入时间延迟[变]
+#endif
+struct TIME
+{
+	int year;
+	char month;
+	char day;
+	char hour;
+	char minute;
+	char second;
+	char week;
+};
+//*******************************************************文件夹表*******************************************************//
+#define DOCUM_TABLE 0x2000												//文件夹表地址
+//-----------------------------------------------------------------------
+#ifndef DOC_N_LEN
+#define DOC_N_LEN   5													//名称长度[变]<=5
+#endif
+#ifndef DOC_D_SIZE
+#define DOC_D_SIZE  230													//文件表长度[变]<=256
+#endif
+#define DOC_MOVE    2													//文件夹移动
+//======================================================================================================================//
+struct DOCUNIT															//基本结构
+{
+	char id;															//所属文件夹id号
+	char name[DOC_N_LEN];												//名称
+};
+struct DOCTABLE															//文件夹表结构
+{
+	char size;															//文件夹表长度[与数据域顺序不可改变]
+	struct DOCUNIT dat[DOC_D_SIZE];										//数据域[与文件夹表长度顺序不可改变]
+};
+//*******************************************************宏定义表*******************************************************//
+#define MACRO_TABLE DOCUM_TABLE+(DOC_N_LEN+1)*DOC_D_SIZE+1				//宏表地址
+//-----------------------------------------------------------------------
+#ifndef MAC_N_LEN
+#define MAC_N_LEN   19													//名称长度[变]<=19
+#endif
+#ifndef MAC_V_LEN
+#define MAC_V_LEN   19													//值长度[变]<=19
+#endif
+#ifndef MAC_M_SIZE
+#define MAC_M_SIZE  134													//宏表长度[变]<=256
+#endif
+#define MAC_MOVE    1													//宏移动
+//======================================================================================================================//
+struct MACUNIT															//基本结构
+{
+	char id;															//所属文件夹id号
+	char name[MAC_N_LEN];												//名称
+	char value[MAC_V_LEN];												//值
+};
+struct MACTABLE															//宏表结构
+{
+	char size;															//宏表长度[与数据域顺序不可改变]
+	struct MACUNIT dat[MAC_M_SIZE];										//数据域[与宏表长度顺序不可改变]
+};
+//*******************************************************映射宏表*******************************************************//
+#define MACRO_SHINE MACRO_TABLE+(MAC_N_LEN+MAC_V_LEN+1)*MAC_M_SIZE+1	//映射宏表地址
+//======================================================================================================================//
+struct MACSHI															//映射宏表结构
+{
+	char sqr[MAC_M_SIZE];												//映射地址
+	char size;															//映射宏表长度
+};

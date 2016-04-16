@@ -1,0 +1,84 @@
+int _s;//stack base
+int _p;//stack pointer
+int _t;//stack top
+int _es;//elemet size
+long _fullE;//full error funtion address
+long _nullE;//null error funtion address
+
+#include <fptr.y>
+
+int SwitchStack(int s)
+{
+	int p;
+	int t;
+	int es;
+	long fullE;
+	long nullE;
+
+	p = _p;
+	t = _t;
+	es = _es;
+	fullE = _fullE;
+	nullE = _nullE;
+	memcpy(_s - 14, &p, 14);//保存当前变量
+	if (!s) return(1);
+	memcpy(&p, s, 14);
+	if (p < s + 14 || p > t || t <= s + 14 || es <= 0 || !fullE || !nullE) return(1);
+	_s = s + 14;
+	_p = p;
+	_t = t;
+	_es = es;
+	_fullE = fullE;
+	_nullE = nullE;
+}
+
+int InitStack(int s, int len, int es, long fullE, long nullE)
+{
+	_p = _s = s + 14;
+	_t = s + len - es;
+	_es = es;
+	_fullE = fullE;
+	_nullE = nullE;
+	if (SwitchStack(s)) return(-1);
+	return (len - 14) / es;
+}
+
+int StackFull()
+{
+	return _p > _t;
+}
+
+int StackEmpty()
+{
+	return _p <= _s;
+}
+
+int StackDepth()
+{
+	if (!_es) return (0);
+	return (_p - _s) / _es;
+}
+
+void GetTop(int e)
+{
+	if (_p <= _s) fptr(#attr(_nullE, 0, 0));
+	memcpy(e, _p - _es, _es);
+}
+
+void Push(int e)
+{
+	if (_p > _t) fptr(#attr(_fullE, 0, 0));
+	memcpy(_p, e, _es);
+	_p = _p + _es;
+}
+
+void Pop(int e)
+{
+	if (_p <= _s) fptr(#attr(_nullE, 0, 0));
+	_p = _p - _es;
+	memcpy(e, _p, _es);
+}
+
+void main()
+{
+}

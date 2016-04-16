@@ -1,0 +1,23 @@
+原型:int strstr(int str1, int str2);
+功能:从字符串str1中寻找str2第一次出现的位置(不比较结束符NULL)
+说明:返回指向第一次出现str2位置的指针,如果没找到则返回NULL
+举例:
+char s[] = "Golden Global View";
+char l[] = "den";
+
+void main()
+{
+ int p;
+
+ SetScreen(0);
+ p = strstr(s,l);
+ if (p)
+ {
+  printf("%s", p);
+ }
+ else
+ {
+  printf("Not Found!");
+ }
+ getchar();
+}

@@ -1,0 +1,40 @@
+注意:以下函数所转换的图片宽度必须是8的倍数！
+
+原型:int Chg2to4(int &pic4[],char &pic2[],int len,char bcolor,char fcolor);
+功能:图片数据转换。
+说明:将2色图片扩展成4色。将pic2所指的地址开始扩展len个字节，扩展后的图片数据放在pic4所指的地址中，并返回其数据长度。图片数据用bcolor（背景色），fcolor（前景色）填充，其中bcolor和fcolor取值范围：0～3。
+
+原型:int Chg4to2(char &pic2[],char &pic4[],int len);
+功能:图片数据转换。
+说明:将4色图片压缩成2色。将pic4所指的地址开始压缩len个字节，压缩后的图片数据放在pic2所指的地址中，并返回其数据长度。
+
+原型:int Chg2to16(long &pic16[],char &pic2[],int len,char bcolor,char fcolor);
+功能:图片数据转换。
+说明:将2色图片扩展成16色。将pic2所指的地址开始扩展len个字节，扩展后的图片数据放在pic16所指的地址中，并返回其数据长度。图片数据用bcolor（背景色），fcolor（前景色）填充，其中bcolor和fcolor取值范围：0～15。
+
+原型:int Chg16to2(char &pic2[],char &pic16[],int len);
+功能:图片数据转换。
+说明:将16色图片压缩成2色。将pic16所指的地址开始压缩len个字节，压缩后的图片数据放在pic2所指的地址中，并返回其数据长度。
+
+原型:int Chg4to16(int &pic16[],char &pic4[],int len,char &color[4]);
+功能:图片数据转换。
+说明:将4色图片扩展成16色。将pic4所指的地址开始扩展len个字节，扩展后的图片数据放在pic16所指的地址中，并返回其数据长度。图片数据用color（调色板）填充，其中color长度为4B，比如有一个调色板{0,5,10,15}，表示：4灰度里的调色值0会扩充成调色板里的第一个值：0，依此类推：4灰度里的调色值2会扩充成10（意思是4灰度里的2阶灰度的点经过扩充后变成16灰度里的10阶灰度）。调色板的作用是将4灰度里的各个色阶扩充成调色板对应的16灰度里的色阶。
+
+原型:int Chg16to4(char &pic4[],char &pic16[],int len);
+功能:图片数据转换。
+说明:将16色图片压缩成4色。将pic16所指的地址开始压缩len个字节，压缩后的图片数据放在pic4所指的地址中，并返回其数据长度。
+
+举例:
+#include <ChgPic.y>
+char pic2[1600]={......};//黑白图片数据
+char pic4[3200];
+void main()
+{int i;
+ SetScreen(0);printf("转换中...");
+ Chg2to4(pic4,pic2,1600,0,3);
+ SetGraphMode(2);
+ WriteBlock(0,0,160,80,1,pic4);
+ Refresh();
+ getchar();
+ SetGraphMode(1);
+}

@@ -1,0 +1,12 @@
+原型:void GetCommandLine(long CmdLine);
+功能:取得当前运行程序的命令行字符串
+说明:命令行最长256个字符，需要为CmdLine预留足够空间
+举例:
+void main()
+{
+ char s[256];
+
+ GetCommandLine(s);
+ printf(s);
+ getchar();
+}

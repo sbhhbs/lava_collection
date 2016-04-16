@@ -1,0 +1,19 @@
+原型:int FindFile(int from,int num,addr buf);
+功能:取当前目录下的文件名
+说明:from为第一个文件在目录中的序号
+     num为要取的文件名的个数
+     buf为内存地址,保存返回的文件名,每16个字节保存一个文件名
+     返回值为实际取得的文件名数
+举例:
+void main()
+{
+ char namebuf[5][16];
+ int i, num;
+
+ num = FindFile(1, 5, namebuf);
+ for (i = 0; i < num; i++)
+ {
+  printf("\n%s", namebuf[i]);
+ }
+ getchar();
+}

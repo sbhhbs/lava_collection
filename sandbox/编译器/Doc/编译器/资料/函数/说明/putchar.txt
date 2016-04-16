@@ -1,0 +1,11 @@
+原型:void putchar(char ch);
+功能:把字符ch输出到屏幕
+举例:
+void main()
+{
+ SetScreen(0);
+ putchar('g');
+ putchar('g');
+ putchar('v');
+ getchar();
+}

@@ -1,0 +1,13 @@
+原型:void ClearScreen();
+功能:把屏幕缓冲区内的图象清除
+举例:
+void main()
+{
+ ClearScreen();
+ Block(10, 20, 100, 60, 1);
+ Refresh();
+ getchar();
+ ClearScreen();
+ Refresh();
+ getchar();
+}

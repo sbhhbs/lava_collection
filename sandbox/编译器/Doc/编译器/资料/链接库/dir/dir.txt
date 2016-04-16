@@ -1,0 +1,345 @@
+/* 改变目录 */
+int ChPath(char &path[])
+{
+	int head, end;
+
+	if (!ChDir(end = path))
+	{
+		ChDir("/");
+		while (end = strchr(head = end + 1, '/'))
+		{
+			*end = 0;
+			if (!ChDir(head))
+			{
+				MakeDir(head);
+				if (!ChDir(head))
+				{
+					*end = '/';
+					return(1);
+				}
+			}
+			*end = '/';
+		}
+		MakeDir(head);
+		if (!ChDir(head)) return(1);
+	}
+}
+
+/* 改变后缀 */
+void ChExt(char &s[], char &e[])
+{
+	long t, p;
+
+	p = s;
+	while (t = strchr(p, '.')) p = t + 1;
+	if (p > s)
+	{
+		strcpy(p, e);
+	}
+	else
+	{
+		strcat(p, ".");
+		strcat(p, e);
+	}
+}
+
+/* 判断后缀 */
+int CheckExt(char &s[],char &e[])
+{
+	int t, p;
+	char ext[10];
+
+	p = s;
+	while (t = strchr(p, '.')) p = t + 1;
+	if (p > s)
+	{
+		t = 0;
+		while (*p) ext[t++] = tolower(*p++);
+		ext[t] = 0;
+		return(!strcmp(ext, e));
+	}
+}
+
+/* 组合完整路径 */
+void fnmerge(char &path[], char &dir[], char &fname[], char &ext[])
+{
+	strcpy(path, dir);
+	if (strlen(dir) > 1)
+	{
+		if (dir[strlen(dir) - 1] != '/') strcat(path, "/");
+	}
+	strcat(path, fname);
+	if (ext[0] != '.' && ext[0]) strcat(path, ".");
+	strcat(path, ext);
+}
+
+/* 拆分完整路径 */
+void fnsplit(char &path[], char &dir[], char &fname[], char &ext[])
+{
+	long t, p, s;
+
+	p = path;
+	while (t = strchr(p, '/')) p = t + 1;
+	if (p > path)
+	{
+		memcpy(dir, path, t = p - path);
+		dir[t] = 0;
+		if (t > 1)
+		{
+			if (dir[t - 1] == '/') dir[t - 1] = 0;
+		}
+	}
+	else
+	{
+		dir[0] = 0;
+	}
+	s = p;
+	while (t = strchr(p, '.')) p = t + 1;
+	if (p > s)
+	{
+		memcpy(fname, s, t = p - s - 1);
+		fname[t] = 0;
+		strcpy(ext, p);
+	}
+	else
+	{
+		strcpy(fname, s);
+		ext[0] = 0;
+	}
+}
+
+void PopDir(char &path[])
+{
+	int i, len;
+
+	if ((len = strlen(path)) == 1) return;
+	for (i = len - 1; i > 0; i--)
+	{
+		if (path[i] == '/')
+		{
+			path[i] = 0;
+			return;
+		}
+	}
+	path[1] = 0;
+}
+
+void PushDir(char &path[], char &dir[])
+{
+	if (strlen(path) > 1)
+	{
+		strcat(path, "/");
+	}
+	strcpy(path, dir);
+}
+
+long findfile(int from,int num,char &buf[])
+{
+	char i;
+	int len;
+
+	if (!(i = fopen("","r"))) return(-1);
+	fseek(i, (from << 4) + 2, 0);
+	len = fread(buf, 1, num << 4, i) >> 4;
+	fclose(i);
+	if (!from) strcpy(buf, "..");
+	for (i = 0; i < len; i++)
+	{
+		if (*(buf + (i << 4)) == 0xff)
+		{
+			len = i;
+			break;
+		}
+		*(buf + (i << 4) + 14) = 0;
+	}
+	return(len);
+}
+
+long getfilenum(char &path[])
+{
+	char fp, i;
+	int num;
+	char buf[160];
+
+	if (!ChDir(path)) return(-1);
+	if (!(fp = fopen("", "r"))) return(-1);
+	fseek(fp, 16, num = 0);
+	while(!feof(fp))
+	{
+		fread(buf, 1, 160, fp);
+		if (buf[146] == 0xff)
+		{
+			for (i = 0; i < 10;)
+			{
+				if (buf[((i++) << 4) + 2] == 0xff) goto END;
+				num++;
+			}
+		}
+		else
+		{
+			num = num + 10;
+		}
+	}
+END:
+	fclose(fp);
+	return(num);
+}
+
+long rename(char &old[], char &new[])
+{
+	char fp, i, len;
+	char buf[160], str[15];
+	long p;
+
+	if (fp = fopen("", "r+"))
+	{
+		if ((len = strlen(new)) < 15 && len)
+		{
+			fseek(fp, 16, p = str[14] = 0);
+			while (!feof(fp))
+			{
+				fread(buf, 1, 160, fp);
+				for (i = 0; i < 160; i = i + 16)
+				{
+					memmove(str, buf + i + 2, 14);
+					if (str[0] == 0xff) goto END;
+					if (!strcmp(new, str))
+					{
+						fclose(fp);
+						return(2);
+					}
+					else if (!strcmp(old, str))
+					{
+						p = fseek(fp, i - 158, 1);
+					}
+				}
+			}
+END:
+			if (!p)//找不到
+			{
+				fclose(fp);
+				return(0);
+			}
+			if (len < 14) len++;
+			fseek(fp, p, 0);
+			if (fwrite(new, 1, len, fp))
+			{
+				fclose(fp);
+				return(1);
+			}
+			fclose(fp);
+			return(0);
+		}
+		fclose(fp);
+	}
+}
+
+long deletefile(char &name[])
+{
+	char fp;
+	char buf[160], str[15], i;
+	long start;
+
+	if (DeleteFile(name)) return(1);
+	if (!ChDir(name) && strcmp(name, ".."))
+	{
+		if (fp = fopen("", "r+"))
+		{
+			fseek(fp, 16, str[14] = 0);
+			while (!feof(fp))
+			{
+				fread(buf,1,160,fp);
+				for (i = 0; i < 160; i = i + 16)
+				{
+					memmove(str, buf + i + 2, 14);
+					if (str[0] == 0xff) goto END;
+					if (!strcmp(name, str))
+					{
+						start = fseek(fp, i - 144, 1) - 16;
+						goto SEK;
+					}
+				}
+			}
+END:
+			fclose(fp);
+			return(0);
+SEK:
+			while (!feof(fp))
+			{
+				fread(buf, 1, 160, fp);
+				fseek(fp, start, 0);
+				if (buf[146] == 0xff)
+				{
+					for (i = 0; i < 160; i = i + 16)
+					{
+						if (buf[i + 2] == 0xff) break;
+					}
+					fwrite(buf, 1, i, fp);
+					start = start + i;
+					break;
+				}
+				else
+				{
+					if(!fwrite(buf, 1, 160, fp)) goto END;
+					start = fseek(fp, 16, 1) - 16;
+				}
+			}
+			memset(buf, 0xff, 16);
+			fseek(fp, start, 0);
+			i = fwrite(buf, 1, 16, fp);
+			fclose(fp);
+			return(i);
+		}
+	}
+}
+
+void main()
+{
+	char path[20];
+	char namebuf[5][16];
+	int i, num, n;
+	char dir[40];
+	char fname[16];
+	char ext[10];
+
+	strcpy(path, "/1.tt");
+	SetScreen(1);
+	fnsplit(path, dir, fname, ext);
+	printf("%s\n%s\n%s\n", dir, fname, ext);
+	getchar();
+	strcpy(path, "/LavaData");
+	printf("在%s目录下\n文件总数:%d\n", path, getfilenum(path));
+	getchar();
+	ChDir(path);
+	num = findfile(1, 5, namebuf);
+	if (num < 0)
+	{
+		printf("Error");
+		getchar();
+		return;
+	}
+	ClearScreen();
+	for (i = 0; i < num; i++)
+	{
+		TextOut(1, i << 4, namebuf[i], 129);
+		Refresh();
+		getchar();
+	}
+	printf("返回值:%d\n", deletefile("a.txt"));
+	getchar();
+	ChDir(path);
+	num = findfile(1, 5, namebuf);
+	if (num < 0)
+	{
+		printf("Error");
+		getchar();
+		return;
+	}
+	ClearScreen();
+	for (i = 0; i < num; i++)
+	{
+		TextOut(1, i << 4, namebuf[i], 129);
+	}
+	Refresh();
+	getchar();
+}

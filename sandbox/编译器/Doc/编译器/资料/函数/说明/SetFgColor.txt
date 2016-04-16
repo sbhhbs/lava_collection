@@ -1,0 +1,13 @@
+原型:void SetFgColor(int color);
+功能:设置前景颜色
+说明:2色模式下无效
+举例:
+void main()
+{
+ SetGraphMode(4);
+ SetBgColor(5);
+ SetFgColor(10);
+ TextOut(56, 20, "LeeSoft", 1);
+ Refresh();
+ getchar();
+}

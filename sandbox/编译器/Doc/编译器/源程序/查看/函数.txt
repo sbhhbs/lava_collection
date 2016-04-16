@@ -1,0 +1,1263 @@
+//*****************************************************文字输入系统*****************************************************//
+/* 获取符号 */
+char Getsign()
+{
+	char key, i, j;
+	char numkey[10], mark[4][18];
+
+	TextOut(1, 64, "符", 0xc2);
+	strcpy(numkey, "bnmghjtyu");
+	strcpy(mark, ". , ; - / ? ! $ % ( ) : ` ' \" < > { } [ ] # ~ @ ^ & * + = _ | '         ");
+	mark[3][8] = 92;
+	for (i = 0;;)
+	{
+		TextOut(17, 64, mark[i], 0xc1);
+		key = getchar();
+		if (key == UP_KEY || key == LEFT_KEY || key == UU_KEY)
+		{
+			if (i)
+			{
+				i--;
+				continue;
+			}
+		}
+		else if (key == DOWN_KEY || key == RIGHT_KEY || key == '0' || key == DD_KEY)
+		{
+			if (i < 3)
+			{
+				i++;
+				continue;
+			}
+		}
+		else if (strchr(numkey, key))
+		{
+			j = strchr(numkey, key) - numkey;
+			if (mark[i][j << 1] > ' ') return(mark[i][j << 1]);
+		}
+		else if (isdigit(key))
+		{
+			j = key - '1';
+			if (mark[i][j << 1] > ' ') return(mark[i][j << 1]);
+		}
+		else if (key == ESC_KEY)
+		{
+			return(0);
+		}
+		if (!cfset.dat[0].tem[2].value) Beep();
+	}
+}
+
+/* 输入 type:
+ * bit0,1 : 0 = num, 1 = eng, 2 = han 数字 英文 汉字
+ * bit2   : 1 = han 支持汉字
+ * bit3   : 1 = min 小写
+ * bit4   : 1 = !sign 不支持符号
+ * text可以有默认字符串，退出不破坏text
+ */
+int Inputw(char &tag[], char &text[], int len, int type)
+{
+	char key, tkey, skey, con;//按键值 缓冲按键值 锁定键 锁定连续响应键
+	char han, min, sign;//是否支持汉字, 是否小写, 是否禁止符号输入
+	char i, j, numkey[10];
+	long m, n;//临时变量
+	char str[50];//临时字符串
+
+	han = type&4;
+	min = (type&8) >> 3;
+	sign = !(type&16);
+	type = type&3;
+	if (han)//打开字库
+	{
+		if (!datfp)
+		{
+			ChDir(cpldata);
+			if (!(datfp = fopen("compile.dat", "r"))) han = 0;
+		}
+	}
+	strcpy(numkey, "bnmghjtyu");
+	memset(str, 0, 50);
+	strcpy(str, text);
+	Swin("输入", NULL, SWIN_COM);
+	TextOut(18, 36, tag, 1);
+#if WQX == 0
+	MyBox(18, 52, 137, 66, 1);
+#else
+	Rectangle(18, 52, 137, 66, 1);
+#endif
+	goto INIT_START;
+START:
+	skey = CheckKey(128);//终止响应键
+START1:
+	Block(19, 53, 136, 65, 0);
+	if (i < j)
+	{
+		j = i;
+	}
+	else
+	{
+		while (i > j + 19)
+		{
+			if (*(text + (j++)) >= 160) j++;
+		}
+	}
+	n = j;
+	while (n < j + 19)
+	{
+		if (*(str + (n++)) >= 160)
+		{
+			if (n >= j + 19)
+			{
+				n--;
+				break;
+			}
+			n++;
+		}
+	}
+	m = str[n - j];
+	str[n - j] = 0;
+	TextOut(19, 54, str + j, 1);
+	str[n - j] = m;
+	if (!type)
+	{
+		TextOut(120, 40, "num", 1);
+	}
+	else if (type == 1)
+	{
+		if (min)
+		{
+			TextOut(120, 40, "eng", 1);
+		}
+		else
+		{
+			TextOut(120, 40, "ENG", 1);
+		}
+	}
+	else
+	{
+		TextOut(120, 40, "han", 1);
+	}
+	Refresh();
+	for (m = n = 0;;)
+	{
+		if (type == 2)//中文输入
+		{
+			n = Input((i - j) * 6 + 19, 4, &skey, &con);
+			if (n < 0xff)
+			{
+				key = n;
+				break;
+			}
+			if (strlen(str) < len - 2)
+			{
+				memmove(str + i + 2, str + i, strlen(str + i));
+				memcpy(str + i, n, 2);//写入汉字
+				i = i + 2;
+			}
+			goto START;
+		}
+		if (!n) Box((i - j) * 6 + 19, 54, (i - j) * 6 + 20, 65, 1, 2);
+		if ((n++) == (cfset.dat[3].tem[1].value << 4)) n = 0;
+		tkey = key;
+		key = CheckKey(128);
+		Inkey();
+		if (skey == key || !key)
+		{
+			skey = key;
+			continue;
+		}
+		if (key == tkey)
+		{
+			if (++m >= cfset.dat[3].tem[0].value || con)
+			{
+				con = 1;
+				break;
+			}
+			Delay(20);
+			n = 1;
+		}
+		else
+		{
+			con = 0;
+			break;
+		}
+	}
+	if (key == F2_KEY)
+	{
+		if (i)
+		{
+			if (str[i - 1] >= 160)
+			{
+				n = 2;
+			}
+			else
+			{
+				n = 1;
+			}
+			memmove(str + i - n, str + i, strlen(str + i));
+			i = i - n;
+			memset(str + strlen(str) - n, 0, n);
+			goto START1;
+		}
+	}
+	else if (key == F3_KEY)
+	{
+		i = j = 0;
+		goto START;
+	}
+	else if (key == F4_KEY)
+	{
+INIT_START:
+		i = j = strlen(str);
+		while (i < j + 19 && j)
+		{
+			if (*(str + (--j)) >= 160) j--;
+		}
+		goto START;
+	}
+	else if (key == CR_KEY)
+	{
+		strcpy(text, str);
+		return(str[0]);
+	}
+	else if (key == ESC_KEY)
+	{
+		return(0);
+	}
+	else if (key == SHIFT_KEY)
+	{
+		if (++type == 3 || (!han && type == 2)) type = 0;
+		goto START;
+	}
+	else if (key == CAPS_KEY)
+	{
+		min = min ^ 1;
+		goto START;
+	}
+	else if (key == LEFT_KEY || key == UP_KEY)
+	{
+		if (i)
+		{
+			if (str[--i] >= 160) i--;
+			goto START1;
+		}
+	}
+	else if (key == RIGHT_KEY || key == DOWN_KEY)
+	{
+		if (i < strlen(str))
+		{
+			if (str[i++] >= 160) i++;
+			goto START1;
+		}
+	}
+	else if (isprint(n = key))
+	{
+		if (type == 1)//英文
+		{
+			if (n == '0' && sign)//符号
+			{
+				n = Getsign();
+				if (!n) goto START;
+			}
+			else if (!min)
+			{
+				n = toupper(n);//大字母
+			}
+		}
+		else if (strchr(numkey, n))
+		{
+			n = strchr(numkey, n) - numkey + '1';//数字
+		}
+		if (strlen(str) < len - 1)
+		{
+			memmove(str + i + 1, str + i, strlen(str + i));
+			str[i++] = n;
+			if (key == '0' && type == 1) goto START;
+			goto START1;
+		}
+		if (key == '0' && type == 1)
+		{
+			if (!cfset.dat[0].tem[2].value) Beep();
+			goto START;
+		}
+	}
+	else if (key == HELP_KEY)
+	{
+		if (strlen(str))
+		{
+			memset(str, 0, 50);
+			i = j = 0;
+			goto START;
+		}
+	}
+	if (!cfset.dat[0].tem[2].value) Beep();
+	goto START1;
+}
+//********************************************************宏系统********************************************************//
+/* 宏表操作 -1:错误 -2:溢出*/
+int MAC_Op(struct MACTABLE &mac, struct MACUNIT &e, int cmd)
+{
+	int low, mid, high;
+	int value;
+
+	if (cmd == TABLE_INS | cmd == TABLE_SEK)
+	{
+		low = 0;
+		high = mac.size - 1;
+		while (low <= high)
+		{
+			mid=(low+high) >> 1;
+			value = strcmp(mac.dat[mid].name, e.name);
+			if (!value)
+			{
+				if (cmd == TABLE_SEK)
+				{
+					strcpy(e.value, mac.dat[mid].value);
+					return(mid);
+				}
+				return(-1);
+			}
+			else if (value>0)
+			{
+				high = mid - 1;
+			}
+			else
+			{
+				low = mid + 1;
+			}
+		}
+		if (cmd == TABLE_SEK) return(-1);
+		if (mac.size >= MAC_M_SIZE) return(-2);//溢出判断
+		memmove(mac.dat[low + 1], mac.dat[low], (mac.size - low) * sizeof(struct MACUNIT));//插入
+		memcpy(mac.dat[low], e, sizeof(struct MACUNIT));
+		mac.size++;
+	}
+	else if (cmd == TABLE_DEL)
+	{
+		mac.size--;
+		memmove(mac.dat[e.id], mac.dat[e.id+1], (mac.size - e.id) * sizeof(struct MACUNIT));
+		memset(mac.dat[mac.size], 0, sizeof(struct MACUNIT));
+	}
+	else if (cmd == TABLE_CLR)
+	{
+		memset(mac, 0, sizeof(struct MACTABLE));
+	}
+}
+
+/* 文件夹表操作 查找 成功返回指针, 否则返回-1.插入 成功返回id号, 否则返回id号|0x8000 */
+int DOC_Op(struct MACTABLE &mac, struct DOCTABLE &doc, struct DOCUNIT &e, int cmd)
+{
+	int i, value, cur;
+
+	if (cmd == TABLE_SEK)
+	{
+		for (i = 0; i < doc.size; i++)
+		{
+			if (!strcmp(doc.dat[i].name, e.name)) return(i);
+		}
+		return(-1);
+	}
+	else if (cmd == TABLE_INS)
+	{
+		i = DOC_Op(mac, doc, e, TABLE_SEK);
+		if (i < 0)
+		{
+			for (value = 1; value <= DOC_D_SIZE; value++)//分配id
+			{
+				for (i = 0; i < doc.size; i++)
+				{
+					if (doc.dat[i].id == value) goto END;
+				}
+				e.id = value;
+				break;
+END:
+			}
+			memcpy(doc.dat[doc.size++], e, sizeof(struct DOCUNIT));return(e.id);
+		}
+		return(doc.dat[i].id|0x8000);
+	}
+	else if (cmd == TABLE_DEL)
+	{
+		value = doc.dat[cur = e.id].id;
+		for (i = 0 ; i < mac.size; i++)//宏删除
+		{
+			while (mac.dat[i].id == value)
+			{
+				e.id = i;
+				MAC_Op(mac, e, TABLE_DEL);
+			}
+		}
+		doc.size--;
+		memmove(doc.dat[cur], doc.dat[cur+1], (doc.size - cur) * sizeof(struct DOCUNIT));//文件夹删除
+		memset(doc.dat[doc.size], 0, sizeof(struct DOCUNIT));
+	}
+	else if (cmd == TABLE_CLR)
+	{
+		memset(doc, 0, sizeof(struct DOCTABLE));
+	}
+}
+
+/* macro.dat操作:0保存, 1读取 返回:0:正常 1:文件打开错误 2:文件读写错误*/
+int DiskMacro(struct MACTABLE &mac, struct DOCTABLE &doc, int cmd)
+{
+	char fp;
+	int offset;
+ 
+	ChPath(cpldata);
+	if (cmd == TABLE_RED)
+	{
+		MAC_Op(mac, NULL, TABLE_CLR);
+		DOC_Op(mac, doc, NULL, TABLE_CLR);//初始化
+		if (!(fp = fopen("macro.dat", "r")))
+		{
+			if (DataRead(mac, 1, DAT_MACRO) < 0) return(0);
+			DataRead(mac, mac.size * sizeof(struct MACUNIT) + 1, DAT_MACRO);//读取初始化数据
+			strcpy(doc.dat[0].name, "内置");
+			doc.dat[0].id = doc.size = 1;//文件夹初始化
+		}
+		else
+		{
+			if (fread(&offset, 1, 2, fp) == 2)
+			{
+				fread(mac, 1, sizeof(struct MACTABLE), fp);//宏表
+				if (mac.size <= MAC_M_SIZE)
+				{
+					fseek(fp, offset, 0);
+					fread(doc, 1, sizeof(struct DOCTABLE), fp);//文件夹表
+					if (doc.size <= DOC_D_SIZE)
+					{
+						fclose(fp);
+						return(0);
+					}
+				}
+			}
+			MAC_Op(mac, NULL, TABLE_CLR);
+			DOC_Op(mac, doc, NULL, TABLE_CLR);
+			fclose(fp);
+			return(0);
+		}
+	}
+	if (!(fp = fopen("macro.dat", "w"))) return(1);
+	fwrite(&offset, 1, 2, fp);
+	if (fwrite(mac, 1, sizeof(struct MACTABLE), fp) != sizeof(struct MACTABLE))
+	{
+		fclose(fp);
+		return(2);
+	}
+	offset = ftell(fp);
+	fwrite(doc, 1, sizeof(struct DOCTABLE), fp);
+	rewind(fp);
+	fwrite(&offset, 1, 2, fp);
+	fclose(fp);
+}
+//******************************************************宏查看系统******************************************************//
+void MacroHelp_()
+{
+	char key;
+	char s[5][30];
+
+_S1:
+	strcpy(s[0], "A、F1:添加一个宏定义");
+	strcpy(s[1], "D、F2:删除一个宏定义");
+	strcpy(s[2], "F3键 :查找宏定义");
+	strcpy(s[3], "F4键 :修改宏定义的值");
+	strcpy(s[4], "M键  :移动宏定义的位置");
+	PrintMsg(s, 0);
+	key = getchar();
+	if (key == UP_KEY || key == UU_KEY || key == LEFT_KEY) goto _S1;
+	if (key == ESC_KEY || key == 'q') return;
+	strcpy(s[0], "S键  :保存当前宏定义");
+	strcpy(s[1], "CR键 :查看当前宏定义");
+	strcpy(s[2], "ESC键:返回上一级界面");
+	s[3][0] = 0;
+	PrintMsg(s, 0);
+	key = getchar();
+	if (key == UP_KEY || key == UU_KEY || key == LEFT_KEY) goto _S1;
+}
+
+int MoveDM(struct DOCTABLE &doc, int cmd)/*移动宏, 文件夹*/
+{
+	char key;
+	int i;
+
+	Swin("移动", "移动到       ", SWIN_STW);
+	if (cmd == DOC_MOVE)
+	{
+		TextOut(115, 37, "之后", 1);
+	}
+	else if (cmd == MAC_MOVE)
+	{
+		TextOut(115, 37, "之中", 1);
+	}
+	for (i = 0;;)
+	{
+		Block(90, 37, 113, 49, 0);
+		TextOut(90, 37, doc.dat[i].name, 1);
+		Rectangle(90, 36, 115, 49, 1);
+		Refresh();
+		key = getchar();
+		if ((key == RIGHT_KEY || key == DOWN_KEY) && i + 1 < doc.size)
+		{
+			i++;
+		}
+		else if ((key == LEFT_KEY || key == UP_KEY) && i)
+		{
+			i--;
+		}
+		else if (key == Y_KEY || key == CR_KEY)
+		{
+			Button(55, 56, "是[Y]", BUTTON_DOWN);
+			return(i);
+		}
+		else if (key == N_KEY || key == ESC_KEY || key == 'q')
+		{
+			Button(98, 56, "否[N]", BUTTON_DOWN);
+			return(-1);
+		}
+		else if (!cfset.dat[0].tem[2].value) Beep();
+	}
+}
+
+#if WQX == 0
+void LookFace(char &str[])/*皮肤*/
+{
+	Dwin(str);
+	MyBox(4, 22, 109, 76, 4);
+	TextOut(10, 17, "浏览", 1);
+	Button(112, 18, "添加[A]", BUTTON_UP);
+	Button(112, 33, "删除[D]", BUTTON_UP);
+	Button(112, 48, "载入[L]", BUTTON_UP);
+	Button(112, 63, "保存[S]", BUTTON_UP);
+}
+
+void PrintMac(int first, int value, struct MACSHI &shi, struct MACTABLE &mac)/*宏显示*/
+{
+	struct MACUNIT e;
+	char i;
+
+	Block(6, 28, 108, 75, 0);
+	for (i = 0; i < 4 && i + first < shi.size; i++)
+	{
+		memcpy(e, mac.dat[shi.sqr[first + i]], sizeof(struct MACUNIT));
+		if (strlen(e.name) > 7) strcpy(e.name + 7, "~");
+		if (strlen(e.value) > 7) strcpy(e.value + 7, "~");
+		TextOut(6, i * 12 + 28, e.name, 1);
+		TextOut(58, i * 12 + 28, e.value, 1);
+	}
+	Block(6, value * 12 + 28, 108, value * 12 + 39, 2);
+}
+#else
+void LookFace(char &str[])/*皮肤*/
+{
+	Dwin(str);
+	Rectangle(3, 21, 110, 77, 1);
+	TextOut(10, 16, "浏览", 1);
+	Button(112, 16, "添加[A]", BUTTON_UP);
+	Button(112, 32, "删除[D]", BUTTON_UP);
+	Button(112, 48, "载入[L]", BUTTON_UP);
+	Button(112, 64, "保存[S]", BUTTON_UP);
+}
+
+void PrintMac(int first, int value, struct MACSHI &shi, struct MACTABLE &mac)/*宏显示*/
+{
+	struct MACUNIT e;
+	char i;
+ 
+	Block(4, 28, 109, 76, 0);
+	for (i = 0; i < 4 && i + first < shi.size; i++)
+	{
+		memcpy(e, mac.dat[shi.sqr[first + i]], sizeof(struct MACUNIT));
+		if (strlen(e.name) > 7) strcpy(e.name + 7, "~");
+		if (strlen(e.value) > 7) strcpy(e.value + 7, "~");
+		TextOut(4, i * 12 + 28, e.name, 1);
+		TextOut(56, i * 12 + 28, e.value, 1);
+	}
+	Block(4, value * 12 + 28, 109, value * 12 + 39, 2);
+}
+#endif
+
+void Resqr(struct MACSHI &shi, struct MACTABLE &mac, int id)/*映射表操作*/
+{
+	int i, j;
+
+	for (i = j = 0; i < mac.size; i++)
+	{
+		if (mac.dat[i].id == id) shi.sqr[j++] = i;
+	}
+	shi.size = j;
+}
+
+int LookMacro(struct MACSHI &shi, struct MACTABLE &mac, struct DOCTABLE &doc, int id)/*宏查看*/
+{
+	struct MACUNIT e;
+	char msg[20];
+	char key, change;
+	int first, cur, value, t;
+
+	Resqr(shi, mac, id);
+	memset(e, 0, sizeof(struct MACUNIT));
+	for (first = cur = change = 0;;)
+	{
+		LookFace("系统宏");
+		PrintMac(first, cur - first, shi, mac);
+		Refresh();//界面
+		key = getchar();
+		if ((key == UP_KEY || key == LEFT_KEY) && cur)
+		{
+			cur--;
+			if (cur < first) first = cur;
+		}
+		else if ((key == DOWN_KEY || key == RIGHT_KEY) && cur + 1 < shi.size)
+		{
+			cur++;
+			if (cur > first + 3) first = cur - 3;
+		}
+		else if (key == UU_KEY)
+		{
+			if (first < 4)
+			{
+				cur = cur - first;
+				first = 0;
+			}
+			else
+			{
+				first = first - 4;
+				cur = cur - 4;
+			}
+		}
+		else if (key == DD_KEY && first + 4 < shi.size)
+		{
+			first = first + 4;
+			cur = cur + 4;
+			if (cur >= shi.size) cur = shi.size - 1;
+		}
+		else if (key == A_KEY || key == F1_KEY)//插入
+		{
+			Button(112, 16, "添加[A]", BUTTON_DOWN);
+			if (mac.size >= MAC_M_SIZE)
+			{
+				sprintf(msg, "宏个数已达%d个", MAC_M_SIZE);
+				Swin("提醒！", msg, SWIN_ONE);
+			}
+			else if (Inputw("请输入宏名:", e.name, MAC_N_LEN, 1))
+			{
+				if (Inputw("请输入宏值:", e.value, MAC_V_LEN, 0))
+				{
+					e.id = id;
+					t = MAC_Op(mac, e, TABLE_INS);
+					if (t == -2)
+					{
+						Swin("警告！", "宏定义太多", SWIN_ONE);
+					}
+					if (t == -1)
+					{
+						Swin("警告！", "存在同名的宏", SWIN_ONE);
+					}
+					else
+					{
+						Resqr(shi, mac, id);
+						change = 1;
+					}
+				}
+			}
+		}
+		else if (key == D_KEY || key == F2_KEY)//删除
+		{
+			Button(112, 32, "删除[D]", BUTTON_DOWN);
+			if (!shi.size)
+			{
+				Swin("警告！", "没有宏可删除", SWIN_ONE);
+			}
+			else
+			{
+				if (cfset.dat[2].tem[1].value)
+				{
+					if (!Swin("删除？", "真的要删除么", SWIN_TWO)) continue;
+				}
+				e.id = shi.sqr[cur];
+				MAC_Op(mac, e, TABLE_DEL);
+				Resqr(shi, mac, id);
+				if (shi.size && cur >= shi.size)
+				{
+					cur = shi.size - 1;
+					if (cur < first) first = cur;
+				}
+				change = 1;
+			}
+		}
+		else if (key == F3_KEY)//查找
+		{
+			if (!shi.size)
+			{
+				Swin("警告！", "没有宏可查找", SWIN_ONE);
+			}
+			else if (Inputw("请输入宏名:", e.name, MAC_N_LEN, 1))
+			{
+				value = MAC_Op(mac, e, TABLE_SEK);
+				if (value < 0)
+				{
+					Swin("信息", "没有找到", SWIN_ONE);
+					continue;
+				}
+				Resqr(shi, mac, mac.dat[value].id);
+				for (cur = 0; cur < shi.size; cur++)
+				{
+					if (!strcmp(e.name, mac.dat[shi.sqr[cur]].name)) break;
+				}
+				first = cur;
+			}
+		}
+		else if (key == F4_KEY)//修改
+		{
+			if (!shi.size)
+			{
+				Swin("警告！", "没有宏可修改", SWIN_ONE);
+			}
+			else if (Inputw("当前宏值替换为:", e.value, MAC_V_LEN, 0))
+			{
+				strcpy(mac.dat[shi.sqr[cur]].value, e.value);
+				change = 1;
+			}
+		}
+		else if (key == CR_KEY)//查看
+		{
+			if (!shi.size)
+			{
+				Swin("警告！", "没有宏可查看", SWIN_ONE);
+			}
+			else
+			{
+				Swin("查看", NULL, SWIN_COM);
+				TextOut(16, 38, "M:", 1);
+				TextOut(28, 38, mac.dat[shi.sqr[cur]].name, 1);
+				Line(28, 49, 136, 49, 65);
+				TextOut(16, 55, "Z:", 1);
+				TextOut(28, 55, mac.dat[shi.sqr[cur]].value, 1);
+				Line(28, 66, 136, 66, 65);
+				Refresh();
+				while (getchar() != ESC_KEY);
+			}
+		}
+		else if (key == S_KEY)//保存
+		{
+			Button(112, 64, "保存[S]", BUTTON_DOWN);
+			if (cfset.dat[2].tem[2].value)
+			{
+				if (!Swin("保存？", "真的要保存么", SWIN_TWO)) continue;
+			}
+			LookFace("系统宏");
+			//TextOut(30, 45, "保存中...", 1);
+			textout(30, 45, "保存中...", 1);
+			Refresh();
+			t = DiskMacro(mac, doc, TABLE_SAV);
+			if (t == 1)
+			{
+				Swin("错误！", "无法创建宏文件", SWIN_ONE);
+			}
+			else if (t == 2)
+			{
+				Swin("错误！", "文件读写出错", SWIN_ONE);
+			}
+			else
+			{
+				change = 2;
+			}
+		}
+		else if (key == M_KEY)//移动
+		{
+			if (doc.size < 2 || !shi.size)
+			{
+				Swin("警告！", "无法移动宏", SWIN_ONE);
+			}
+			else if ((value=MoveDM(doc, MAC_MOVE)) != -1)
+			{
+				mac.dat[shi.sqr[cur]].id = doc.dat[value].id;
+				Resqr(shi, mac, id);
+				if (shi.size&cur >= shi.size)
+				{
+					cur = shi.size - 1;
+					if (cur < first) first = cur;
+				}
+				change = 1;
+			}
+		}
+		else if (key == ESC_KEY || key == 'q')
+		{
+			return(change);
+		}
+		else if (key == HELP_KEY)
+		{
+			MacroHelp_();
+		}
+		else if (!cfset.dat[0].tem[2].value) Beep();
+	}
+}
+//******************************************************文件夹系统******************************************************//
+void MacroHelp()
+{
+	char key;
+	char s[5][30];
+
+_S1:
+	strcpy(s[0], "A、F1:添加一个文件夹");
+	strcpy(s[1], "D、F2:删除一个文件夹");
+	strcpy(s[2], "F3键 :查找文件夹");
+	strcpy(s[3], "F4键 :修改文件夹的名称");
+	strcpy(s[4], "L键  :从文件添加宏定义");
+	PrintMsg(s, 0);
+	key = getchar();
+	if (key == UP_KEY || key == UU_KEY || key == LEFT_KEY) goto _S1;
+	if (key == ESC_KEY || key == 'q') return;
+	strcpy(s[0], "M键  :移动文件夹的位置");
+	strcpy(s[1], "S键  :保存当前宏定义");
+	strcpy(s[2], "CR键 :进入文件夹浏览");
+	strcpy(s[3], "ESC键:退出宏管理系统");
+	strcpy(s[4], ".键  :导出当前宏定义");
+	PrintMsg(s, 0);
+	key = getchar();
+	if (key == UP_KEY || key == UU_KEY || key == LEFT_KEY) goto _S1;
+}
+
+void SaveMacroTxt(struct MACUNIT &e, char fp)
+{
+	fseek(fp, 0, 2);
+	putc(13, fp);
+	putc(10, fp);
+	fwrite("#define ", 1, 8, fp);
+	fwrite(e.name, 1, strlen(e.name), fp);
+	putc(' ', fp);
+	fwrite(e.value, 1, strlen(e.value), fp);
+}
+
+void SaveHead(char &name[], char fp, char cmd)
+{
+	struct TIME time;
+	char str[50];
+
+	fseek(fp, 0, 2);
+	putc(13, fp);
+	putc(10, fp);
+	GetTime(time);
+	sprintf(str, "%s:%d/%d/%d %d:%d:%d", name, time.year, time.month, time.day, time.hour, time.minute, time.second);
+	if (cmd)
+	{
+		strcat(str, " [output]");
+	}
+	else
+	{
+		strcat(str, " [error]");
+	}
+	fwrite(str, 1, strlen(str), out.fp);
+}
+
+void SavetoTxt(struct MACTABLE &mac)
+{
+	char i;
+
+	if (ChPath("/文本文件"))
+	{
+		Swin("错误！", "无法进入目录", SWIN_ONE);
+		return;
+	}
+	if (!(out.fp = fopen("Macro.txt", "r+")))
+	{
+		if (!(out.fp = fopen("Macro.txt", "w")))
+		{
+			Swin("错误！", "无法创建文件", SWIN_ONE);
+			return;
+		}
+	}
+	LookFace("系统宏");
+	//TextOut(30, 45, "另存中...", 1);
+	textout(30, 45, "另存中...", 1);
+	Refresh();
+	SaveHead("Macro.txt", out.fp, 1);
+	for (i = 0; i < mac.size; i++)
+	{
+		SaveMacroTxt(mac.dat[i], out.fp);
+	}
+	putc(13, out.fp);
+	putc(10, out.fp);
+	fclose(out.fp);
+	out.fp = 0;
+}
+
+int AddMacro(struct MACTABLE &mac, struct DOCTABLE &doc)//加载文件
+{
+	struct MACUNIT m;
+	struct DOCUNIT d;
+	int md, dd, t;
+	char ms, ds, i, j, rt, k, str[16], v[19];
+
+	if (!ChDir(out.path))
+	{
+		Swin("错误！", "无法进入目录", SWIN_ONE);
+		return(0);
+	}
+	if (!(in.fp = fopen(out.name, "r")))
+	{
+		Swin("错误！", "无法打开文件", SWIN_ONE);
+		return(0);
+	}
+	if (!(out.fp = fopen("NotLoad.txt", "r+")))
+	{
+		if (!(out.fp = fopen("NotLoad.txt", "w")))
+		{
+			Swin("错误！", "无法创建文件", SWIN_ONE);
+			return(0);
+		}
+	}
+	fread(&dd, 1, 2, in.fp);
+	ms = getc(in.fp);
+	if (ms + mac.size <= MAC_M_SIZE)
+	{
+		fseek(in.fp, dd, 0);
+		ds = getc(in.fp);
+		if (ds + doc.size <= DOC_D_SIZE) goto START;
+	}
+	Swin("警告！", "无法全部载入", SWIN_ONE);
+	rt = 0;
+	goto END;
+START:
+	LookFace("系统宏");
+	//TextOut(30, 45, "载入中...", 1);
+	textout(30, 45, "载入中...", 1);
+	Refresh();
+	SaveHead(out.name, out.fp, 0);
+	md = 3;
+	dd++;
+	for (k = i = 0; i < ms; i++)
+	{
+		fseek(in.fp, md, 0);
+		fread(m, 1, sizeof(struct MACUNIT), in.fp);
+		md=ftell(in.fp);
+		strcpy(v, m.value);
+		t = MAC_Op(mac, m, TABLE_SEK);
+		if (t < 0)
+		{
+			fseek(in.fp, dd, 0);
+			k++;
+			for (j = 0; j < ds; j++)
+			{
+				fread(d, 1, sizeof(struct DOCUNIT), in.fp);
+				if (d.id == m.id)//插入
+				{
+					t = DOC_Op(NULL, doc, d, TABLE_INS);
+					m.id = t&0x7fff;
+					MAC_Op(mac, m, TABLE_INS);
+					break;
+				}
+			}
+		}
+		else if (strcmp(mac.dat[t].value, v))
+		{
+			strcpy(m.value, v);
+			SaveMacroTxt(m, out.fp);
+		}
+	}
+	putc(13, out.fp);
+	putc(10, out.fp);
+	rt = 1;
+END:
+	fclose(in.fp);
+	fclose(out.fp);
+	out.fp = in.fp = 0;
+	sprintf(str, "%d个宏被加载", k);
+	Swin("信息", str, SWIN_ONE);
+	return(rt);
+}
+
+#if WQX == 0
+void PrintDoc(int first, int value, struct DOCTABLE &doc)/*文件夹显示*/
+{
+	int i;
+
+	Block(6, 28, 108, 75, 0);
+	for (i = 0; i < 3 && i + first < doc.size; i++)
+	{
+		WriteBlock(i * 35 + 6, 28, 32, 32, 1, pic[PIC_DOCU]);
+		TextOut(i * 35 - strlen(doc.dat[i + first].name) * 3 + 22, 63, doc.dat[i + first].name, 1);
+	}
+	if (doc.size) Block(value * 35 + 6, 28, value * 35 + 38, 60, 2);
+}
+#else
+void PrintDoc(int first, int value, struct DOCTABLE &doc)/*文件夹显示*/
+{
+	int i;
+ 
+	Block(4, 28, 109, 76, 0);
+	for (i = 0; i < 3 && i + first < doc.size; i++)
+	{
+		WriteBlock(i * 35 + 5, 28, 32, 32, 1, pic[PIC_DOCU]);
+		TextOut(i * 35 - strlen(doc.dat[i + first].name) * 3 + 21, 63, doc.dat[i + first].name, 1);
+	}
+	if (doc.size) Block(value * 35 + 5, 28, value * 35 + 37, 60, 2);
+}
+#endif
+
+void LookDoc(struct MACTABLE &mac, struct DOCTABLE &doc)/*文件夹查看*/
+{
+	struct DOCUNIT e;
+	char msg[20];
+	char key, change;
+	int first, cur, value, dire, t;//方向
+ 
+	LookFace("系统宏");
+	//TextOut(30, 45, "载入中...", 1);
+	textout(30, 45, "载入中...", 1);
+	Refresh();//界面
+	t = DiskMacro(mac, doc, TABLE_RED);
+	if (t == 1)
+	{
+		Swin("错误！", "无法创建宏文件", SWIN_ONE);
+	}
+	else if (t == 2)
+	{
+		Swin("错误！", "文件读写出错", SWIN_ONE);
+	}
+	memset(e, 0, sizeof(struct DOCUNIT));
+	for (first = cur = change = 0;;)
+	{
+		LookFace("系统宏");
+		PrintDoc(first, cur - first, doc);
+		Refresh();//界面
+		key = getchar();
+		if (key == LEFT_KEY&cur)
+		{
+			cur--;
+			if (cur < first) first = cur;
+		}
+		else if (key == RIGHT_KEY && cur + 1 < doc.size)
+		{
+			cur++;
+			if (cur > first + 2) first = cur - 2;
+		}
+		else if (key == UP_KEY || key == UU_KEY)
+		{
+			if (first < 3)
+			{
+				cur = cur - first;
+				first = 0;
+			}
+			else
+			{
+				first = first - 3;
+				cur = cur - 3;
+			}
+		}
+		else if ((key == DOWN_KEY || key == DD_KEY) && first + 3 < doc.size)
+		{
+			first = first + 3;
+			cur = cur + 3;
+			if (cur >= doc.size) cur = doc.size - 1;
+		}
+		else if (key == A_KEY || key == F1_KEY)//插入
+		{
+			Button(112, 16, "添加[A]", BUTTON_DOWN);
+			if (doc.size >= DOC_D_SIZE)
+			{
+				sprintf(msg, "文件夹已达%d个", DOC_D_SIZE);
+				Swin("提醒！", msg, SWIN_ONE);
+			}
+			else if (Inputw("请输入文件夹名:", e.name, DOC_N_LEN, 6))
+			{
+				t = DOC_Op(NULL, doc, e, TABLE_INS);
+				if (t < 0)
+				{
+					Swin("警告！", "存在同名文件夹", SWIN_ONE);
+				}
+				else
+				{
+					change = 1;
+				}
+			}
+		}
+		else if (key == D_KEY || key == F2_KEY)//删除
+		{
+			Button(112, 32, "删除[D]", BUTTON_DOWN);
+			if (!doc.size)
+			{
+				Swin("警告！", "无文件夹可删除", SWIN_ONE);
+			}
+			else
+			{
+				if (cfset.dat[2].tem[0].value)
+				{
+					if (!Swin("删除？", "真的要删除么", SWIN_TWO))continue;
+				}
+				e.id = cur;
+				DOC_Op(mac, doc, e, TABLE_DEL);
+				if (doc.size&cur >= doc.size)
+				{
+					cur = doc.size - 1;
+					if (cur < first) first = cur;
+				}
+				change = 1;
+			}
+		}
+		else if (key == F3_KEY)//查找
+		{
+			if (!doc.size)
+			{
+				Swin("警告！", "无文件夹可查找", SWIN_ONE);
+			}
+			else if (Inputw("请输入文件夹名:", e.name, DOC_N_LEN, 6))
+			{
+				value = DOC_Op(NULL, doc, e, TABLE_SEK);
+				if (value < 0)
+				{
+					Swin("信息", "没有找到", SWIN_ONE);
+				}
+				else
+				{
+					first = cur = value;
+				}
+			}
+		}
+		else if (key == F4_KEY)//修改
+		{
+			if (!doc.size)
+			{
+				Swin("警告！", "无文件夹可修改", SWIN_ONE);
+			}
+			else if (Inputw("当前名称替换为:", e.name, DOC_N_LEN, 6))
+			{
+				t = DOC_Op(NULL, doc, e, TABLE_SEK);
+				if (t < 0)
+				{
+					Swin("警告！", "存在同名文件夹", SWIN_ONE);
+				}
+				else
+				{
+					strcpy(doc.dat[cur].name, e.name);
+					change = 1;
+				}
+			}
+		}
+		else if (key == CR_KEY && doc.size)
+		{
+			t = LookMacro(MACRO_SHINE, mac, doc, doc.dat[cur].id);//查看
+			if (t == 2)
+			{
+				change = 0;
+			}
+			else
+			{
+				change = change|t;
+			}
+		}
+		else if (key == ESC_KEY || key == 'q')//返回
+		{
+			if (change && !cfset.dat[2].tem[3].value)
+			{
+				if (!Swin("退出？", "警告:数据已更改", SWIN_TWO)) continue;
+			}
+			return;
+		}
+		else if (key == S_KEY)//保存
+		{
+			Button(112, 64, "保存[S]", BUTTON_DOWN);
+			if (cfset.dat[2].tem[2].value)
+			{
+				if (!Swin("保存？", "真的要保存么", SWIN_TWO)) continue;
+			}
+			LookFace("系统宏");
+			//TextOut(30, 45, "保存中...", 1);
+			textout(30, 45, "保存中...", 1);
+			Refresh();
+			t = DiskMacro(mac, doc, TABLE_SAV);
+			if (t == 1)
+			{
+				Swin("错误！", "无法创建宏文件", SWIN_ONE);
+			}
+			else if (t == 2)
+			{
+				Swin("错误！", "文件读写出错", SWIN_ONE);
+			}
+			else
+			{
+				change = 0;
+			}
+		}
+		else if (key == M_KEY)//移动
+		{
+			if (doc.size<2)
+			{
+				Swin("警告！", "无法移动文件夹", SWIN_ONE);
+			}
+			else if ((value = MoveDM(doc, DOC_MOVE)) != -1)
+			{
+				if (value > cur)
+				{
+					dire=1;
+				}
+				else if (value + 1 < cur)
+				{
+					dire=2;
+				}
+				else
+				{
+					dire=0;
+				}
+				if (dire)
+				{
+					memcpy(e, doc.dat[cur], sizeof(struct DOCUNIT));
+					if (dire == 1)
+					{
+						memmove(doc.dat[cur], doc.dat[cur + 1], (value - cur) * sizeof(struct DOCUNIT));
+					}
+					else
+					{
+						memmove(doc.dat[value + 1], doc.dat[value], (cur - value) * sizeof(struct DOCUNIT));
+						value++;
+					}
+					memcpy(doc.dat[value], e, sizeof(struct DOCUNIT));
+					change = 1;
+				}
+			}
+		}
+		else if (key == 'l')
+		{
+			Button(112, 48, "载入[L]", BUTTON_DOWN);
+			Swin("信息", "请选择加载文件", SWIN_ONE);
+			if (SelectSrc(out, "/", 0xff))
+			{
+				if (AddMacro(mac, doc)) change = 1;
+			}
+		}
+		else if (key == '.')
+		{
+			SavetoTxt(mac);
+		}
+		else if (key == HELP_KEY)
+		{
+			MacroHelp();
+		}
+		else if (!cfset.dat[0].tem[2].value) Beep();
+	}
+}
+//******************************************************链接库系统******************************************************//
+void LookLib()/*链接库浏览*/
+{
+	char t, fp, name[NAME_MAX];
+
+	if (ChPath(libdata))
+	{
+		ChDir("/");
+		t = 0;
+	}
+	else
+	{
+		t = 1;
+	}
+	for (;;)
+	{
+		if (!SelectFil(name, 0, "y", &t)) return;
+		if (!(fp = fopen(name, "r")))//打开
+		{
+			Swin("错误！", "无法打开文件", SWIN_ONE);
+			return;
+		}
+		PrintHlp(HELP_TXT, 4, fp, name);//浏览
+		fclose(fp);
+	}
+}

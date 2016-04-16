@@ -1,0 +1,6 @@
+1	Chg2to4		1
+1	Chg4to2		1
+1	Chg2to16	1
+1	Chg16to2	1
+1	Chg4to16	1
+1	Chg16to4	1

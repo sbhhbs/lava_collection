@@ -1,0 +1,356 @@
+#define step_num 50
+#define lost_num 30
+#define key_up	20
+#define key_down	21
+#define key_left	23
+#define key_right	22	
+#define key_esc	27
+#define key_help	25
+#define key_enter	13
+#define key_change	121
+long aaa;
+char fp;
+char key;
+char temp_key;
+char his_step[step_num];
+int currx;
+int curry;
+int choice;
+int lost;
+int score;
+int len;
+int len_temp;
+int l_r;
+int temp;
+char m1[1280];//dancer
+char m2[800];//dancer1
+char m3[800];//dancer2
+char m4[800];//dancer3
+char m5[800];//dancer4
+char m6[800];//dancer5
+char curr[]={0xf0,0xc0,0xa0,0x90,0x8};
+void show_help()
+{char s_h_temp;
+ while (getchar()!='v')
+    {
+     SetScreen(1);
+     printf("*********热线帮助*********舞姿控制键依次为 QWERASDFIOPKL(输入键)Y，其中Y键是练习中才生效的姿态左右对对称调整的键，比赛中只有你的舞姿与导演的一致才得分（↓↓");
+     getchar();SetScreen(1);
+     printf("X键退出本程序，V键退出帮助(AC)退出子菜单。具体的操作由聪明的你去探索，这样别有一翻情趣！谢谢你的使用！祝你游戏愉快！版本说明：Q版Dancer 由邱林辉制作.(↑");
+    }
+}
+void show_menu()
+{int i;
+ int well_i;
+ int flag;
+ flag=1;i=0;well_i=0;choice=0;key=0;
+ fseek(fp,12800,0);fread(m1,1,1280,fp);
+ fseek(fp,14080,0);fread(m2,1,272,fp);
+ fseek(fp,14352,0);fread(m3,1,272,fp);
+ while(key!=key_enter&&key!=key_esc &&key!='x')
+    {key=Inkey();
+	 ReleaseKey(128);
+     Delay(40-i);
+	 if(key==key_help)show_help();
+	 if(key==key_up)curry=curry-3;
+	 if(key==key_down)curry=curry+3;
+	 if(key==key_left)currx=currx-3;
+ 	 if(key==key_right)currx=currx+3;
+	 if(currx<1)currx=123;
+	 if(currx>123)currx=1;
+	 if(curry<1)curry=75;
+	 if(curry>75)curry=1;
+	 WriteBlock(1,1,128,80,1,m1);
+	 WriteBlock(currx,curry,5,5,flag,curr);
+	 Refresh();
+	 Delay(40-i);
+	 if(currx>31&&currx<93&&curry>14&&curry<30){choice=1;flag=2;}
+	 else if(currx>31&&currx<93&&curry>34&&curry<48){choice=2;flag=2;}
+	 else if(currx>31&&currx<93&&curry>52&&curry<64){choice=3;flag=2;}
+	 else if(currx>31&&currx<123&&curry>52&&curry<64){choice=4;flag=2;}
+     else {flag=1;choice=0;}
+	 if(currx>95&&currx<123&&curry>52&&curry<64){choice=4;flag=2;i=25;}
+	 else i=0;	
+	 if(well_i==0)WriteBlock(130,6,32,80,1,m2);
+	 if(well_i==5) WriteBlock(130,6,32,80,1,m3);
+	 Refresh();
+	 well_i++;
+	 if(well_i==10) well_i=0;
+	}
+}
+void show_picl(char chtemp)
+{if(chtemp=='q'){memset(m1,0,1280);fseek(fp,800,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+ else if(chtemp=='w'){fseek(fp,1600,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+ else if(chtemp=='e')WriteBlock(1,1,80,80,l_r,m4);
+ else if(chtemp=='r')WriteBlock(1,1,80,80,l_r,m5);
+ else if(chtemp=='a')WriteBlock(1,1,80,80,l_r,m6);
+ else if(chtemp=='s'){fseek(fp,4800,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,l_r,m3);}
+ else if(chtemp=='d'){memset(m1,0,1280);fseek(fp,5600,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+ else if(chtemp=='f'){fseek(fp,6400,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+ else if(chtemp=='i'){fseek(fp,7200,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,l_r,m3);}
+ else if(chtemp=='o'){memset(m1,0,1280);fseek(fp,8000,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+ else if(chtemp=='p'){fseek(fp,8800,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+ else if(chtemp=='k'){fseek(fp,9600,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,l_r,m3);}
+ else if(chtemp=='i'){memset(m1,0,1280);fseek(fp,10400,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+ else if(chtemp==key_enter){fseek(fp,0,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+}
+void show_picr( char chtemp)
+{if(chtemp=='q'){memset(m1,0,1280);fseek(fp,800,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+ else if(chtemp=='w'){fseek(fp,1600,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+ else if(chtemp=='e')WriteBlock(81,1,80,80,l_r,m4);
+ else if(chtemp=='r')WriteBlock(81,1,80,80,l_r,m5);
+ else if(chtemp=='a')WriteBlock(81,1,80,80,l_r,m6);
+ else if(chtemp=='s'){fseek(fp,4800,0);fread(m3,1,800,fp);WriteBlock(81,1,80,80,l_r,m3);}
+ else if(chtemp=='d'){memset(m1,0,1280);fseek(fp,5600,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+ else if(chtemp=='f'){fseek(fp,6400,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+ else if(chtemp=='i'){fseek(fp,7200,0);fread(m3,1,800,fp);WriteBlock(81,1,80,80,l_r,m3);}
+ else if(chtemp=='o'){memset(m1,0,1280);fseek(fp,8000,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+ else if(chtemp=='p'){fseek(fp,8800,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+ else if(chtemp=='k'){fseek(fp,9600,0);fread(m3,1,800,fp);WriteBlock(81,1,80,80,l_r,m3);}
+ else if(chtemp=='l'){memset(m1,0,1280);fseek(fp,10400,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+ else if(chtemp==key_enter){fseek(fp,0,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+}
+void show_err()
+{SetScreen(1);
+ printf("\nlost: %d/%d",lost,lost_num);
+ getchar();
+}
+void show()
+{int i;
+ ClearScreen();
+ for(i=0;!Inkey()&&i<150;i++)
+    {if(i%14==0){memset(m1,0,1280);fseek(fp,0,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,1,m1);WriteBlock(81,1,80,80,1,m1);}
+	 else if(i%14==1){memset(m1,0,1280);fseek(fp,800,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,1,m1);WriteBlock(81,1,80,80,1,m1);}
+	 else if(i%14==2){fseek(fp,1600,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,1,m2);WriteBlock(81,1,80,80,1,m2);}
+	 else if(i%14==3){WriteBlock(1,1,80,80,1,m3);WriteBlock(81,1,80,80,1,m4);}
+	 else if(i%14==4){WriteBlock(1,1,80,80,1,m1);WriteBlock(81,1,80,80,1,m5);}
+	 else if(i%14==5){WriteBlock(1,1,80,80,1,m2);WriteBlock(81,1,80,80,1,m6);}
+	 else if(i%14==6){fseek(fp,4800,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,1,m3);WriteBlock(81,1,80,80,1,m3);}
+	 else if(i%14==7){memset(m1,0,1280);fseek(fp,5600,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,1,m1);WriteBlock(81,1,80,80,1,m1);}
+	 else if(i%14==8){fseek(fp,6400,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,1,m2);WriteBlock(81,1,80,80,1,m2);}
+	 else if(i%14==9){fseek(fp,7200,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,1,m3);WriteBlock(81,1,80,80,1,m3);}
+	 else if(i%14==10){memset(m1,0,1280);fseek(fp,8000,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,1,m1);WriteBlock(81,1,80,80,1,m1);}
+	 else if(i%14==11){fseek(fp,8800,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,1,m2);WriteBlock(81,1,80,80,1,m2);}
+	 else if(i%14==12){fseek(fp,9600,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,1,m3);WriteBlock(81,1,80,80,1,m3);}
+	 else if(i%14==13){memset(m1,0,1280);fseek(fp,10400,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,1,m1);WriteBlock(81,1,80,80,1,m1);}
+	 Refresh();
+	 Delay(100);
+	}
+}
+void show_step()
+{ClearScreen();
+ memset(m1,0,1280);fseek(fp,0,0);fread(m1,1,800,fp);
+ for(len_temp=0;len_temp<len;len_temp++)
+    {show_picl(his_step[len_temp]);
+	 show_picr(his_step[len_temp]);
+	 Refresh();
+	 Delay(400);
+	}
+ for(len_temp=0;len_temp<len;len_temp++)
+    {show_picl(his_step[len_temp]);
+	 WriteBlock(81,81,80,80,1,m1);
+	 Refresh();
+	 Delay(400);
+	}
+ for(len_temp=0;len_temp<len;len_temp++)
+    {show_picr(his_step[len_temp]);
+	 WriteBlock(1,1,80,80,1,m1);
+	 Refresh();
+	 Delay(400);			
+	}
+}
+void get_step()
+{int j;
+ int gtemp;
+ for(j=0;j<len;j++)
+    {gtemp=rand()%len;
+	 if(gtemp==0)his_step[j]='q';
+	 else if(gtemp==1)his_step[j]='w';
+	 else if(gtemp==2)his_step[j]='e';
+	 else if(gtemp==3)his_step[j]='r';
+	 else if(gtemp==4)his_step[j]='a';
+	 else if(gtemp==5)his_step[j]='s';
+	 else if(gtemp==6)his_step[j]='d';
+	 else if(gtemp==7)his_step[j]='f';
+	 else if(gtemp==8)his_step[j]='i';
+	 else if(gtemp==9)his_step[j]='o';
+	 else if(gtemp==10)his_step[j]='p';
+	 else if(gtemp==11)his_step[j]='k';
+	 else if(gtemp==12)his_step[j]='l';
+	 else if(gtemp==13)his_step[j]=key_enter;
+	}
+}
+void exercise()
+{char exe_key;
+ int exetemp;
+ exetemp=-1;
+ l_r=1;
+ exe_key=Inkey();
+ ClearScreen();
+ while(exe_key!=key_esc)
+    {if(exe_key==key_help){show_help();getchar();}
+	 if(rand()%5==1)l_r=0x21;
+	 if(rand()%5==2)l_r=1;
+	 temp=rand()%14;
+	 if(temp%14==0){memset(m1,0,1280);fseek(fp,0,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,1,m1);}
+	 else if(temp%14==1){memset(m1,0,1280);fseek(fp,800,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+	 else if(temp%14==2){fseek(fp,1600,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+	 else if(temp%14==3)WriteBlock(81,1,80,80,l_r,m4);
+	 else if(temp%14==4)WriteBlock(81,1,80,80,l_r,m5);
+	 else if(temp%14==5)WriteBlock(81,1,80,80,l_r,m6);
+	 else if(temp%14==6){fseek(fp,4800,0);fread(m3,1,800,fp);WriteBlock(81,1,80,80,l_r,m3);}
+	 else if(temp%14==7){memset(m1,0,1280);fseek(fp,5600,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+	 else if(temp%14==8){fseek(fp,6400,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+	 else if(temp%14==9){fseek(fp,7200,0);fread(m3,1,800,fp);WriteBlock(81,1,80,80,l_r,m3);}
+	 else if(temp%14==10){memset(m1,0,1280);fseek(fp,8000,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+	 else if(temp%14==11){fseek(fp,8800,0);fread(m2,1,800,fp);WriteBlock(81,1,80,80,l_r,m2);}
+	 else if(temp%14==12){fseek(fp,9600,0);fread(m3,1,800,fp);WriteBlock(81,1,80,80,l_r,m3);}
+	 else if(temp%14==13){memset(m1,0,1280);fseek(fp,10400,0);fread(m1,1,800,fp);WriteBlock(81,1,80,80,l_r,m1);}
+	 if(Inkey()==key_change)exetemp=-exetemp;
+	 if(exetemp==-1)l_r=0x21;
+	 else l_r=1;
+	 ReleaseKey(128);Delay(100);
+	 exe_key=Inkey();
+	 ReleaseKey(128);
+	 if(exe_key==key_help)show_help();
+	 show_picl(exe_key);
+	 Refresh();
+    }
+}
+void teach()
+{int tflag;
+ tflag=1;
+ l_r=1;
+ len=2;
+ show();
+ ClearScreen();
+ while(key!=key_esc && len<step_num)
+    {fseek(fp,0,0);fread(m2,1,800,fp);
+     WriteBlock(1,1,80,80,1,m2);WriteBlock(81,81,80,80,1,m2);
+	 Refresh();Delay(900);
+	 get_step();
+	 while(tflag&&key!=key_esc)
+	    {show_step();fseek(fp,0,0);fread(m2,1,800,fp);
+		 WriteBlock(81,1,80,80,1,m2);
+		 Refresh();Delay(100);
+		 for(len_temp=0;key!=key_esc&&len_temp<=len;len_temp++)
+		    {key=getchar();
+		 	 if(key!=his_step[len_temp]){tflag=1;}
+		 	 else tflag=0;
+		 	 if(key==key_help)show_help();
+			 show_picr(key);
+			 Refresh();Delay(200);
+		    }
+	    }
+     len++;	
+    }
+}
+void text()
+{len=4;
+while(key!=key_esc&&lost<lost_num)
+   {if(key==key_help) show_help();
+    ClearScreen();
+	SetScreen(1);
+	temp=len-3;
+	printf("\n\n\n     第%d关",temp);
+	getchar();getchar();
+	show();
+	get_step();
+	while(key!=key_esc&&lost<lost_num)
+	   {show_step();
+	    fseek(fp,0,0);fread(m2,1,800,fp);
+		WriteBlock(81,1,80,80,1,m2);
+		Refresh();
+		for(len_temp=0;key!=key_esc&&len_temp<=len;len_temp++)
+		   {key=getchar();
+	        if(key==key_help) show_help();
+	        if(key!=his_step[len_temp]){lost++;show_err();break;}
+	       }
+	    show_picr(key);
+	    Refresh();Delay(100);
+	    score++;
+	    if(score%5==0)len++;
+	   }
+    }
+	SetScreen(1);
+	printf("\n\n\n Your score is: %d",score);
+}
+void show_setup()
+{int i;
+ i=0;
+ ClearScreen();
+ key=Inkey();
+ while(key!=key_esc&&key!='x')
+    {key=Inkey();
+	 temp=rand()%2;
+	 if(temp==0)l_r=1;
+	 if(temp==1)l_r=0x21;
+	 temp=rand()%14;
+	 if(temp%14==0){fseek(fp,0,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,1,m2);}
+	 else if(temp%14==1){memset(m1,0,1280);fseek(fp,800,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+	 else if(temp%14==2){fseek(fp,1600,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+	 else if(temp%14==3)WriteBlock(1,1,80,80,l_r,m4);
+	 else if(temp%14==4)WriteBlock(1,1,80,80,l_r,m5);
+	 else if(temp%14==5)WriteBlock(1,1,80,80,l_r,m6);
+	 else if(temp%14==6){fseek(fp,4800,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,l_r,m3);}
+	 else if(temp%14==7){memset(m1,0,1280);fseek(fp,5600,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+	 else if(temp%14==8){fseek(fp,6400,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+	 else if(temp%14==9){fseek(fp,7200,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,l_r,m3);}
+	 else if(temp%14==10){memset(m1,0,1280);fseek(fp,8000,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+	 else if(temp%14==11){fseek(fp,8800,0);fread(m2,1,800,fp);WriteBlock(1,1,80,80,l_r,m2);}
+	 else if(temp%14==12){fseek(fp,9600,0);fread(m3,1,800,fp);WriteBlock(1,1,80,80,l_r,m3);}
+     else if(temp%14==13){memset(m1,0,1280);fseek(fp,10400,0);fread(m1,1,800,fp);WriteBlock(1,1,80,80,l_r,m1);}
+	 if(i%70==0){fseek(fp,11200,0);fread(m2,1,800,fp);WriteBlock(85,1,75,80,1,m2);}
+	 if(i%140==0){fseek(fp,12000,0);fread(m3,1,800,fp);WriteBlock(85,1,75,80,1,m3);i=0;}
+     Refresh();
+	 Delay(150);
+	 i++;
+	}
+}
+void main()
+{fp=fopen("/LavaData/QMD.dat","r");
+ fseek(fp,2400,0);fread(m4,1,800,fp);
+ fseek(fp,3200,0);fread(m5,1,800,fp);
+ fseek(fp,4000,0);fread(m6,1,800,fp);
+ ClearScreen();
+ currx=105;curry=35;
+ while(key!='x'&&choice!=4)
+    {show_menu();
+     if(key==27)choice=4;
+	 if(choice==1)
+	    {SetScreen(1);
+		 printf("\n请选择...\n (a) 名师引路\n (b) 名师指导\n (c) 退出练习");
+	     while(key!='a'&& key!='b'&&key!='c')key=getchar();
+		 if(key=='a'){ClearScreen();exercise();key=0;}
+		 if(key=='b'){teach();key=0;}
+		}
+	 else if(choice==2){show_setup();key=0;}
+	 else if(choice==3){text();key=0;}
+     ReleaseKey(128);
+	}
+ ClearScreen();
+ temp=-1;
+ ReleaseKey(128);
+ memset(m1,0,1280);
+ fseek(fp,14080,0);fread(m1,1,800,fp);
+ fseek(fp,14352,0);fread(m2,1,800,fp);
+ fseek(fp,12000,0);fread(m3,1,800,fp);
+ fseek(fp,11200,0);fread(m4,1,800,fp);
+ while(!Inkey())
+    {if(temp==1)
+       {fseek(fp,12000,0);fread(m3,1,800,fp);
+        WriteBlock(1,1,31,80,1,m2);
+		WriteBlock(32,1,31,80,1,m1);
+		WriteBlock(80,1,75,80,1,m3);
+	   }
+	 else 
+	    {fseek(fp,11200,0);fread(m3,1,800,fp);
+	     WriteBlock(1,1,31,80,1,m1);
+		 WriteBlock(32,1,31,80,1,m2);
+		 WriteBlock(80,1,75,80,1,m4);
+		}
+	 Refresh();Delay(500);
+	 temp=-temp;
+	}
+ fclose(fp);
+}

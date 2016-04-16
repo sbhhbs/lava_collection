@@ -1,0 +1,34 @@
+原型:void RefreshIcon(void)
+功能:刷新屏幕两侧的ICON
+说明:中相关ICON定义如下
+#define ARROW_ICON_STATE 0x390//方向键ICON地址
+#define DOWN_ARROW_ICON	 0x80//0x390的bit7为向下ICON
+#define UP_ARROW_ICON    0x40//0x390的bit6为向上ICON
+#define LEFT_ARROW_ICON  0x20//0x390的bit5为向左ICON
+#define RIGHT_ARROW_ICON 0x10//0x390的bit4为向右ICON
+
+#define SPEAKER_ICON_STATE 0x391//speaker icon 地址
+#define SPEAKER_ICON       0x02//bit1
+#define LCD_RIGHT_ICON     0x38F//美式发音bit5
+#define USA_SPEAKER_ICON   0x20//美式发音bit5
+
+#define LCD_F1F2_ICON      0x38a
+#define LCD_F3F4_ICON      0x38f
+
+//+方向键ICON管理
+//+例如左方向键和上方向键可用,可调用
+//+UpdateArrowIcon(LEFT_ARROW_ICON+UP_ARROW_ICON);
+char UpdateArrowIcon(char value){*(ARROW_ICON_STATE)=((*(ARROW_ICON_STATE))&0x0F)|value;RefreshIcon();}
+//+喇叭ICON管理
+//+value=0关闭SpeakerIcon, value非零打开SpeakerIcon
+char UpdateSpeakerIcon(char value)
+{if(value)
+  {*(SPEAKER_ICON_STATE)=(*(SPEAKER_ICON_STATE))|SPEAKER_ICON;*(LCD_RIGHT_ICON)=(*(LCD_RIGHT_ICON))|USA_SPEAKER_ICON;}
+ else{*(SPEAKER_ICON_STATE)=(*(SPEAKER_ICON_STATE))&(0xFF-SPEAKER_ICON);*(LCD_RIGHT_ICON)=(*(LCD_RIGHT_ICON))&(0xFF-USA_SPEAKER_ICON);}
+ RefreshIcon();
+}
+//+F1~F4 ICON管理
+char UpdateF1Icon(char value){if(value)*(LCD_F1F2_ICON)=*(LCD_F1F2_ICON)|0x02;else *(LCD_F1F2_ICON)=*(LCD_F1F2_ICON)&0xFD;RefreshIcon();}
+char UpdateF2Icon(char value){if(value)*(LCD_F1F2_ICON)=*(LCD_F1F2_ICON)|0x01;else *(LCD_F1F2_ICON)=*(LCD_F1F2_ICON)&0xFE;RefreshIcon();}
+char UpdateF3Icon(char value){if(value)*(LCD_F3F4_ICON)=*(LCD_F3F4_ICON)|0x80;else *(LCD_F3F4_ICON)=*(LCD_F3F4_ICON)&0x7F;RefreshIcon();}
+char UpdateF4Icon(char value){if(value)*(LCD_F3F4_ICON)=*(LCD_F3F4_ICON)|0x40;else *(LCD_F3F4_ICON)=*(LCD_F3F4_ICON)&0xBF;RefreshIcon();}

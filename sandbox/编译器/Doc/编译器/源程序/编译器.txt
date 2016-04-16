@@ -1,0 +1,310 @@
+//*********************************************************定义*********************************************************//
+#define DEBUG		0
+
+#if DEBUG == 0
+#define WQX			20											//文曲星平台[0:TC800,6:LavaX all,8:LavaX 8K,20:LavaX 20K]
+#endif
+
+#define PATH_MAX	43													//最大路径长度
+#define NAME_MAX	15													//最大文件名长度
+//-----------------------------------------------------------------------
+#include "公用.txt"
+#include "目录/定义.txt"
+#include "错误/定义.txt"
+#include "卸载/定义.txt"
+#include "设置/定义.txt"
+#include "帮助/定义.txt"
+#include "查看/定义.txt"
+#include "编辑/定义.txt"
+#include "资源/定义.txt"
+#include "预处理/定义.txt"
+#include "链接/定义.txt"
+#include "编译/定义.txt"
+#include "优化/定义.txt"
+//********************************************************存储区********************************************************//
+char PubBuf[PUBLIC - TREE_MAX * 7 - 1];									//公共缓冲区
+struct TREE_MEM tree;													//树(优化系统)
+//=======================================================编译系统=======================================================//
+struct COM_VAR cv;														//通用接口（位置不能变）
+struct VAR_LINK var;													//变量链表
+//-----------------------------------------------------------------------
+struct JUMP_LINK jp;													//跳转表
+long jp_var;															//总空间地址
+long jp_sub;															//子程序总变量地址
+//-----------------------------------------------------------------------
+char sign1[4];															//优化字符串1
+char sign2[5];															//优化字符串2（与sign3对应）
+char sign3[4];															//优化字符串3
+char sign4[6];															//优化字符串4(顺序不能改变)
+char sign5[5];															//优化字符串5
+char sign6[3];															//优化字符串6
+char sign7[5];															//优化字符串7
+char sign8[6];															//优化字符串8
+char sign9[4];															//优化字符串9
+char sign10[7];															//优化字符串10
+char sign11[3];															//优化字符串11
+char sign12[6];															//优化字符串12
+char sign13[9];															//优化字符串13
+char sign14[5];															//优化字符串14
+char sign15[4];															//优化字符串15
+char sign16[3];															//优化字符串16
+char sign17[3];															//优化字符串17
+char sign18[3];															//优化字符串18
+char sign19[3];															//优化字符串19
+char sign20[3];															//优化字符串20
+char sign21[5];															//优化字符串21
+char sign22[4];															//优化字符串22
+char sign23[5];															//优化字符串23
+char sign24[5];															//优化字符串24
+char sign25[7];															//优化字符串25
+char sign26[3];															//优化字符串26
+char sig[11];															//符号表(顺序不能改变)
+char bol[69];															//运算符表
+char code[23];															//符号表对应的伪代码表
+char grad[23];															//符号等级表
+struct COMPILE cp;														//记录
+//-----------------------------------------------------------------------预处理只能使用以上部分内存!!!
+struct LIBFILE lib;														//链接文件存储[临时变量区，供编译系统使用]
+//////////////////////////////////////////////////////////私有区//////////////////////////////////////////////////////////
+struct OUTFILE															//输出结构
+{
+	char fp;															//句柄
+	char name[NAME_MAX];												//名称
+	char path[PATH_MAX];												//路径
+	int p;																//指针
+};
+
+struct INFILE															//输入结构
+{
+	char fp;															//句柄
+	long size;															//大小
+	int p;																//指针
+};
+struct OUTFILE out;														//文件输出
+struct INFILE in;														//文件输入
+int funjmp;																//函数跳转值
+char cpldata[] = "/CplData";											//资源目录
+char fundata[] = "/FunData";											//头文件目录
+char libdata[] = "/LibData";											//链接库目录
+//=======================================================设置系统=======================================================//
+char datfp;																//数据文件句柄[帮助,设置,编辑,查看]
+char strMask;															//字符串掩模
+struct CONTABLE0 cfset;													//数据结构
+//********************************************************程序区********************************************************//
+long DataRead(long addrs, long size, long rel);							/* 数据读取 [通用] */
+void UnInstall(struct UEXT &ue);										/* 卸载 */
+long Input(char x, char y, int skey, int con);							/* 输入中文 */
+int Var_Init();															/* 初始化内存 */
+
+#include "界面.txt"
+
+#if DEBUG == 1
+#include "测试.txt"
+#endif
+
+#include "目录/函数.txt"
+#include "错误/函数.txt"
+#include "卸载/函数.txt"
+#include "设置/函数.txt"
+#include "帮助/函数.txt"
+#include "查看/函数.txt"
+#include "编辑/函数.txt"
+#include "资源/函数.txt"
+#include "预处理/函数.txt"
+#include "链接/函数.txt"
+#include "编译/函数.txt"
+#include "优化/函数.txt"
+#include "批处理/函数.txt"
+
+/* 登入 */
+void Login()
+{
+	strcpy(cfset.fun, "common.fun");
+	strcpy(cfset.lav, "/LAVA");
+	strcpy(cfset.src, "/文本文件");
+	cfset.dat[0].tem[0].value =		//退出程序时确认？
+	cfset.dat[0].tem[3].value =		//结束后删除临时文件?
+	cfset.dat[1].tem[3].value =		//编译结束后自动退出?
+	cfset.dat[2].tem[0].value =		//删除文件夹时确认？
+	cfset.dat[2].tem[1].value =		//删除宏定义时确认？
+	cfset.dat[2].tem[2].value = 1;	//保存设置时确认？
+	cfset.dat[1].tem[2].value =		//选择载入的函数文件
+	cfset.dat[2].tem[4].value =		//选择源程序的目录
+	cfset.dat[3].tem[4].value = 2;	//选择程序存放的目录
+	cfset.dat[3].tem[0].value = 60;	//按键暂停时间设置
+	cfset.dat[3].tem[1].value = 12;	//光标闪动速度调整
+	ClearScreen();
+	ConfigRW(CON_READ);
+	if (!ChDir(cfset.lav))
+	{
+		if (ChDir("/LAVA"))
+		{
+			strcpy(cfset.lav, "/LAVA");
+		}
+		else if (ChDir("/LAVA2"))
+		{
+			strcpy(cfset.lav, "/LAVA2");
+		}
+		else if (ChDir("/GVmaker"))
+		{
+			strcpy(cfset.lav, "/GVmaker");
+		}
+		else
+		{
+			SetScreen(0);
+			printf("\n   找不到程序目录！\n\n\n按任意键选择.......");
+			getchar();
+			if (SelectDir(cfset.lav)) exit(0);
+		}
+		ConfigRW(CON_SETE);
+	}
+}
+
+/*
+void TestError()
+{char s;
+ funjmp=&s-5;strcpy(0x2000,"1234567890");in.p=0x2000;
+ Error("test",code[0]);
+}
+
+//=======================================================溢出显示=======================================================//
+int Msg(char &s[], long a, long b, int x)
+{
+	char str[50];
+	strcpy(str, s);
+	if (a > b)
+	{
+		sprintf(str + strlen(str), "%dB", a - b);
+	}
+	else
+	{
+		strcat(str," 无");
+	}
+	TextOut(1, x * 13 + 1, str, 1);
+	Rectangle(62, x * 13 + 1, 158, x * 13 + 12, 1);
+	Block(62, x * 13 + 1, 62 + (72 * a / b), x * 13 + 12, 1);
+	return(a - b);
+}
+void Debug()
+{
+	long size, lnk, con, hlp, chk, ycl, edit, n;
+	size = out - 0x2000;
+	lnk = sizeof(struct LIB);
+	con = sizeof(struct CONTABLE1);
+	hlp = HPFUN_TABLE + sizeof(struct HPFUNTABLE) - HELP_TXT;
+	chk = sizeof(struct DOCTABLE) + sizeof(struct MACTABLE) + sizeof(struct MACSHI);
+	ycl = FY_C_SIZE + sizeof(struct MACTABLE) + sizeof(struct LIBFILE);
+	edit = SKFUN_TABLE + sizeof(struct SKFUNTABLE) - TXT_CUSH;
+	ClearScreen();
+	Line(134,1,134,79,65);
+	n = 0;
+	if(Msg("链接:", lnk, size, 0) > 0) n = 1;
+	if(Msg("设置:", con, size, 1) > 0) n = 1;
+	if(Msg("帮助:", hlp, size, 2) > 0) n = 1;
+	if(Msg("查看:", chk, size, 3) > 0) n = 1;
+	if(Msg("预处:", ycl, size, 4) > 0) n = 1;
+	if(Msg("编辑:", edit,size, 5) > 0) n = 1;
+	Refresh();
+	getchar();
+	if (n) exit(0);
+}
+*/
+
+void main()
+{
+	char cmd, value;
+
+#if WQX == 0
+ 	SetGraphMode(4);
+#endif
+	ClearScreen();
+	TextOut(1, 0, "正在读取设置...", 1);
+	Refresh();
+ 	Login();
+#if DEBUG != 0
+ 	//for(code[0]=0;;){TestError();if(code[0]==43)exit(0);printf("%d\n",code[0]);getchar();code[0]++;}//Error测试
+ 	Debug();
+ 	Batch();
+#endif
+	//Debug();
+	//printf("%d", 0x2000 + PUBLIC - (STACK_TABLE + STACK_MAX + 1) - sizeof(struct TREE_MEM));getchar();
+ 	for (value = 0;;)
+ 	{
+		value = Menu(value);
+		memset(out, 0, sizeof(struct OUTFILE));
+		memset(in, 0, sizeof(struct INFILE));//初始化
+		if (value >= 6 && value <= 8)
+		{
+			if (value != 8)//选择文件
+			{
+				if (!(cmd = SelectSrc(out, cfset.src, value))) continue;
+			}
+			if (value >= 7)
+			{
+				memset(TXT_CUSH, 0, SKFUN_TABLE + sizeof(struct SKFUNTABLE) - TXT_CUSH);//初始化
+				cmd = Edit(TXT_CUSH, TXT_LINK, CLI_ADDR, SKFUN_TABLE);
+				if (!funjmp || cmd) continue;
+				cmd = 1;
+			}
+			if (datfp)
+			{
+				fclose(datfp);//关闭所有文件
+				datfp = 0;
+			}
+			memset(lib, 0, sizeof(struct LIBFILE));//初始化
+			if (cmd == 1)//txt
+			{
+				MAC_Prt(FY_CUSH, DOCUM_LOAD, MACRO_LOAD);
+				if (!funjmp) continue;
+				if (cfset.dat[1].tem[0].value)
+				{
+					fclose(in.fp);
+					in.fp = 0;
+					if (lib.size)
+					{
+						Swin("警告！", "未解决库文件", SWIN_ONE);
+					}
+					Success(0);
+					continue;
+				}
+			}
+			else//h
+			{
+				if (!(in.fp = fopen(out.name, "r"))) Error(out.name, E_OPEN);//打开文件
+				if (!funjmp) continue;//Error跳转处
+				fseek(in.fp, 0, 2);
+				in.size = ftell(in.fp);//获取长度
+				rewind(in.fp);
+			}
+			Compile();//编译(已打开in.fp)
+			if (!funjmp) continue;
+#if DEBUG == 0
+			Success(1);
+#endif
+		}
+		else if (value == 1)	CON_Set(CONFG_TABLE);
+		else if (value == 3)	Help();
+		else if (value == 9) 	LookDoc(MACRO_TABLE, DOCUM_TABLE);
+		else if (value == 10)	LookLib();
+		else if (value == 11)	LookDat(SRC_TABLE);
+		else if (value == 12)//优化
+		{
+			if (!(cmd = SelectSrc(out, cfset.lav, 0xfd))) continue;
+			Optimize(FUN_TABLE, JMP_TABLE, STACK_TABLE);
+			if (!funjmp) continue;
+			Success(3);
+		}
+		else if (value == 13)//链接
+		{
+			if (!(cmd = SelectSrc(out, cfset.lav, 0xfd))) continue;
+			Lib_Op(LIB_LOAD);
+			if (!funjmp) continue;
+			Success(2);
+		}
+		else if (value == 14)//批处理
+		{
+			if (!(cmd = SelectSrc(out, cfset.src, 0))) continue;
+			BatchFile();
+		}
+	}
+}

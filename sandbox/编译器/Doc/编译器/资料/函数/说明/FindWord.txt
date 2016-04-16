@@ -1,0 +1,14 @@
+原型:char FindWord(char &buf[], char len, char flag)
+功能:反查
+输入:buf:单词地址
+     len:单词长度
+     flag:标志,一般为0
+输出:不存在或错误为非0,否则为0
+例子:
+void main()
+{
+ char s[16];
+
+ strcpy(s, "hello");
+ FindWord(s, strlen(s), 0);
+}

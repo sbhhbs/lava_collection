@@ -1,0 +1,115 @@
+原型:long atoi(char &str[]);
+功能:把字符串str转化为一个整数并返回。
+说明:扫描字符串，跳过前面的无效字符，直到遇上数字或正负符号才开始做转换。
+举例:
+#include <stdlib.y>
+
+void main()
+{
+ printf("%d\n", atoi("0x30"));
+ getchar();
+}
+
+原型:void itoa(long num, char &str[], char radix);
+功能:把整数转化为字符串。
+说明:num:要转换的数字，str:要写入转换结果的目标字符串，radix:基数。
+举例:
+#include <stdlib.y>
+
+void main()
+{
+ char str[10];
+
+ itoa(0x30, str, 10);
+ printf("%s\n", str);
+ getchar();
+}
+
+原型:char crotr(char num, char count);
+功能:将一个整数向右循环移动count位。
+说明:该数是8位无符号数。
+举例:
+#include <stdlib.y>
+
+void main()
+{
+ char str[10];
+ char n;
+
+ n = 0xd7;
+ itoa(n, str, 2);
+ printf("%d %s\n", n, str);
+ n = crotr(n, 1);
+ itoa(n, str, 2);
+ printf("%d %s\n", n, str);
+ getchar();
+}
+
+原型:char crotl(char num, char count);
+功能:将一个整数向左循环移动count位。
+说明:该数是8位无符号数。
+举例:
+#include <stdlib.y>
+
+void main()
+{
+ char str[10];
+ char n;
+
+ n = 0xd7;
+ itoa(n, str, 2);
+ printf("%d %s\n", n, str);
+ n = crotl(n, 1);
+ itoa(n, str, 2);
+ printf("%d %s\n", n, str);
+ getchar();
+}
+
+原型:void setjmp();
+功能:获取下一条指令的地址。
+说明:该函数需配合longjmp函数才有效果（以下有说明）。
+原型:int checkjmp();
+功能:判断当前是否通过longjmp函数跳转。
+说明:调用该函数前，必须先调用setjmp函数。如果是通过longjmp函数跳转的则返回0，否则返回非0
+原型:void longjmp();
+功能:从当前函数直接跳转到setjmp函数设置所指向的指令，然后继续执行。
+说明:被调用函数执行完后只能返回到主调用函数（调用被调用函数的函数）中的下一条指令，然后继续执行。如果函数嵌套调用很了多层函数，那么最顶层函数要回到底层函数，必须一层一层的返回，不能直接跳到底层函数。而longjmp函数配合setjmp函数可以实现这一功能。
+举例:
+#include <stdlib.y>
+void e()
+{
+ printf(">执行到函数e\n");
+ longjmp();
+}
+void f()
+{
+ printf(">执行到函数f\n");
+}
+void c()
+{
+ printf(">执行到函数c\n");
+ e();
+ f();
+}
+void d()
+{
+ printf(">执行到函数d\n");
+}
+void a()
+{
+ printf(">执行到函数a\n");
+ c();
+ d();
+}
+void b()
+{
+ printf(">跳转到这里啦！\n>没有执行函数f和d吧。再把back函数注释掉看看。");
+ getchar();
+}
+void main()
+{
+ setjmp();
+ SetScreen(1);
+ a();
+ b();
+}

@@ -1,0 +1,94 @@
+原型:char getkey();
+功能:等待用户按下按键。返回键值。
+说明:该函数支持光标闪动显示，连续按键响应。
+
+原型:void setcursor(char width, char height, char ison);
+功能:设置光标状态。
+说明:width:光标宽度，height:光标高度，ison:是否开启光标，非0开启，0不开启。
+
+原型:void setseat(char x, char y);
+功能:设置光标显示位置。
+说明:x:光标x坐标，y:光标y坐标。
+
+原型:void setspeed(long speed);
+功能:设置光标闪动速度。
+说明:speed值大约500左右。
+举例:
+
+原型:void setdelay(int delay);
+功能:设置连续响应键时间。
+说明:按下一个键时getkey函数会马上返回该键值，如果按住该键不放，则会停顿delay时间，如果此时该键还被按住，则连续响应该键。
+原型:void clearkey();
+功能:停止连续响应当前键。
+说明:在调用其他函数后，返回到主调用函数，这时要用该函数停止响应上一个函数产生的按键，否则会被getkey函数接收到，并返回键值，这样会引起误操作。
+举例:
+#include <stdio.y>
+#include <key.y>
+void main()
+{
+ char x,y;
+ char key;
+ char type, tmp;
+ char numkey[10];
+ int i, len;
+ char s[256];
+ setcursor(8, 1, 1);
+ setspeed(500);
+ setdelay(60);
+ clearkey();
+ for (key = 0; key != 13;)
+ {
+  SetScreen(0);
+  printf("%s", s);
+  x = ((len = strlen(s)) % 20) << 3;
+  y= (len / 20) << 4;
+  if (y > 64)
+  {
+   y = 64;
+   if (!x) printf(" ");
+  }
+  setseat(x, y + 14);//设置光标
+  key = getkey();//按键接收
+  if (isprint(key))
+  {
+   if ((type&1)== 0)//英文
+   {
+    if (key == '0')
+    {
+     tmp = Getsign();
+     clearkey();
+     if (!tmp) continue;
+    }//注意这里调用了clearkey函数，因为这里调用了Getsign函数，这时按键缓冲区还有按键值，会被getkey函数读取，会引起误操作（如上一个函数（就是Getsign函数啦）最后按ESC键返回，这时如果不加clearkey函数，则getkey函数就接收到ESC键，就会执行本程序中的ESC键处理了。）
+    else if (type&2)
+    {
+     tmp = toupper(key);
+    }
+    else
+    {
+     tmp = key;
+    }
+   }
+   else if (strchr(numkey, key))
+   {
+    tmp = strchr(numkey, key) - numkey + '1';//数字
+   }
+   else
+   {
+    tmp = key;//小字母,数字
+   }
+   *(s + i++) = tmp;
+   *(s + i) = 0;
+  }
+  else if (key == 0x1d || key == 0x17)
+  {
+   if (i) *(s + (--i)) = 0;
+  }
+  else if (key == 0x14 || key == 0x1b)
+  {
+   i = 0;
+   *s = 0;
+  }
+  else if (key == 0x1a) type = type ^ 1;
+  else if (key == 0x12) type = type ^ 2;
+ }
+}

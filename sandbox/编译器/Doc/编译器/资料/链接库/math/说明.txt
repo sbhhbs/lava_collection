@@ -1,0 +1,90 @@
+作者:yoYohenry
+原型:long pow(long x,long y);
+功能:求x的y次方。
+举例:
+#include <math.y>
+void main()
+{
+ printf("%d\n", pow(10, 10));
+ getchar();
+}
+原型:int tan(int deg);
+功能:计算tan(deg)的值。
+说明:deg的单位是度，取0～32767之间的整数。返回值是tan(deg)乘以1024。
+举例:
+#include <math.y>
+void main()
+{
+ printf("%d\n", tan(89));
+ getchar();
+}
+原型:long sqrt(long num);
+功能:计算num的算术平方根。
+说明:计算结果向零方向取整，负数返回-1。
+举例:
+#include <math.y>
+void main()
+{
+ SetScreen(1);
+ printf("sqrt(-1)=%d\n", sqrt(-1));
+ printf("sqrt(0)=%d\n", sqrt(0));
+ printf("sqrt(1)=%d\n", sqrt(1));
+ printf("sqrt(100)=%d\n", sqrt(100));
+ printf("sqrt(10000)=%d\n", sqrt(10000));
+ printf("sqrt(100000000)=%d", sqrt(100000000));
+ getchar(); 
+}
+原型:long cub(long num);
+功能:计算num的立平方根。
+说明:计算结果向零方向取整。
+举例:
+#include <math.y>
+void main()
+{
+ SetScreen(1);
+ printf("cub(-1000)=%d\n", cub(-1000));
+ printf("cub(0)=%d\n", cub(0));
+ printf("cub(1)=%d\n", cub(1));
+ printf("cub(1000)=%d\n", cub(1000));
+ printf("cub(1000000)=%d\n", cub(1000000));
+ printf("cub(1000000000)=%d", cub(1000000000));
+ getchar();
+}
+原型:int isleap(int year);
+功能:判断是否是闰年。
+说明:是闰年则返回非0，否则返回0。
+举例:
+#include <math.y>
+void main()
+{
+ printf("%d\n", isleap(2000));
+ getchar();
+}
+原型:int isprime(long num);
+功能:判断是否是素数。
+说明:当num位素数是返回非0，否则返回0。
+举例:
+#include <math.y>
+void main()
+{
+ printf("%d\n", isprime(65));
+ getchar();
+}
+原型:long hcf(long u,long v);
+功能:计算u,v的最大公约数。
+举例:
+#include <math.y>
+void main()
+{
+ printf("%d\n", hcf(30,40));
+ getchar();
+}
+原型:long lcd(long u,long v);
+功能:计算u,v的最小公倍数。
+举例:
+#include <math.y>
+void main()
+{
+ printf("%d\n", lcd(65,70));
+ getchar();
+}

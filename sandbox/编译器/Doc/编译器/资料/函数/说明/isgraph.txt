@@ -1,0 +1,24 @@
+原型:int isgraph(char c);
+功能:判断字符c是否为除空格外的可打印字符
+说明:当c为可打印字符(0x21-0x7e)时,返回非零值,否则返回零
+举例:
+void graph(char c)
+{
+ if (isgraph(c))
+ {
+  printf("%c:是可见字符\n", c);
+ }
+ else
+ {
+  printf("%c:不是可见字符\n", c);
+ }
+}
+
+void main()
+{
+ SetScreen(0);
+ graph('a');
+ graph(' ');
+ graph(0x7f);
+ getchar();
+}

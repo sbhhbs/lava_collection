@@ -1,0 +1,39 @@
+作者:yoYohenry
+原型:int sin(int deg);
+功能:计算sin(deg)的值。
+说明:deg的单位是度，取-32767~-32767之间的整数(这里注意和Sin()的区别)。返回值是sin(deg)的小数值乘以1024(范围为-1024~1024)。
+
+原型:int asin(int x);
+功能:计算arcsin(x/1024)的值，单位:度。
+说明:abs(x) > 1024 时返回90(-90)度。
+
+原型:int cos(int deg);
+功能:计算cos(deg)的值。
+说明:deg的单位是度，取-32767~-32767之间的整数(这里注意和Cos()的区别)。返回值是cos(deg)的小数值乘以1024(范围为-1024~1024)。
+
+原型:int acos(int x);
+功能:计算arccos(x/1024)的值，单位:度。
+说明:abs(x) > 1024 时返回0(180)度。
+
+原型:long tan(int deg);
+功能:计算tan(deg)的值。
+说明:deg的单位是度，取-32767~-32767之间的整数。返回值是tan(deg)的小数值乘以1024，tan(90)返回0xfffffff。
+
+原型:int atan(long x);
+功能:计算arctan(x/1024)的值，单位:度。
+说明:abs(x) > 0xfffffff时返回90(-90)度。
+
+举例:
+#include <triangle.y>
+void main()
+{
+ SetScreen(1);
+ printf("sin(30)*1024=%d\ncos(30)*1024=%d\ntan(30)*1024=%d\nasin(512/1024)=%d\nacos(887/1024)=%d\natan(592/1024)=%d",sin(30),cos(30),tan(30),asin(512),acos(887),atan(592));
+ getchar();
+ SetScreen(1);
+ printf("sin(45)*1024=%d\ncos(45)*1024=%d\ntan(45)*1024=%d\nasin(724/1024)=%d\nacos(724/1024)=%d\natan(1024/1024)=%d",sin(45),cos(45),tan(45),asin(724),acos(724),atan(1024));
+ getchar();
+ SetScreen(1);
+ printf("sin(60)*1024=%d\ncos(60)*1024=%d\ntan(60)*1024=%d\nasin(887/1024)=%d\nacos(512/1024)=%d\natan(1774/1024)=%d",sin(60),cos(60),tan(60),asin(887),acos(512),atan(1774));
+ getchar();
+} 

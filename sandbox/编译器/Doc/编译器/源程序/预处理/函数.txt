@@ -1,0 +1,798 @@
+//******************************************************预处理系统******************************************************//
+/* 文件缓冲操作 */
+void CUSH_FlY(char &buf[])
+{
+	long addrs;//文件地址
+	long n;//长度
+
+	addrs = ftell(in.fp);
+	*out.p = 0;
+	if (fwrite(buf, 1, n = strlen(buf), out.fp) != n) Error(out.name, E_WRITE);//输出到文件
+	in.p = buf + FY_C_REL;
+	memset(out.p = buf, 0, FY_C_SIZE);
+	if ((n = fread(in.p, 1, CY_L_SIZE - 1, in.fp)) != CY_L_SIZE - 1) return;
+	n = in.p + n + 1;//输出到缓冲
+	if (!strchr(in.p, ';'))//断点分析
+	{
+		if (!strchr(in.p, ','))
+		{
+			if (!strchr(in.p, '\n'))
+			{
+				Error(0, E_SEEK);
+			}
+			else
+			{
+				do {} while (*(--n) != '\n');
+			}
+		}
+		else
+		{
+			do {} while (*(--n) != ',');
+		}
+	}
+	else
+	{
+		do {} while (*(--n) != ';');
+	}
+	memset(++n, 0, in.p - n + CY_L_SIZE - 1);
+	fseek(in.fp, addrs + n - in.p, 0);
+}
+
+/* num to str */
+void ChNum(char &str[], char num)
+{
+	char i;
+
+	memset(str, 0, 4);
+	do{
+		i = num % 10;
+		num = num / 10;
+		memmove(str + 1, str, strlen(str));
+		*str = i + '0';
+	} while(num);
+}
+
+/* 提取宏 */
+void Mac_Get(struct MACUNIT &e)
+{
+	char i;
+
+	i = 0;
+	while (*in.p == '_' | isalnum(*in.p))
+	{
+		if (i < MAC_N_LEN - 1)
+		{
+			e.name[i++] = *in.p;
+		}
+		else if (!cfset.dat[1].tem[4].value)
+		{
+			Error(e.name, E_LONGDEF);
+		}
+		in.p++;
+	}
+	e.name[i] = 0;
+}
+
+/* 删除宏 */
+void Mac_Del(struct MACTABLE &mac, struct MACUNIT &e)
+{
+	int i;
+
+	for (i = 0; i < mac.size; i++)
+	{
+		if (!strcmp(mac.dat[i].name, e.name))
+		{
+			e.id = i;
+			MAC_Op(mac, e, TABLE_DEL);
+			return;
+		}
+	}
+	Error(e.name, E_UDEF);
+}
+
+/* 复制文件 */
+void CopyFile(char &buf[], struct MACUNIT &e)
+{
+	char fp;
+	long n, fadd;
+
+	Progress("载入中...", "正在处理文件包含...", 1);//消息框
+	*out.p = 0;
+	fwrite(buf, 1, strlen(buf), out.fp);
+	out.p = buf;//输出到文件
+	if (!(fp = fopen(e.name, "r"))) Error(e.name, E_OPEN);
+	fseek(fp, 0, 2);//长度
+	n = ftell(fp);
+	rewind(fp);
+	while (!feof(fp))//复制
+	{
+		Progress(ftell(fp), n, 0);
+		fwrite(buf, 1, fread(buf, 1, FY_C_REL, fp), out.fp);
+	}
+	fclose(fp);
+	Progress("提取中...", "预处理系统正在运行 ", 1);//消息框
+}
+
+long Num_Get();
+
+int _PreCalc(char &buf[], struct MACTABLE &mac, struct MACUNIT &e, char &sign[])
+{
+	char i, j;//数据指针,符号指针
+	char c, d, f, flag;
+	long n[8];//数据堆栈
+	char o[8][2];//符号堆栈
+
+	//SetScreen(1);
+	i = j = flag = 0;
+	for (;;)
+	{
+		if (isdigit(*in.p))
+		{
+			n[i++] = Num_Get();
+			flag = 0;
+			//printf("n = %d\n", n[i - 1]);getchar();
+		}
+		else if (isalpha(*in.p) | *in.p == '_')//词汇分析
+		{
+			Mac_Get(e);
+			if (MAC_Op(mac, e, TABLE_SEK) >= 0)//查找宏
+			{
+				memcpy(in.p = in.p - strlen(e.value), e.value, strlen(e.value));
+			}
+			else
+			{
+				Error(e.name, E_UVAR);
+			}
+		}
+		else if (strchr(sign, *in.p))
+		{
+			if (*in.p == '+')
+			{
+				c = 1;//符号
+				d = 4;//等级
+			}
+			else if (*in.p == '-')
+			{
+				if (flag | !i)
+				{
+					c = 21;
+					d = 2;
+				}
+				else
+				{
+					c = 2;
+					d = 4;
+				}
+			}
+			else if (*in.p == '*')
+			{
+				c = d = 3;
+			}
+			else if (*in.p == '/')
+			{
+				if (*(in.p + 1) == '/' | *(in.p + 1) == '*') return(n[0]);
+				c = 4;
+				d = 3;
+			}
+			else if (*in.p == '<')
+			{
+				if (*(in.p + 1) == '<')
+				{
+					c = d = 5;
+					in.p++;
+				}
+				else if (*(in.p + 1) == '=')
+				{
+					c = d = 6;
+					in.p++;
+				}
+				else
+				{
+					c = 7;
+					d = 6;
+				}
+			}
+			else if (*in.p == '>')
+			{
+				if (*(in.p + 1) == '>')
+				{
+					c = 8;
+					d = 5;
+					in.p++;
+				}
+				else if (*(in.p + 1) == '=')
+				{
+					c = 9;
+					d = 6;
+					in.p++;
+				}
+				else
+				{
+					c = 10;
+					d = 6;
+				}
+			}
+			else if (*in.p == '=')
+			{
+				if (*(in.p + 1) == '=')
+				{
+					c = 11;
+					d = 6;
+					in.p++;
+				}
+			}
+			else if (*in.p == '&')
+			{
+				if (*(in.p + 1) == '&')
+				{
+					c = 12;
+					d = 8;
+					in.p++;
+				}
+				else
+				{
+					c = 13;
+					d = 7;
+				}
+			}
+			else if (*in.p == '|')
+			{
+				if (*(in.p + 1) == '|')
+				{
+					c = 14;
+					d = 8;
+					in.p++;
+				}
+				else
+				{
+					c = 15;
+					d = 7;
+				}
+			}
+			else if (*in.p == '!')
+			{
+				if (*(in.p + 1) == '=')
+				{
+					c = 16;
+					c = 6;
+					in.p++;
+				}
+				else
+				{
+					c = 17;
+					d = 2;
+				}
+			}
+			else if (*in.p == '%')
+			{
+				c = 18;
+				d = 3;
+			}
+			else if (*in.p == '^')
+			{
+				c = 19;
+				d = 7;
+			}
+			else
+			{
+				c = 20;
+				d = 2;
+			}
+			in.p++;
+END:
+			//printf("j = %d i = %d\nc = %d d = %d\n", j, i, c, d);getchar();
+			if (j && i)
+			{
+				if (o[j - 1][1] == 2)
+				{
+					f = o[j - 1][0];
+					if		(f == 17)	n[i - 1] = !n[i - 1];
+					else if	(f == 20)	n[i - 1] = ~n[i - 1];
+					else if	(f == 21)	n[i - 1] = -n[i - 1];
+				}
+				else
+				{
+					while (j && i >= 2)
+					{
+						if (o[j - 1][1] > d) break;
+						f = o[--j][0];
+						i--;
+						if		(f == 1)	n[i - 1] = n[i - 1] +  n[i];
+						else if (f == 2)	n[i - 1] = n[i - 1] -  n[i];
+						else if (f == 3)	n[i - 1] = n[i - 1] *  n[i];
+						else if (f == 4)	n[i - 1] = n[i - 1] /  n[i];
+						else if (f == 5)	n[i - 1] = n[i - 1] << n[i];
+						else if (f == 6)	n[i - 1] = n[i - 1] <= n[i];
+						else if (f == 7)	n[i - 1] = n[i - 1] <  n[i];
+						else if (f == 8)	n[i - 1] = n[i - 1] >> n[i];
+						else if (f == 9)	n[i - 1] = n[i - 1] >= n[i];
+						else if (f == 10)	n[i - 1] = n[i - 1] >  n[i];
+						else if (f == 11)	n[i - 1] = n[i - 1] == n[i];
+						else if (f == 12)	n[i - 1] = n[i - 1] && n[i];
+						else if (f == 13)	n[i - 1] = n[i - 1] &  n[i];
+						else if (f == 14)	n[i - 1] = n[i - 1] || n[i];
+						else if (f == 15)	n[i - 1] = n[i - 1] |  n[i];
+						else if (f == 16)	n[i - 1] = n[i - 1] != n[i];
+						else if (f == 18)	n[i - 1] = n[i - 1] %  n[i];
+						else if (f == 19)	n[i - 1] = n[i - 1] ^  n[i];
+						else Error(0, E_CONSTS);
+					}
+				}
+			}
+			if (flag == 2)
+			{
+				if (i > 1) Error(0, E_CONSTS);
+				return(n[0]);
+			}
+			o[j][0] = c;//压入符号
+			o[j++][1] = d;
+			flag = 1;
+		}
+		else if (*in.p == '(')
+		{
+			in.p++;
+			n[i++] = _PreCalc(buf, mac, e, sign);
+			//printf("%c %d\n", *in.p++, n[i - 1]);getchar();
+			if (*in.p++ != ')') Error(0, E_CONSTS);
+		}
+		else if (*in.p == ' ' | *in.p == 9)//空白符分析
+		{
+			do {in.p++;} while (*in.p == ' ' | *in.p == 9);
+		}
+		else
+		{
+			d = 10;
+			flag = 2;
+			goto END;
+		}
+	}
+}
+
+int PreCalc(char &buf[], struct MACTABLE &mac, struct MACUNIT &e)
+{
+	char sign[14];
+
+	strcpy(sign, "+-*/<>=&|!%^~");
+	return(_PreCalc(buf, mac, e, sign));
+}
+
+int SkipProgram(char &buf[], struct MACUNIT &e, int depth, char flag)
+{
+	int p;
+	int ifDepth, oldDepth;
+
+	strcpy(e.name, "*/");
+	memcpy(&ifDepth, depth, 2);
+	oldDepth = ifDepth;
+	for (;;)
+	{
+		if (!*in.p)
+		{
+			CUSH_FlY(buf);
+			if (!*in.p) Error(0, E_PRE_IF);
+		}
+		if (*in.p == '/')//注释分析
+		{
+			if (*(in.p + 1) == '/')
+			{
+				for (;;)
+				{
+					if (p = strchr(in.p, '\n'))
+					{
+						in.p = p + 1;
+						break;
+					}
+					else
+					{
+						CUSH_FlY(buf);
+						if (!*in.p) break;
+					}
+				}
+				continue;
+			}
+			else if (*(in.p + 1) == '*')
+			{
+				in.p = in.p + 2;
+				for (;;)
+				{
+					if (p = strstr(in.p, e.name))
+					{
+						in.p = p + 2;
+						break;
+					}
+					else
+					{
+						CUSH_FlY(buf);
+						if (!*in.p) Error(0, E_NOTE);
+					}
+				}
+				continue;
+			}
+		}
+		if (*in.p == '#')
+		{
+			do {
+				do {} while (isspace(*(++in.p)));
+			} while (*in.p == '#');
+			Mac_Get(e);
+			if (!strcmp(e.name, "if") | !strcmp(e.name, "ifdef") | !strcmp(e.name, "ifndef")) ifDepth++;
+			else if (!strcmp(e.name, "endif"))
+			{
+				ifDepth--;
+				if (oldDepth == ifDepth + 1)
+				{
+					memcpy(depth, &ifDepth, 2);
+					return(e.name[0] = 0);
+				}
+			}
+			else if (!strcmp(e.name, "else"))
+			{
+				if (oldDepth == ifDepth && flag)
+				{
+					if (isspace(*in.p))
+					{
+						do {} while (isspace(*(++in.p)));
+					}
+					Mac_Get(e);
+					if (isspace(*in.p))
+					{
+						do {} while (isspace(*(++in.p)));
+					}
+					if (!strcmp(e.name, "if") | !strcmp(e.name, "ifdef") | !strcmp(e.name, "ifndef"))
+					{
+						ifDepth--;
+						memcpy(depth, &ifDepth, 2);
+						return(1);
+					}
+					return(0);
+				}
+			}
+		}
+		in.p++;
+	}
+}
+
+void MAC_Prt(char &buf[], struct DOCTABLE &doc, struct MACTABLE &mac)/*预处理操作:in,out [通用]*/
+{
+	int ifDepth;//条件编译命令深度
+	struct MACUNIT e;
+	char sign[24];//符号缓冲
+	char psign1[5];
+	char psign2[4];
+	char psign3[3];
+	char psign4[7];
+	char psign5[3];
+	char j, mrk[20];//符号堆栈,指针
+	int i;//临时变量
+
+	cp.fp = j = ifDepth = 0;//初始化
+	Progress("提取中...", "预处理系统正在运行 ", 1);//消息框
+	i = DiskMacro(mac, doc, TABLE_RED);
+	if (datfp)//关闭资源文件(可能被打开)
+	{
+		fclose(datfp);
+		datfp = 0;
+	}
+	if (i == 1) Error("macro.dat", E_CREAT);
+	if (i == 2) Error("macro.dat", E_WRITE);
+	strcpy(sign, "([{)]},;+-*/<>=&|!%^~.:");//不能改变
+	strcpy(psign1, "nrtb");
+	psign2[0] = 10;
+	psign2[1] = 13;
+	psign2[2] = 9;
+	psign2[3] = 8;
+	strcpy(psign3, "*/");
+	strcpy(psign4, "define");
+	strcpy(psign5, "/*");
+	in.p = buf + FY_C_REL;
+	memset(buf, 0, FY_C_SIZE);
+	out.p = buf;
+	strcpy(lib.path, out.path);
+	if (!ChDir(out.path)) Error(out.path, E_CATA);
+	if (!(in.fp = fopen(out.name, "r"))) Error(out.name, E_OPEN);//打开文件
+	fseek(in.fp, 0, 2);
+	in.size = ftell(in.fp);//获取文件长度
+	rewind(in.fp);
+	if (!in.size) Error(out.name, E_ZERO);
+	if (!getc(in.fp))//头定位
+	{
+		fseek(in.fp, 24, 0);
+	}
+	else
+	{
+		rewind(in.fp);
+	}
+	strcpy(out.path, fundata);
+	if (ChPath(out.path)) Error(out.path, E_CATA);
+	ChExt(out.name, "h");
+	if (!(out.fp = fopen(out.name, "w+"))) Error(out.name, E_CREAT);//创建h文件
+	for (;;)
+	{
+		if (!*in.p)
+		{
+			CUSH_FlY(buf);
+			if (!*in.p) break;
+		}
+		if (isalnum(*in.p) | *in.p == '_')//词汇分析
+		{
+			Mac_Get(e);
+STR_PTR_IF:	//#else预读
+			if (!isdigit(e.name[0]))
+			{
+				if (MAC_Op(mac, e, TABLE_SEK) >= 0)//查找宏
+				{
+					memcpy(in.p = in.p - strlen(e.value), e.value, strlen(e.value));
+					if (in.p < out.p) Error(e.name, E_DEFOVER);
+					continue;
+				}
+			}
+ANAL_STR:	//loadall等编译命令
+			strcpy(out.p, e.name);
+			out.p = out.p + strlen(e.name);
+			*out.p++ = ' ';
+			continue;
+		}
+		if (*in.p == '/')//注释分析
+		{
+			if (*(in.p + 1) == '/')
+			{
+				for (;;)
+				{
+					if (i = strchr(in.p, '\n'))
+					{
+						in.p = i + 1;
+						break;
+					}
+					else
+					{
+						CUSH_FlY(buf);
+						if (!*in.p) break;
+					}
+				}
+				continue;
+			}
+			else if (*(in.p + 1) == '*')
+			{
+				in.p = in.p + 2;
+				for (;;)
+				{
+					if (i = strstr(in.p, psign3))
+					{
+						in.p = i + 2;
+						break;
+					}
+					else
+					{
+						CUSH_FlY(buf);
+						if (!*in.p) Error(0, E_NOTE);
+					}
+				}
+				continue;
+			}
+		}
+		if (i = strchr(sign, *in.p))//符号分析
+		{
+			if (i <= sign + 2)//{[(
+			{
+				mrk[j++] = *(i + 3);
+			}
+			else if (i <= sign + 5)//}])
+			{
+				if (!j) Error(0, E_SYMB);
+				if (mrk[--j] != *in.p) Error(0, E_SYMB);
+				if (!j) Progress(ftell(in.fp) - strlen(in.p), in.size, 0);
+			}
+			if (out.p == buf)
+			{
+				fseek(out.fp, -1, 1);
+				if (getc(out.fp) == ' ') fseek(out.fp, -1, 1);
+			}
+			else if (*(out.p - 1) == ' ')
+			{
+				out.p--;
+			}
+			*out.p++ = *in.p++;
+			continue;
+		}
+		if (isspace(*in.p))//空白符分析
+		{
+			do {} while (isspace(*(++in.p)));
+			continue;
+		}
+		if (*in.p == '"')//字符串分析
+		{
+			*out.p++ = *in.p++;
+			do {
+STR_START:
+				if (!*in.p)
+				{
+					CUSH_FlY(buf);//溢出判断
+					if (!*in.p) Error(0, E_NOQMRK);
+				}
+				if (*in.p == '\n')
+				{
+					Error(0, E_NOQMRK);
+				}
+				else if (*in.p == 92)
+				{
+					*out.p++ = *in.p++;
+					*out.p++ = *in.p++;
+					goto STR_START;
+				}
+				*out.p++ = *in.p;
+			} while (*in.p++ != '"');
+			continue;
+		}
+		if (*in.p == '\'')//'分析
+		{
+			if (*++in.p == '\'') Error(0, E_NONE);//空字符
+			if (*in.p == 92)//转意
+			{
+				if (i = strchr(psign1, *++in.p)) *in.p = psign2[i - psign1];
+			}
+			ChNum(e.name, *in.p++);
+			strcpy(out.p, e.name);
+			out.p = out.p + strlen(e.name);
+			if (!*in.p)//溢出判断
+			{
+				CUSH_FlY(buf);
+				if (!*in.p) Error(0, E_GRAMMAR);
+			}
+			if (*in.p++ != '\'') Error(0, E_CBIG);//长字符
+			continue;
+		}
+		if (*in.p == '#')//自定义宏
+		{
+			do {
+				do {} while (isspace(*(++in.p)));
+			} while (*in.p == '#');
+			Mac_Get(e);
+			if (isspace(*in.p))
+			{
+				do {} while (isspace(*(++in.p)));
+			}
+			if (!strcmp(e.name, psign4))//宏定义
+			{
+				Mac_Get(e);
+				if (isspace(*in.p))
+				{
+					do {} while (isspace(*(++in.p)));
+				}
+				i = 0;
+JUM://提取宏值
+				do {
+					e.value[i++] = *in.p;
+				} while (*++in.p != '/' && !isspace(*in.p))
+				if (*in.p == '/')
+				{
+					if (!strchr(psign5, *(in.p + 1))) goto JUM;
+				}
+				else if (*in.p == ' ')
+				{
+					if (*(in.p + 1) == '\'') goto JUM;//补充
+				}
+				e.value[i] = 0;
+				if (i >= MAC_V_LEN - 1) Error(e.name, E_DEFOVER);//溢出
+				i = MAC_Op(mac, e, TABLE_INS);//写入宏
+				if (i < 0)
+				{
+					if (i == -2) Error(0, E_MMAC);//溢出
+					Error(e.name, E_RDEF);//重复
+				}
+				continue;
+			}
+			if (!strcmp(e.name, "include"))//文件包含
+/*
+ * include可以包含目录，但是包含*.y不能大于15B, *.h不能大于18B
+ * <> 包含*.y在/LibData 包含*.h在/FunData
+ * "" 包含文件在原目录
+ *
+ */
+			{
+				i = 0;
+				strcpy(e.value, "\">");
+				while (!strchr(e.value, *++in.p))//提取文件名
+				{
+					if (i < MAC_N_LEN - 1 && *in.p > ' ') e.name[i++] = *in.p;
+				}
+				e.name[i] = 0;
+				if (ChkExt(e.name, "h"))
+				{
+					if (*in.p++ == '"') ChDir(lib.path);
+					CopyFile(buf, e);
+					ChDir(out.path);
+				}
+				else if (ChkExt(e.name, "y"))
+				{
+					if (lib.size >= LIB_SIZE) Error(0, E_LINK);
+					lib.flag[lib.size] = *in.p++;
+					strcpy(lib.name[lib.size++], e.name);
+				}
+				else
+				{
+					Error(0, E_HEADFILE);
+				}
+				continue;
+			}
+			if (!strcmp(e.name, "undef"))
+			{
+				Mac_Get(e);
+				Mac_Del(mac, e);
+				continue;
+			}
+JMP_PRE_IF:
+			if (!strcmp(e.name, "if"))//条件编译1
+			{
+				ifDepth++;
+				if (PreCalc(buf, mac, e)) continue;
+				if (SkipProgram(buf, e, &ifDepth, 1)) goto JMP_PRE_IF;
+				if (e.name[0]) goto STR_PTR_IF;
+				continue;
+			}
+			if (!strcmp(e.name, "ifdef"))//条件编译2
+			{
+				ifDepth++;
+				Mac_Get(e);
+				i = MAC_Op(mac, e, TABLE_SEK);//查找宏表
+				if (i >= 0) continue;
+				if (SkipProgram(buf, e, &ifDepth, 1)) goto JMP_PRE_IF;
+				if (e.name[0]) goto STR_PTR_IF;
+				continue;
+			}
+			if (!strcmp(e.name, "ifndef"))//条件编译3
+			{
+				ifDepth++;
+				Mac_Get(e);
+				i = MAC_Op(mac, e, TABLE_SEK);//查找宏表
+				if (i < 0) continue;
+				if (SkipProgram(buf, e, &ifDepth, 1)) goto JMP_PRE_IF;
+				if (e.name[0]) goto STR_PTR_IF;
+				continue;
+			}
+			if (!strcmp(e.name, "else"))
+			{
+				Mac_Get(e);//消除if,ifdef,ifndef
+				SkipProgram(buf, e, &ifDepth, 0);
+				continue;
+			}
+			if (!strcmp(e.name, "endif"))
+			{
+				ifDepth--;
+				continue;
+			}
+			if (!strcmp(e.name, "loadall"))
+			{
+CPL_START:
+				*out.p++ = '#';
+				goto ANAL_STR;
+			}
+			if (!strcmp(e.name, "code"))	goto CPL_START;
+			if (!strcmp(e.name, "begin"))	goto CPL_START;
+			if (!strcmp(e.name, "end"))		goto CPL_START;
+			if (!strcmp(e.name, "skip"))	goto CPL_START;
+			if (!strcmp(e.name, "loaddata"))goto CPL_START;
+			if (!strcmp(e.name, "delete"))	goto CPL_START;
+			if (!strcmp(e.name, "secret"))	goto CPL_START;
+			if (!strcmp(e.name, "attr"))	goto CPL_START;
+			Error(e.name, E_PRETCMD);
+		}
+		Mac_Get(e);
+		if (isprint(e.name[0]))
+		{
+			Error(e.name, E_STR);//非法字符
+		}
+		else
+		{
+			Error(*in.p, E_USIGN);
+		}
+	}
+	if (j) Error(0, E_SYMB);
+	if (ifDepth) Error(0, E_PRE_IF);
+	Progress(1, 1, 0);
+	fclose(in.fp);
+	in.fp = out.fp;
+	out.fp = 0;
+	fseek(in.fp, 0, 2);
+	in.size = ftell(in.fp);
+	rewind(in.fp);
+}

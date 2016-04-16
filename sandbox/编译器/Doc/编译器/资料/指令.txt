@@ -1,0 +1,43 @@
+01:1字节
+02:2字节
+03:4字节
+04~12:2字节
+13:字符串
+14~25:2字节////////////
+26~56:0字节
+57~59:3字节 跳转
+60:2字节
+61:3字节 跳转
+62:3字节 函数头
+63~64:0字节
+65:初始化
+
+69~81:2字节
+82:0字节 a=(int *)b
+83:0字节 a=(long *)b
+84:0字节 (float)a=(long)b 将整数转化为浮点数
+85:0字节 (long)a=(float)b 将浮点数转化为整数
+86:0字节 (float)a+(float)b
+87:0字节 (float)a+(long)b
+88:0字节 (long)a+(float)b
+89:0字节 (float)a-(float)b
+90:0字节 (float)a-(long)b
+91:0字节 (long)a-(float)b
+92:0字节 (float)a*(float)b
+93:0字节 (float)a*(long)b
+94:0字节 (long)a*(float)b
+95:0字节 (float)a/(float)b
+96:0字节 (float)a/(long)b
+97:0字节 (long)a/(float)b
+98:0字节 -(float)a
+99:0字节 (long)a<(float)b
+100:0字节 (long)a>(float)b
+101:0字节 (long)a==(float)b
+102:0字节 (long)a!=(float)b
+103:0字节 (long)a<=(float)b
+104:0字节 (long)a>=(float)b
+105:0字节 (float)a&&(long)b
+106:0字节 (int *)
+107:0字节 (long *)a=b;
+
+128~255:0字节

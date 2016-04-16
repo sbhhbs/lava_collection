@@ -1,0 +1,293 @@
+#define HLEN 20
+//当HLEN为26时，小体字；
+//当HLEN为20时，大字体
+#define HALF 10
+#define MENU_FIRST_ROW 2
+#define ENTER_KEY 13 //输入键
+#define UP_KEY 20      //方向键上
+#define DN_KEY 21      //方向键下
+#define RT_KEY 22      //方向键右
+#define LT_KEY 23      //方向键左
+#define ESC_KEY 27  //[跳出]键
+#define FIELD 16000
+#define LEN 60
+#define STR_LEN 60
+#define UNIT 20
+long aaa;
+char FileDir[61];
+char fname[61];
+char tmpdir[61];
+char string[STR_LEN+1];
+//tmpdir
+char SelectDir()
+{
+ChDir("/");
+
+for(;;)
+    {
+if(!FileList(tmpdir)||!strcmp(tmpdir,".."))return 0;
+if(ChDir(tmpdir))
+{memmove(tmpdir+(aaa=1),tmpdir,60);
+tmpdir[aaa=0]='/';
+strcat(tmpdir,"/");return 1;}
+else {strcpy(tmpdir,"/");continue;}
+}
+}
+char SelectFile()
+{
+int tmp;
+ChDir("/");
+strcpy(tmpdir,"/");
+tmp=0;
+for(;;)
+    {
+        if(!FileList(fname) || !strcmp(fname,".."))
+        {tmp--;
+         if (tmp<0)return 0;
+tmpdir[strlen(tmpdir)-1]=0;
+for(;tmpdir[strlen(tmpdir)-1]!='/';)
+tmpdir[strlen(tmpdir)-1]=0;
+            ChDir("..");
+           continue ;
+        }
+        if(ChDir(fname))
+        {
+tmp++;
+strcat(tmpdir,fname);
+strcat(tmpdir,"/");
+continue ;
+        }else tmp--;
+strcpy(FileDir,tmpdir);
+strcat(FileDir,fname);
+return 1;
+   }
+}
+void inputw(char Row)
+{   char Title[21];
+    char strcopy[61];
+    int fp;
+    char Ch[3],ch;
+    int Pos,word,n ;
+    char mode ;
+    n=0 ;
+    mode=0 ;
+    Ch[aaa=2]=0 ;
+    memset(string,0,STR_LEN+(aaa=1));
+    Pos=Row*20 ;
+    strcpy(Title,_TEXT);
+    for(;;)
+    {
+        strcpy(_TEXT,Title);
+        n=strlen(string);
+        Locate(Row,0);
+        memset(_TEXT+Pos,0,100-Pos);
+        printf("%s_",string);
+        /**本程式使用'_'光标;**/
+        word=GetWord(mode);
+        mode=3;
+        Ch[aaa=0]=word ;
+        if(isprint(Ch[aaa=0])&&n<STR_LEN)
+        {
+            string[n]=Ch[aaa=0];
+            continue ;
+        }
+        //endif-isprint
+        else if(Ch[aaa=0]>=160&&n<STR_LEN)
+        {
+            Ch[aaa=1]=word>>8 ;
+            memcpy(string+n,Ch,2);
+            continue ;
+        }
+        //endif-160
+        else if(Ch[aaa=0]==23&&n)
+        {
+            n--;
+            if(string[n]>=160)
+            {
+                n--;
+                memset(string+n,0,2);
+            }
+            else string[n]=0 ;
+            continue ;
+        }
+        //endif-23       
+        else if(Ch[aaa=0]==13&&n)
+        {
+            string[n]=0 ;
+            break ;
+        }
+        else if(Ch[aaa=0]==27)
+        {
+            memset(string,0,STR_LEN);
+            return ;
+        }
+       else if(Ch[aaa=0]==14)
+{Locate(4,0);
+printf("读入字母");
+Locate(4,0);
+if((fp=fopen("/LavaData/FileList.Dat","r"))==NULL)
+{
+fp=fopen("/LavaData/FileList.Dat","w");
+}
+ch=getchar();
+if(islower(ch))
+{
+ch=ch-'a';
+if(fseek(fp,ch*UNIT,0)==EOF){printf("无法读入");fclose(fp);Delay(50);continue;}
+if((fread(strcopy,2,UNIT,fp))==NULL)printf("读入失败!");else {strcat(string,strcopy);
+printf("成功读入!");}
+fclose(fp);
+Delay(50);
+continue;
+}
+}
+else if(Ch[aaa=0]==19)
+{Locate(4,0);
+printf("写入字母");
+Locate(4,0);
+
+if((fp=fopen("/LavaData/FileList.Dat","r+"))==NULL)
+{
+fp=fopen("/LavaData/FileList.Dat","w");
+}
+ch=getchar();
+if(islower(ch))
+{
+Locate(4,0);
+ch=ch-'a';
+if(fseek(fp,ch*UNIT,0)==EOF){printf("无法写入!");fclose(fp);Delay(50);continue;}
+string[n]=0;
+fwrite(string,2,UNIT,fp);
+printf("成功写入!");fclose(fp);
+Delay(50);
+continue;
+}
+}
+else if(Ch[aaa=0]==28)
+        {strcat(string,fname);continue;}
+else if(Ch[aaa=0]==29)
+        {memset(string,0,STR_LEN+(aaa=1));continue;}  
+else if(Ch[aaa=0]==22){    
+if(SelectDir())
+{
+strcpy(string,tmpdir);
+strcat(string,fname);
+}
+    continue;
+                  }
+}
+    //End-Loop
+}
+//End-Inputw()
+char MakeDirect()
+{
+ChDir("/");
+SetScreen(0);
+memset(_TEXT,0,100);
+memcpy(_TEXT,"为你要建的目录取名  ",20);
+inputw(1);
+Locate(4,0);
+if(MakeDir(string)==NULL)
+     {
+printf("建目录失败！");getchar();return 0;
+     }else {
+printf("成功建立目录");getchar();return 1;
+           }
+}//End MakeDirect;
+char DelFile()
+{char ch;
+if(SelectFile())
+{
+memset(_TEXT,0,100);strcpy(_TEXT,"删除此文件?(Y/N)");strcpy(_TEXT+40,FileDir);
+UpdateLCD(0);
+for(;;)
+ {
+ch=getchar();
+if(ch=='y'){DeleteFile(FileDir);return 1;}
+else if(ch=='n')return 0;
+else continue;
+ }
+}
+else return 0;
+}
+char CopyFile()
+{
+long file_len,S;
+int fget,fput;
+int i,N,ch;
+char field[FIELD];
+if(SelectFile()==0)return 0;
+SetScreen(0);
+printf("按→键选择目标目录");
+inputw(1);
+Locate(4,0);printf("请等待..");
+if(string[aaa=1]==0||string[aaa=1]=='/'){Locate(4,0);printf("粘贴文件失败！");getchar();return 0;}
+if((fput=fopen(string,"w"))==NULL)
+{Locate(4,0);
+printf("无法粘贴文件");getchar();fclose(fput);return 0;
+}
+if((fget=fopen(FileDir,"r"))==NULL)
+{Locate(4,0);printf("无法打开文件");getchar();fclose(fget);return 0;}
+fseek(fget,0,2);
+file_len=ftell(fget);
+rewind(fget);
+N=file_len/FIELD;
+S=file_len%FIELD;
+for(i=1;i<=N;i++)
+{
+fread(field,1,FIELD,fget);
+fwrite(field,1,FIELD,fput);
+}
+fread(field,1,S,fget);
+fwrite(field,1,S,fput);
+fclose(fget);
+fclose(fput);
+Locate(4,0);printf("成功粘贴完毕");
+getchar();
+return 1; 
+    }
+char CutFile()
+{
+if(CopyFile())
+{
+DeleteFile(FileDir);return 1;
+}else return 0; 
+}
+void ScreenPrepare()
+{memset(_TEXT,0,156);
+strcpy(_TEXT,"=CopyTool v04.05.04=");
+//strcpy(_TEXT+HLEN,"新建目录1");strcpy(_TEXT+HALF*3,"新建目录2");
+strcpy(_TEXT+HLEN*(aaa=2),"建立目录");strcpy(_TEXT+HALF*(aaa=5),"复制文件");
+strcpy(_TEXT+HLEN*(aaa=3),"删除文件");strcpy(_TEXT+HALF*(aaa=7),"剪切文件");
+//strcpy(_TEXT+HLEN*4,"新建目录7");
+return;
+}
+void main()
+{
+int row,col;
+char ch;
+col=0;row=0;
+SetScreen(HLEN==26);
+ScreenPrepare();
+for(;;)
+{
+UpdateLCD(0);
+Box(col*80+1,(row+MENU_FIRST_ROW)*16,(col+1)*80-1,(row+(aaa=1)+MENU_FIRST_ROW)*16-1,1,2);
+ch=getchar();
+if(ch==UP_KEY&&row>0)row--;
+else if(ch==DN_KEY&&row<5&&*(_TEXT+(row+MENU_FIRST_ROW+(aaa=1))*HLEN+col*HALF))row++;
+else if(ch==RT_KEY&&*(_TEXT+(col+1)*HALF+(row+MENU_FIRST_ROW)*HLEN)&&col<1)col++;
+else if(ch==LT_KEY&&col>0)col--;
+else if(ch==ENTER_KEY)
+{
+if(row==0&&col==0){MakeDirect();}else if(row==0&&col==1){CopyFile();}//COPY
+
+if(row==1&&col==0){DelFile();}else if(row==1&&col==1){CutFile();}//DEL and CUT
+//else if(row==2&&col==0){}else if(row==2&&col==1){}
+
+ScreenPrepare();
+continue;
+}
+else if(ch==ESC_KEY)exit(0);
+}//End-Loop
+}

@@ -1,0 +1,13 @@
+原型:void memmove(int dest, int src, int count);
+功能:由src所指内存区域复制count个字节到dest所指内存区域
+说明:与memcpy不同的是,src和dest所指内存区域可以重叠
+举例:
+char s[] = "Golden Global View";
+
+void main()
+{
+ SetScreen(0);
+ memmove(s + 5, s, strlen(s) - 5);
+ printf("%s", s + 5);
+ getchar();
+}

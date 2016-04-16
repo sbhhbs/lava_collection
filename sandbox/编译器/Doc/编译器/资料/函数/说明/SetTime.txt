@@ -1,0 +1,38 @@
+原型:void SetTime(struct Time t);
+功能:设置系统日期和时间
+说明:使用GetTime,SetTime,请在程序里加上如下结构定义:
+struct TIME
+{
+ int year;
+ char month;
+ char day;
+ char hour;
+ char minute;
+ char second;
+ char week;
+};
+举例:
+struct TIME
+{
+ int year;
+ char month;
+ char day;
+ char hour;
+ char minute;
+ char second;
+ char week;
+};
+struct TIME time;
+
+void main()
+{
+ time.year = 2020;
+ time.month = 12;
+ time.day = 25;
+ time.hour = 23;
+ time.minute = 55;
+ time.second = 1;
+ SetTime(time);
+ printf("设置完毕!");
+ getchar();
+}

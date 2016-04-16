@@ -1,0 +1,912 @@
+#define F1 		28
+#define F2		29
+#define F3		30
+#define F4		31
+#define space 32
+#define UP    20 
+#define DN    21
+#define RT    22
+#define LT    23
+#define shift 26
+#define point 46
+#define help  25
+long aaa;
+char pic[5][2][20];
+
+char star[]
+={0x20,0x20,0xf8,0x50,0x88};
+char jiantou[]=
+	{	// 宽=6,高=7
+
+	0x20,0x30,0xf8,0xfc,0xf8,0x30,0x20};
+
+ 
+char data[][20][9]
+={
+	"奔驰","别克","铃木","旁迪克","无限","中华","本田","宝马","丰田","三菱","日野","通用","大众",
+"雪铁龙","卡迪拉克","欧宝","雪佛莱","林肯","凌志","奥兹",
+
+
+"日本","中国","孟加拉","加拿大","格陵兰","巴拿马","美国","瑞典","智利","尼泊尔","刚果","瑞士","所罗门",
+"南非","英国","法国","土耳其","希腊","韩国","菲律宾"  
+
+
+
+	
+ };
+ 
+ char hname[][10]={"mbx","mbx","mbx","mbx","mbx","mbx"};
+ int  hscore[]={0,0,0,0,0,0};
+ struct BUFF
+{
+	char x;
+	char y;
+	char kind;
+};
+ struct  BUFF man[2];
+ char loadmap[9][16],x,y,x1,y1,x2,y2,total,lev,fail,fp,delaytime,add,auto,tp;
+ char barrier[9][16];
+ int time;
+ long score;
+ long longbuf[2];
+ char stagepic[252],titlepic[329];
+ char study,name[8];
+ char map[160][2];
+ ////***************************************************************************
+ //////////////*****************************************************************
+ 
+ void US()
+{
+	Box(0,0,160,80,1,0);
+	TextOut(4,35,"    程序设计:马保祥",64);
+	TextOut(4,49,"QQ:270182215",64);
+	TextOut(4,63,"邮箱:mbxiwzd@eyou.com",64);
+	TextOut(4,1,"衷心感谢一直以来电脑蛙蛙",64);
+	TextOut(4,15,"的帮助以及广大星迷的支持!",64);
+	fclose(fp);
+	getchar();
+	Refresh();
+	
+}
+ 
+ void begain()			//开始画面.
+{
+	char i;
+	char studio[1100];
+
+	fp=fopen("/LavaData/llkpic.dat","r");
+	if(fp==0)
+	{
+		TextOut(10,30,"无数据文件:llkpic.dat!",64);
+		getchar();
+		exit(0);
+	}
+	else 
+	{
+		rewind(fp);
+		fread(studio,1,1100,fp);
+		//fclose(fp);
+	}
+	Block(1,0,160,24,1);
+	WriteBlock(1,25,160,55,1,studio);
+	Refresh();
+	ReleaseKey(128);
+	for(;;)
+	{
+		for(i=1;i<10;i++)
+		WriteBlock(rand()%140+10,rand()%50,5,5,72,star);
+		Delay(200);
+		Refresh();
+		if(Inkey())break;
+	}
+}
+//**************************************************************************
+
+//***********************************************************************
+void showname()////////////显示排行榜。
+{
+	char i,j,k;
+	int buf[4];
+	Box(0,0,160,80,1,0);
+	Box(1,0,159,79,0,1);
+	Box(1,0,159,17,0,1);
+	TextOut(50,4,"英雄榜单",64);
+	Box(3,2,157,15,1,2);
+	tp=fopen("/LavaData/llkhero.dat","r");
+	for(i=0;i<5;i++)
+	fread(hname[i],1,6,tp);
+	fclose(tp);
+	for(i=0;i<5;i++)
+	{
+		TextOut(10,i*12+19,hname[i],64);
+		sprintf(buf,"%d",hscore[i]);
+		TextOut(90,i*12+19,buf,64);
+	}
+	getchar();
+}
+void savescore()
+{
+	
+}
+
+char inputname()
+{
+	
+	
+	
+	
+}
+void checkscore()
+{
+	
+	
+}
+
+char menu()
+{
+	
+}
+
+//***********************************************************************
+ void shuaxin()//////////////////刷新屏幕图像
+ {
+ 	
+ }
+ 
+ void wangge(char m)
+ {
+ 		
+ 		char i,j;
+ 		if(m==1)
+ 		{
+ 		for(i=0;i<6;i++)
+ 		Rectangle(1,i*11+13,156,i*11+13,1);
+ 		for(i=0;i<13;i++)
+ 		Rectangle(i*11+13,1,i*11+13,79,1);
+ 		
+ 		}
+ 		else if(m==0)
+ 		{
+ 			Block(0,0,159,79,0);
+ 			for(i=1;i<8;i++)
+ 			for(j=1;j<15;j++)
+ 			WriteBlock(j*11-9,i*11-9,10,10,1,pic[lev][loadmap[i][j]]);
+ 		}
+ 		Refresh();
+ }
+ char move()/////////////////按键控制
+ {
+ 	char k,r;
+ 	r=0;
+ 	Refresh();
+ 	Box(x*11-10,y*11-10,x*11+1,y*11+1,1,2);
+ 	for(;;)
+ 	{
+ 		
+ 	
+ 		k=Inkey();
+ 		if(!k)Delay(delaytime);
+ 		else 
+ 		{
+ 			
+ 			if(k==20||k=='w')
+ 			{y--;
+ 				if(y<1)y=7;
+ 			
+ 			}
+ 			else if(k==21||k=='s')
+ 			{y++;
+ 				if(y>7)y=1;
+ 				
+ 			}
+ 			else if(k==22||k=='d')
+ 			{x++;
+ 			if(x>14)x=1;
+ 			
+ 			}
+ 			else if(k==23||k=='a')
+ 			{x--;
+ 			if(x<1)x=14;
+ 				
+ 			}
+ 			
+ 			else if(k==13||k=='r'){Refresh();return k;}
+ 			else if(k==27)return k;
+ 			else if(k==F1){shuaxin();if(study==0)time=time-100;}
+ 			else if(k==F3){r=1-r;wangge(r);}
+ 			else if(k=='p')
+ 			{
+ 					
+ 					Box(0,0,159,79,1,0);
+ 					TextOut(24,1,"《星星连连看》",192);
+ 					Box(38,25,118,61,0,1);
+ 					Box(40,27,116,59,0,1);
+ 					rewind(fp);
+ 					fseek(fp,4849,0);
+ 					fread(stagepic,1,252,fp);
+ 					WriteBlock(42,29,72,28,64,stagepic);
+ 					Delay(500);
+ 					getchar();
+ 			}
+ 			Refresh();
+ 			Box(x*11-10,y*11-10,x*11+1,y*11+1,1,2);
+ 		
+ 			Delay(delaytime);
+ 		
+ 			ReleaseKey(128);
+ 	}
+ 	if(study==0)
+ 	time--;
+ 	if(time>2000)time=2000;
+ 	Block(157,2,159,79,0);
+ 	Rectangle(157,2,159,79,1);
+ 	Rectangle(158,time/25-1,158,79,1);
+ 	Box(157,2,159,79,1,0);
+ 	Box(157,2,159,79,0,1);
+ 	Box(158,time/25-1,158,79,1,1);
+ 	//Refresh();
+ 	if(time<=100)
+ 	{
+ 		Box(38,13,118,65,1,0);
+		Box(38,13,118,65,0,1);
+		Box(40,15,116,47,0,1);
+		rewind(fp);
+ 					fseek(fp,4345,0);
+ 					fread(stagepic,1,252,fp);
+ 					WriteBlock(42,17,72,28,64,stagepic);
+		
+		getchar();
+		TextOut(43,50,"重玩吗?(Y/N)",64);
+		
+		if(getchar()=='y')
+		return 100;
+		else return 101;
+ 	}
+ 	}
+ 	
+ }
+ void distroy()////////相同图形相消的画面。
+ {
+ 	char i,j,k;
+ 	for(i=0;i<3;i++)
+ 	{
+ 		Box(man[aaa=0].x*11-9,man[aaa=0].y*11-9,man[aaa=0].x*11+1,man[aaa=0].y*11+1,1,2);
+ 		Box(man[aaa=1].x*11-9,man[aaa=1].y*11-9,man[aaa=1].x*11+1,man[aaa=1].y*11+1,1,2);
+ 		Delay(300);
+ 	}
+ 	Block(man[aaa=0].x*11-9,man[aaa=0].y*11-9,man[aaa=0].x*11+1,man[aaa=0].y*11+1,0);
+ 	Block(man[aaa=1].x*11-9,man[aaa=1].y*11-9,man[aaa=1].x*11+1,man[aaa=1].y*11+1,0);
+ 	loadmap[man[aaa=0].y][man[aaa=0].x]=0;
+ 	loadmap[man[aaa=1].y][man[aaa=1].x]=0;
+ 	Refresh();
+ 	total=total-2;
+ 	time=time+add;
+ 	
+ }
+ 
+ char gonglie()/////1.中，共列
+ {
+ 	char i,j;
+ 	j=0;
+ 				if(man[aaa=1].y<man[aaa=0].y)
+ 				{
+ 					
+ 					for(i=man[aaa=0].y-1;i>0;i--)
+ 					{
+ 						
+ 						
+ 						if(loadmap[i][man[aaa=0].x]!=0)
+ 						break;
+ 						j++;	
+ 						
+ 					}
+ 					
+ 				}
+ 				else if(man[aaa=1].y>man[aaa=0].y)
+ 				{
+ 					for(i=man[aaa=0].y+1;i<9;i++)
+ 					{
+ 						
+ 						if(loadmap[i][man[aaa=0].x]!=0)break;
+ 						j++;
+ 					}
+ 				}
+ 			
+ 				if(j==abs(man[aaa=0].y-man[aaa=1].y)-1)
+ 						{
+ 							
+ 							
+ 							distroy();
+ 						
+ 							score++;
+ 							return 1;
+ 						}
+ 				else return 0;
+ 			
+ }
+ 
+ char tonghang()/////1.中，同行。
+ {
+ 	char i,j;
+ 
+ 			j=0;	
+ 					if(man[aaa=1].x<man[aaa=0].x)
+ 					{
+ 						for(i=man[aaa=0].x-1;i>0;i--)
+ 						{
+ 					
+ 							if(loadmap[man[aaa=0].y][i])
+ 							
+ 								break;
+ 							j++;
+ 						}
+ 					}
+ 					else if(man[aaa=1].x>man[aaa=0].x)
+ 						{
+ 							for(i=man[aaa=0].x+1;i<16;i++)
+ 							{
+ 					
+ 								if(loadmap[man[aaa=0].y][i])
+ 								{break;}
+ 								j++;
+ 						
+ 							}
+ 						}	
+ 					
+ 		if(j==abs(man[aaa=0].x-man[aaa=1].x)-1)
+ 			{
+ 				
+ 				
+ 				
+ 					distroy();
+ 					
+ 					score++;
+ 					return 1;
+ 			}
+ 			
+ 		else return 0;		
+ 				
+ }
+ 
+ char jiaocha()/////2中，
+ {
+ 	char i,vic;
+ 	vic=0;
+
+ 	memset(barrier,'0',144);
+ 		for(i=man[aaa=0].x-1;i>0;i--)
+ 		{
+ 			if(loadmap[man[aaa=0].y][i])break;
+ 			else barrier[man[aaa=0].y][i]=1;
+ 			
+ 		}
+ 		for(i=man[aaa=0].x+1;i<16;i++)
+ 		{
+ 			if(loadmap[man[aaa=0].y][i])break;
+ 			else barrier[man[aaa=0].y][i]=1;
+ 			
+ 		}
+ 		for(i=man[aaa=0].y+1;i<9;i++)
+ 		{
+ 			if(loadmap[i][man[aaa=0].x])break;
+ 			else barrier[i][man[aaa=0].x]=1;
+ 		}
+ 		for(i=man[aaa=0].y-1;i>0;i--)
+ 		{
+ 			if(loadmap[i][man[aaa=0].x])break;
+ 			else barrier[i][man[aaa=0].x]=1;
+ 		}
+ //////////以上为图一四向延伸//////////////////////////		
+ //////////以下为找交点//////////////////////////////			
+ 		for(i=man[aaa=1].x-1;i>0;i--)
+ 		{
+ 			if(barrier[man[aaa=1].y][i]==1)
+ 			{
+ 				
+ 				distroy();
+ 				score=score+2;
+ 				return 1;
+ 			}
+ 			
+ 			if(loadmap[man[aaa=1].y][i])break;
+ 	
+ 			
+ 		}
+ 	
+ 		for(i=man[aaa=1].x+1;i<16;i++)
+ 		{
+ 			if(barrier[man[aaa=1].y][i]==1)
+ 			{
+ 					
+ 				distroy();
+ 				score=score+2;
+ 				return 1;
+ 			}
+ 		
+ 			if(loadmap[man[aaa=1].y][i])break;
+ 		
+ 		
+ 			
+ 		}
+ 		
+ 		
+ 		for(i=man[aaa=1].y+1;i<9;i++)
+ 		{
+ 			if(barrier[i][man[aaa=1].x]==1)
+ 			{
+ 				
+ 				distroy();
+ 					score=score+2;
+ 				return 1;
+ 			}
+ 			
+ 			if(loadmap[i][man[aaa=1].x])break;
+ 		
+ 		
+ 		}
+ 		
+ 		
+ 		for(i=man[aaa=1].y-1;i>0;i--)
+ 		{
+ 			if(barrier[i][man[aaa=1].x]==1)
+ 			{
+ 						
+ 				distroy();
+ 				score=score+2;
+ 				return 1;
+ 			}
+ 			
+ 			
+ 			if(loadmap[i][man[aaa=1].x])break;
+ 		
+ 			
+ 		}
+ 		
+ 		
+ 			
+ 		 return 0;///340
+//////////////以上判断有无一个交点的交叉形连接方式/////////////
+ }
+ 
+ 
+ 
+char fuzhu()/////////////////////////////////////3需添加辅助线的情况。
+{
+	int i,j,k,num;
+	memset(barrier,'0',144);
+	
+	num=0;
+		for(i=man[aaa=0].x-1;i>=0;i--)
+ 		{
+ 			if(loadmap[man[aaa=0].y][i])break;
+ 			else barrier[man[aaa=0].y][i]=1;
+ 			
+ 		}
+ 		for(i=man[aaa=0].x+1;i<16;i++)
+ 		{
+ 			if(loadmap[man[aaa=0].y][i])break;
+ 			else barrier[man[aaa=0].y][i]=1;
+ 			
+ 		}
+ 		for(i=man[aaa=0].y+1;i<9;i++)
+ 		{
+ 			if(loadmap[i][man[aaa=0].x])break;
+ 			else barrier[i][man[aaa=0].x]=1;
+ 		}
+ 		for(i=man[aaa=0].y-1;i>=0;i--)
+ 		{
+ 			if(loadmap[i][man[aaa=0].x])break;
+ 			else barrier[i][man[aaa=0].x]=1;
+ 		}
+ 		
+ 		for(i=man[aaa=1].x-1;i>=0;i--)
+ 		{
+ 			if(loadmap[man[aaa=1].y][i])break;
+ 			else barrier[man[aaa=1].y][i]=1;
+ 			
+ 		}
+ 		for(i=man[aaa=1].x+1;i<16;i++)
+ 		{
+ 			if(loadmap[man[aaa=1].y][i])break;
+ 			else barrier[man[aaa=1].y][i]=1;
+ 			
+ 		}
+ 		for(i=man[aaa=1].y+1;i<9;i++)
+ 		{
+ 			if(loadmap[i][man[aaa=1].x])break;
+ 			else barrier[i][man[aaa=1].x]=1;
+ 		}
+ 		for(i=man[aaa=1].y-1;i>=0;i--)
+ 		{
+ 			if(loadmap[i][man[aaa=1].x])break;
+ 			else barrier[i][man[aaa=1].x]=1;
+ 		}
+	/////////////////列平行////////////
+	for(i=0;i<9;i++)
+	{
+		num=0;
+		if(barrier[i][man[aaa=0].x]==1&&barrier[i][man[aaa=1].x]==1)
+		{
+			if(man[aaa=1].x>man[aaa=0].x)
+			{
+				for(j=man[aaa=0].x+1;j<=man[aaa=1].x;j++)
+				{
+					if(loadmap[i][j])break;
+					num++;
+				}
+			}
+			else if(man[aaa=1].x<man[aaa=0].x)
+			{
+				for(j=man[aaa=0].x-1;j>=man[aaa=1].x;j--)
+				{
+					if(loadmap[i][j])break;
+					num++;
+				}
+			}
+			
+		}
+		if(num!=0&&num==abs(man[aaa=0].x-man[aaa=1].x))
+		{
+			
+			
+			
+			distroy();
+			score=score+3;
+			return 1;
+		}
+			
+	}
+	
+	
+/////////////行平行////////////////	
+	for(i=0;i<16;i++)
+	{
+		num=0;
+		if(barrier[man[aaa=0].y][i]==1&&barrier[man[aaa=1].y][i]==1)
+		{
+			if(man[aaa=1].y<man[aaa=0].y)
+			{
+				for(j=man[aaa=0].y-1;j>=man[aaa=1].y;j--)
+				{
+					if(loadmap[j][i])break;
+					num++;
+					
+				}
+			}
+			else if(man[aaa=1].y>man[aaa=0].y)
+			{
+				for(j=man[aaa=0].y+1;j<=man[aaa=1].y;j++)
+				{
+					if(loadmap[j][i])break;
+					num++;
+					
+				}
+			}
+		}
+		if(num!=0&&num==abs(man[aaa=0].y-man[aaa=1].y))////////437
+		{
+			
+			
+			distroy();
+			score=score+3;
+			return 1;
+		}
+		
+	}
+	
+	
+}
+
+char tiaojie()
+{
+	
+	char i,j,k,ch,i0,r1,r2;
+	char c[10];
+	i=0;k=0;lev=0;
+	r1=0;r2=0;
+	i0=i;
+	Block(70,23,150,65,0);
+	Rectangle(70,23,150,65,1);
+	//Rectangle(80,20,155,65,1);
+	
+	TextOut(80,25,"关卡:- 1 +",1);
+	TextOut(80,38,"难度:低  高",1);
+	TextOut(80,51,"缩进:无  有",1);
+	//Rectangle(110,34,125,45,1);
+	Refresh();
+		Block(73,28,78,31,2);
+		Block(109,37,122,49,2);
+		Block(109,51,122,62,2);
+	for(;;)
+	{	
+			
+			
+			
+			
+			
+			}
+			
+		
+}
+void s_j_l(char k)
+{
+		char i;
+		for(i=man[k].y;i>0;i--)
+			{
+				
+				loadmap[i][man[k].x]=loadmap[i-1][man[k].x];
+				if(loadmap[i-1][man[k].x]==0)break;
+			}
+}
+void s_j_h(char k)
+{
+	char i,j;
+	for(j=1;j<9;j++)
+	for(i=man[k].x;i<15;i++)
+			{
+				//if(loadmap[i+1][man[k].x]==0)break;
+				loadmap[j][i]=loadmap[j][i+1];
+			}
+}
+void suojin()
+{
+	char i,j,k,m;
+	if(man[aaa=0].y<=man[aaa=1].y)k=0;
+	else k=1;
+	s_j_l(k);
+	s_j_l(1-k);
+	if(man[aaa=0].x>=man[aaa=1].x)m=0;
+	else m=1;
+	if(loadmap[aaa=7][man[m].x]==0)s_j_h(m);
+	if(loadmap[aaa=7][man[aaa=1-m].x]==0)s_j_h(1-m);
+		
+	for(i=1;i<8;i++)
+ 	for(j=1;j<15;j++)
+ 	WriteBlock(j*11-9,i*11-9,10,10,1,pic[lev][loadmap[i][j]]);
+ 			
+ 	Refresh();	
+	
+	
+}
+void helpme()
+{
+	
+	
+}
+//*************************************************************************************
+//*************************************************************************************
+///////////////////////////////主函数/////////////////////////////////////////////
+ void main()
+ {
+ 	char i,j,k,c,m,n,t,mov,m1,n1,step,vic,menunum,key,t_j;
+ 	int loading;
+ 	char stage[8],lev0;
+ 	//inputname();
+ 	begain();
+ 	
+ l1:;
+ 	add=20;delaytime=100;auto=0;study=0;score=0;
+ 	menunum=menu();
+ 	
+ 	if(menunum==0)
+ 	{
+ 		Block(0,0,160,80,0);
+ 		Rectangle(36,21,124,58,1);
+ 		Rectangle(38,23,122,56,1);
+ 		TextOut(40,25,"1.学习模式",128);
+ 		TextOut(40,40,"2.挑战模式",128);
+ 		Refresh();
+ 		for(;;)
+ 		{
+ 			key=getchar();
+ 			if(key=='b'){study=1;lev=0;break;}
+ 			else if(key=='n'){study=0;lev=0;break;}
+ 			else if(key==27){goto l1;}
+ 		}
+ 		lev0=0;
+ 	}
+ 	else if(menunum==1)
+ 	{
+ 		
+ 		if(tiaojie()==27)goto l1;
+ 		lev0=lev;
+ 		
+ 	}
+ 	else if(menunum==2)
+ 	{
+ 		helpme();goto l1;
+ 	}
+ 	else if(menunum==3)
+ 	{
+ 		tp=fopen("/LavaData/llkhero.dat","r");
+ 		if(!tp)savescore();
+ 		else fclose(tp);
+ 		showname();	
+ 		goto l1;
+ 	}
+ //****************************************************************************	
+ 	
+ l0:;
+ 	total=98;time=2000;
+ 	Block(0,0,160,80,0);loading=0;
+ 	sprintf(stage,"stage:%d",lev+1);
+ 	TextOut(50,20,stage,128);
+ 	TextOut(40,40,"loading....",128);
+ 	Rectangle(22,60,138,65,1);
+ 	Refresh();
+ 	
+ 	for(i=0;i<9;i++)
+ 	for(j=0;j<16;j++)
+ 	{
+ 		loadmap[i][j]=map[i][j];
+ 		Box(24,62,4,63,1,1);
+ 	}
+ 	
+ 	for(j=1;j<14;j=j+2)
+ 	{
+ 		k=rand()%18+3;
+ 		loadmap[aaa=7][j]=k;
+ 		loadmap[aaa=7][j+1]=k;
+ 		loading++;
+ 		Box(24,62,24+loading/4,63,1,1);
+ 	}
+ 	for(i=0;i<200;i++)
+ 	{
+ 		m=rand()%7+1;n=rand()%14+1;
+ 		m1=rand()%7+1;n1=rand()%14+1;
+ 		if(loadmap[m][n]&&loadmap[m1][n1])
+ 		{
+ 			t=loadmap[m][n];
+ 			loadmap[m][n]=loadmap[m1][n1];
+ 			loadmap[m1][n1]=t;
+ 		}
+ 		loading++;
+ 		Box(24,62,24+loading/4,63,1,1);
+ 		
+ 	}
+ 	Block(0,0,159,79,0);
+ 	for(i=1;i<8;i++)
+ 	for(j=1;j<15;j++)
+ 	{
+ 			WriteBlock(j*11-9,i*11-9,10,10,1,pic[lev][loadmap[i][j]]);
+ 			loading++;
+ 		Box(24,62,24+loading/4,63,1,1);
+ 	}
+ 	
+ 
+ 	Refresh();
+ 	
+ 	x=1;y=1;
+ 	
+ start:;
+ 	for(;;)
+ 	{
+ 		step=0;vic=0;
+ 		do
+ 		{
+ 			mov=move();
+ 			
+ 			if(mov=='r')
+ 			{step=0;Refresh();}
+ 			else if(mov==13)
+ 			{
+ 				//
+ 				man[step].kind=loadmap[y][x];
+ 				man[step].x=x;
+ 				man[step].y=y;
+ 				step++;
+ 			}
+ 			else if(mov==27)
+ 			{
+ 				Box(48,23,114,57,1,0);
+ 				Box(48,23,114,57,0,1);
+				Box(50,25,112,55,0,1);
+				TextOut(52,27,"真的不玩了",64);
+				TextOut(62,40,"Y / N?",64);
+				if(getchar()=='y')
+				{checkscore();goto l1;}
+				else
+				{
+					if(step==1)Block(man[aaa=0].x*11-9,man[aaa=0].y*11-9,man[aaa=0].x*11+1,man[aaa=0].y*11+1,2);
+					Refresh();goto start;
+				}
+ 			}
+ 			else if(mov==100)
+ 			{
+ 				goto l0;
+ 			}
+ 			else if(mov==101)
+ 			{checkscore();goto l1;}
+ 			
+ 			if(loadmap[man[aaa=0].y][man[aaa=0].x]==0)
+ 				{
+ 					Box(34,25,128,45,1,0);
+ 					Box(34,25,128,45,0,1);
+ 					Box(36,27,126,43,0,1);
+ 					TextOut(41,30,"没有图形！！！",64);
+ 					Delay(500);
+ 					goto start;
+ 				}
+ 			Block(man[aaa=0].x*11-9,man[aaa=0].y*11-9,man[aaa=0].x*11+1,man[aaa=0].y*11+1,2);
+ 		
+ 		}while(step<2);
+ 		if(man[aaa=0].x==man[aaa=1].x&&man[aaa=0].y==man[aaa=1].y)
+ 			{
+ 				Box(34,25,128,45,1,0);
+ 				Box(34,25,128,45,0,1);
+ 				Box(36,27,126,43,0,1);
+ 				TextOut(41,30,"不想和自己连！",64);
+ 				Delay(500);
+ 					goto start;
+ 			}
+ 		if(man[aaa=0].kind!=man[aaa=1].kind)
+ 		{
+ 			Box(34,25,128,45,1,0);
+ 			Box(34,25,128,45,0,1);
+ 			Box(36,27,126,43,0,1);
+ 			TextOut(41,30,"眼神儿太差了！",64);
+ 			Delay(500);
+ 		//	goto start;
+ 		}
+ 		
+ 		else if(man[aaa=0].kind==man[aaa=1].kind)
+ 		{
+///////////////////////共列一条线//////////////
+ 			if(man[aaa=0].x==man[aaa=1].x) vic=gonglie();	
+///////////////////////同行一条线/////////////////	
+ 		 	
+ 			else if(man[aaa=0].y==man[aaa=1].y)
+ 			 		vic=tonghang();		
+/////////////////////交叉形//////////////////////			
+ 			if(!vic)
+ 				{
+ 					vic=jiaocha();	
+//////////////以下为增加一条辅助线的连接方式//////////////////			
+ 					if(!vic)
+ 					vic=fuzhu();
+ 			
+ 			}	
+ 
+ 		}
+ 		if(fail)goto l0;
+ 		if(vic==0)Beep();
+ 		if(total==0)
+ 		{
+ 			Box(38,13,118,65,1,0);
+			Box(38,13,118,65,0,1);
+			Box(40,15,116,47,0,1);
+			rewind(fp);
+ 					fseek(fp,4597,0);
+ 					fread(stagepic,1,252,fp);
+ 					WriteBlock(42,17,72,28,64,stagepic);
+		
+		//getchar();
+			TextOut(43,50,"**恭喜过关**",64);
+ 			lev++;
+ 			
+ 			getchar();
+ 			if(study)goto l1;
+ 			
+ 			if(lev==5)
+ 			{
+ 				if(lev0==0)
+ 				{
+ 					Box(38,13,118,65,1,0);
+					Box(38,13,118,65,0,1);
+					Box(40,15,116,47,0,1);
+					rewind(fp);
+ 					fseek(fp,5101,0);
+ 					fread(stagepic,1,252,fp);
+ 					WriteBlock(42,17,72,28,64,stagepic);
+ 					getchar();
+ 				}
+ 				checkscore();goto l1;
+ 			}
+ 			goto l0;
+ 		}
+ 		if(auto==1&&vic==1)suojin();
+ 		
+ 	}
+  
+	
+ }

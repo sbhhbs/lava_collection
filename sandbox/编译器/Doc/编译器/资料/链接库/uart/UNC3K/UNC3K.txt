@@ -1,0 +1,99 @@
+#define CODEBUF		0x1000	////////////
+#define VARBUF		0xf0	////////////
+
+#define COM_OPEN	0x1018	////////////
+#define COM_CLOSE	0x10ed	////////////
+#define COM_PUTC	0x1128	////////////
+#define COM_WRITE	0x113e	////////////
+#define COM_GETC	0x118d	////////////
+#define COM_READ	0x1199	////////////
+#define COM_WAIT	0x11cc	////////////
+#define COM_PUTDATA	0x11e2	////////////
+#define COM_GETDATA	0x1212	////////////
+
+
+#begin VARBUF
+int ptr;
+int rdata;
+#end
+
+#begin 0x88b0			////////////
+int _add;
+#end
+
+int ComOpen(char BaudRate)
+{
+	#loaddata CODEBUF = load("/文本文件/uartNC3K.obj");
+	rdata = BaudRate;
+	_add = COM_OPEN;
+	#code{0};
+	return rdata;
+}
+
+void ComClose()
+{
+	_add = COM_CLOSE;
+	#code{0};
+}
+
+int ComPutc(char data)
+{
+	rdata = data;
+	_add = COM_PUTC;
+	#code{0};
+	return rdata;
+}
+
+int ComWrite(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_WRITE;
+	#code{0};
+	return rdata;
+}
+
+int ComGetc()
+{
+	_add = COM_GETC;
+	#code{0};
+	return rdata;
+}
+
+int ComRead(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_READ;
+	#code{0};
+	return rdata;
+}
+
+int ComWaitReady()
+{
+	_add = COM_WAIT;
+	#code{0};
+	return rdata;
+}
+
+int ComPutData(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_PUTDATA;
+	#code{0};
+	return rdata;
+}
+
+int ComGetData(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_GETDATA;
+	#code{0};
+	return rdata;
+}
+
+void main()
+{
+}

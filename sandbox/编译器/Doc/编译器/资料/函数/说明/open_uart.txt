@@ -1,0 +1,21 @@
+原型:void open_uart(int BaudRate)
+功能:打开UART端口，并设置波特率
+说明:
+#define	BaudRate115k 1
+#define	BaudRate57k  2
+#define	BaudRate38k  3
+#define	BaudRate19k  4
+#define	BaudRate9600 5
+#define	BaudRate2400 6
+举例:
+void main()
+{
+ int recv_data;
+ char byte;
+
+ open_uart(BaudRate9600);
+ write_uart(0xaa);
+ recv_data = read_uart();
+ if (recv_data > 0xff) byte = recv_data&0xFF;
+ close_uart();
+}

@@ -1,0 +1,193 @@
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct _GRAY
+{long exe;//汇编入口地址
+ long check;//测试模式地址
+ long src[2];//资源地址
+};
+struct _EADD
+{long add;//文件地址
+ long mem;//内存地址
+ int size;//大小
+ char flag;//是否需要执行
+};
+
+
+char aaa[][20]=
+{"line_add   ",
+ "mask1      ",
+ "mask2      ",
+ "xdraw      ",
+ "XDraw      ",
+ "Point1     ",
+ "Point2     ",
+ "Block1     ",
+ "Block2     ",
+ "ClearScreen",
+ "GetPoint   ",
+ "TextOut    ",
+ "FileList   ",
+ "WriteBlock1",
+ "WriteBlock1",
+ "WriteBlock2",
+ "WriteBlock3",
+ "WriteBlock0",
+ "printf     ",
+ "getchar    ",
+ "chg        ",
+ "gray       ",
+ "code       "
+};
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+功能:设置背景颜色
+说明:2色模式下无效
+*/
+void setbgcolor(char _color)
+{long tcolor;
+ *0xfe=(_color=_color&3)|(_color<<2)|(_color<<4)|(_color<<6);
+ tcolor=(_color<<6)|(_color<<12)|(_color<<18)|(_color<<24);
+ memcpy(0x79c0,&tcolor,4);
+}
+/*
+功能:设置前景颜色
+说明:2色模式下无效
+*/
+void setfgcolor(char _color)
+{long tcolor;
+ *0xff=(_color=_color&3)|(_color<<2)|(_color<<4)|(_color<<6);
+ tcolor=(_color<<6)|(_color<<12)|(_color<<18)|(_color<<24);
+ memcpy(0x79c4,&tcolor,4);
+}
+int itoa(long num)//integer to string
+{long i,ch,n;
+ char str[30];
+ memset(str,0,30);n=num;
+ while(num)
+  {i=num%16;num=(num>>4);
+   if(i<10)ch=i|'0';else ch=i+'7';
+   memmove(str+1,str,strlen(str));str[0]=ch;
+  }
+ if(n==0)strcpy(str,"0000");
+ else if(n<0x10){memmove(str+3,str,strlen(str));str[0]='0';str[1]='0';str[2]='0';}
+ else if(n<0x100){memmove(str+2,str,strlen(str));str[0]='0';str[1]='0';}
+ else if(n<0x1000){memmove(str+1,str,strlen(str));str[0]='0';}
+ return(str);
+}
+int _itoa(char num)//integer to string
+{char i,ch,n;
+ char str[30];
+ memset(str,0,30);n=num;
+ while(num)
+  {i=num%16;num=(num>>4);
+   if(i<10)ch=i|'0';else ch=i+'7';
+   memmove(str+1,str,strlen(str));str[0]=ch;
+  }
+ if(n==0)strcpy(str,"00");
+ else if(n<0x10){memmove(str+1,str,strlen(str));str[0]='0';}
+ return(str);
+}
+/*
+功能:设置系统图形模式
+说明:mode=1，2色模式
+     mode=2，4色模式
+     mode=0，不改变图形模式，仅获取当前图形模式
+     成功时返回原来的图形模式
+     试图设置硬件不支持的图形模式，会返回0
+*/
+int setgraphmode(char _mode)
+{struct _GRAY gray;
+ struct _EADD eadd;
+ long offset,tadd;//地址备份
+ char jx,i,len,tmode;
+ char fp,tp;//dll句柄
+ char j,buf[1000],str[1000];
+ if(_mode>2)return(0);
+ //打开dll文件
+ if(!(fp=fopen("/LibData/Gray.dll","r")))
+  {if(!(fp=fopen("/LavaData/Gray.dll","r")))
+    {
+     if(!(fp=fopen("/GVMdata/Gray.dll","r")))return(-1);
+    }
+  }
+ //判断机型
+ len=getc(fp);
+ 
+ jx=4;///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+ fseek(fp,jx*sizeof(struct _GRAY)+(len<<1)+1,0);fread(gray,1,sizeof(struct _GRAY),fp);//读取偏移地址信息
+ //memcpy(&tadd,gray.exe,2);//备份执行地址
+ 
+ tp=fopen("/gray.txt","w");
+ SetScreen(1);memset(str,0,200);
+ if(jx==0)sprintf(str,"NC3000 %d",_mode);
+ else if(jx==1)sprintf(str,"NC2600 %d",_mode);
+ else if(jx==2)sprintf(str,"TC1000 %d",_mode);
+ else if(jx==3)sprintf(str,"TC808 %d",_mode);
+ else if(jx==4)sprintf(str,"TC1000S %d",_mode);
+ str[strlen(str)]=13;str[strlen(str)]=10;
+ sprintf(str+strlen(str),"gray:");
+ sprintf(str+strlen(str),"%s ",itoa(gray.exe));
+ sprintf(str+strlen(str),"%s ",itoa(gray.check));
+ sprintf(str+strlen(str),"%s ",itoa(gray.src[0]));
+ sprintf(str+strlen(str),"%s",itoa(gray.src[1]));
+ str[strlen(str)]=13;str[strlen(str)]=10;
+ //printf(str);
+ fwrite(str,1,strlen(str),tp);
+ 
+ //SetGraphMode(1~2)
+ offset=fseek(fp,gray.src[_mode>>1],0)+1;len=getc(fp);
+ for(i=0;i<len;i++)
+  {fseek(fp,offset,0);fread(eadd,1,sizeof(struct _EADD),fp);offset=ftell(fp);//定位
+   memset(str,0,200);str[0]=13;str[1]=10;
+   sprintf(str+strlen(str),"%s:%s ",aaa[i],itoa(eadd.add));
+   sprintf(str+strlen(str),"%s ",itoa(eadd.mem));
+   sprintf(str+strlen(str),"%s ",itoa(eadd.size));
+   sprintf(str+strlen(str),"%s",itoa(eadd.flag));
+   str[strlen(str)]='|';str[strlen(str)]='|';
+   //printf(str);
+   fseek(fp,eadd.add,0);
+   fread(buf,1,eadd.size,fp);//读取到内存
+   
+   sprintf(str+strlen(str),"%s",_itoa(buf[0]));
+   for(j=1;j<30&&j<eadd.size;j++)sprintf(str+strlen(str)," %s",_itoa(buf[j]));
+   fwrite(str,1,strlen(str),tp);
+   
+   if(eadd.flag)
+    {//memcpy(gray.exe,&eadd.mem,2);
+     Beep();//执行代码
+    }
+  }
+ fclose(fp);fclose(tp);
+ //memcpy(gray.exe,&tadd,2);//还原执行地址
+ //setbgcolor(0);setfgcolor(3);
+ ClearScreen();Refresh();//初始化
+ return(_mode);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void main()
+{int value;
+ int i;
+ //char fp;
+ //fp=fopen("/1.dat","w");
+ //fwrite(0x8000,1,0xc000-0x8000,fp);
+ //fclose(fp);
+ //value=setgraphmode(2);
+ setgraphmode(2);
+ //if(!value){SetScreen(0);printf("该机型不支持4灰度！");getchar();return;}
+ //if(value<0){SetScreen(0);printf("缺少Gray.dll。请将Gray.dll下载到LavaData目录下、GVMdata目录或LibData目录下");getchar();return;}
+ 
+ //printf("value:%d\n",value);getchar();
+ //fp=fopen("/2.dat","w");
+ //fwrite(0x8000,1,0xc000-0x8000,fp);
+ //fclose(fp);
+ 
+ //TextOut(10,10,"你好^_^",0xc1);
+ //while(!Inkey());
+ //getchar();getchar();getchar();
+ 
+ //setgraphmode(1);
+ 
+ //fp=fopen("/3.dat","w");
+ //fwrite(0x8000,1,0xc000-0x8000,fp);
+ //fclose(fp);
+}

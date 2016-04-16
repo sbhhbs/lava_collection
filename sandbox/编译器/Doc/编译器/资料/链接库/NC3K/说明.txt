@@ -1,0 +1,249 @@
+作 者:Eastsun
+机 型:NC3000
+原型:void exeasm(char &buf[]);
+功能:在LavaX环境下执行汇编代码。
+说明:buf为汇编代码地址。汇编效率高，且可以做任何事，但无法跨平台，要合理利用。
+举例:
+#include <NC3K.y>
+char buf[] = {0x00,0x1d,0x05,0x60};//即INT $051d RTS
+void main()
+{
+ SetScreen(0);
+ printf("空间整理中...\n");
+ exeasm(buf);
+ printf("OK!\n");
+ getchar();
+}
+
+原型:void call(int brk);
+功能:在LavaX环境下调用系统中断。
+说明:brk为系统中断号。
+ 如：0x051d为空间整理。类似汇编中的
+ INT $051d
+ RTS
+资料:一些NC3000的中断。
+文件系统：
+0x0501:测试超级块
+0x0502:更新物理区/逻辑区映射表
+0x0503:读取一页nand(物理，不做ecc校验)
+0x0504:读取一页nand(物理，做ecc校验)
+0x0505:读取nand(逻辑)
+0x0506:读取一页nand(逻辑)
+0x0507:读取1字节nor
+0x0508:读取多字节nor
+0x0509:根据指定的inode号(0x8d2~0x8d3)找出对应的目录名(0x88d)
+0x050a:测试目录是否可列出
+0x050b:创建目录
+0x050c:读取目录
+0x050d:切换工作目录(0x88d)
+0x050e:删除文件(文件名：0x88d)
+0x050f:删除目录(0x88d)
+0x0510:重命名(原名称:0x88d,新名称:0x918)
+0x0511:永久修改指定文件属性1(参数:0x8ff)
+0x0512:暂时修改指定文件属性1
+0x0513:测试指定文件属性1
+0x0514:永久修改指定文件属性2
+0x0515:打开或创建文件
+ 打开方式参数:0x8c9
+ 0x8c9=0x70:新建,0x80:打开,0x81:追加,0xc0:修改
+ 成功寄存器carry=0,不成功carry=1
+0x0516:读文件
+ 0xe0,0xe1:开始地址,0x8c6,0x8c7:文件长度;成功寄存器carry=0,不成功carry=1
+0x0517:关闭文件
+0x0518:写文件
+ 0xe0,0xe1:数据地址,0x8c6,0x8c7:文件大小;成功寄存器carry=0,不成功carry=1
+0x0519:更改文件读写指针位置
+0x051a:读inode
+0x051b:读一个inode
+0x051c:空间整理_释放已删除空间
+0x051d:空间整理_删除无用的分配表信息
+0x051e:重启时空间整理A
+0x051f:重启时空间整理B
+画图部分：
+0xc729:清除屏幕
+0xc72a:清除文字缓冲区
+0xc719:更新屏幕(类似UpdateLCD)
+0xc006:获取按键值(类似getchar)
+
+0xc733:将数字转换成字符
+0xca03:乘法
+0xca04:画点
+0xca05:判断点
+0xca0a:画非填充矩形
+0xca0c:画填充矩形
+0xca06:从屏幕0,0开始作矩形，不填充
+0xca07:从屏幕0,0开始作填充矩形
+0xca0b:画线
+0xca08:从屏幕左端往屏幕上端作线
+0xca0e:画圆，非填充
+0xca10:画圆，填充
+0xca0f:画椭圆，非填充
+0xca11:画椭圆，填充
+0xca09:填充作图
+0xca0d:填充作图
+0xca12:寄存器a=0为弹出框,a=1 or 2时为是否对话框,a=3时为选择框（此时参数有所不同）
+
+0xca16:显示正在查找
+0xca17:显示没有找到
+
+0xcb01:系统内置Debug
+举例:
+#include <NC3K.y>
+void main()
+{
+ SetScreen(0);
+ call(0xca16);//显示正在查找
+ getchar();
+}
+
+原型:void DiskReclaim();
+功能:空间整理。
+举例:
+#include <NC3K.y>
+void main()
+{
+ SetScreen(0);
+ printf("空间整理中...\n");
+ DiskReclaim();
+ printf("OK!\n");
+ getchar();
+}
+
+原型:long DiskCheck();
+功能:获取磁盘剩余空间。
+说明:返回剩余磁盘空间大小，单位为KB。使用该函数前最好先空间整理一下。
+举例:
+#include <NC3K.y>
+void main()
+{
+ SetScreen(0);
+ DiskReclaim();
+ printf("剩余空间:%dKB\n",DiskCheck());
+ getchar();
+}
+
+原型:void SetFlmMode(struct FLM_BUF &cut,char &pic[]);
+功能:设置播放的缓冲区地址。
+说明:配合FlmDecode函数使用，必须在FlmDecode函数前调用改函数。使用该函数前必须定义：
+struct FLM_BUF
+{
+ char cmd;
+ char pic[1600];
+};
+这是存放压缩数据的缓冲区，所以参数cut就是压缩数据缓冲区，而参数pic是解压缩后的数据缓冲区。
+
+原型:void FlmDecode();
+功能:flm影片解码。
+说明:配合SetFlmMode函数使用，只有在调用FlmDecode函数后才能调用该函数。
+举例:
+#define ESC_KEY 0x1b
+#include <NC3K.y>
+struct FLM_BUF
+{
+ char cmd;
+ char pic[1600];
+};
+void playFlm2(int fn)
+{
+ char fp, head[16];
+ char ms, low, high;
+ int tmp, length, frame, process, speed;
+ struct FLM_BUF cut;
+ char pic[1600];
+
+ if (!(fp = fopen(fn, "r"))) return;
+ fread(head, 1, 16, fp);
+ if (head[0] != 'F' || head[1] != 'L' || head[2] != 'M' || head[3] != 0x10)//不是有效的FLM文件
+ {
+  fclose(fp);
+  return;
+ }
+ if (head[4])//压缩格式的flm文件
+ {
+  frame = head[5] + (head[6] << 8);//祯数
+  speed = head[7];//速度(延迟tick数)
+  SetFlmMode(cut, pic);//设置播放的缓冲区地址
+  for (process = 0; process < frame && Inkey() != ESC_KEY; process++)
+  {
+   ms = Getms();
+   fread(&tmp, 1, 2, fp);
+   length = (tmp&0xfff) - 2;
+   cut.cmd = tmp >> 12;//读取长度
+   fread(cut.pic, 1, length, fp);
+   cut.pic[length] = 0xc1;//读取压缩数据
+   FlmDecode();//解码
+   WriteBlock(0, 0, 160, 80, 1, pic);//显示
+   Refresh();
+   if (speed)//延时，祯控制
+   {
+    while (((Getms() - ms)&0xff) < speed);
+   }
+  }
+ }
+ fclose(fp);
+}
+
+void main()
+{
+ char fn[60];
+ ChDir("/开机画面");
+ for(;;)
+ {
+  if (!FileList(fn))
+  {
+   ChDir("..");
+   continue;
+  }
+  if (ChDir(fn)) continue;
+  playFlm2(fn);
+  ChDir("/开机画面");
+ }
+}
+
+原型:int findfile(int from,int num,char &buf[][16]);
+功能:取当前目录下的文件名
+说明:from为第一个文件在目录中的序号
+     num为要取的文件名的个数
+     buf为内存地址，保存返回的文件名，每16个字节保存一个文件名
+     返回值为实际取得的文件名数
+举例:
+void main()
+{
+ char namebuf[5][16];
+ int i, num;
+
+ num = findfile(1, 5, namebuf);
+ for (i = 0; i < num; i++) printf("\n%s", namebuf[i]);
+ getchar();
+} 
+
+原型:int getcurdir();
+功能:获取当前目录
+说明:返回目录指针
+举例:
+void main()
+{
+ SetScreen(0);
+ printf(getcurdir());
+ getchar();
+}
+
+原型:void bell(char rate);
+功能:响铃
+说明:参数是设置响铃频率的
+举例:
+void main()
+{
+ bell(255);
+ getchar();
+}
+
+原型:int ChkBattery();
+功能:检测电力
+说明:返回0~31范围的值，越高电力越强。
+举例:
+void main()
+{
+ printf("系统电量:%d%%", ChkBattery() * 100 / 32);
+ getchar();
+}

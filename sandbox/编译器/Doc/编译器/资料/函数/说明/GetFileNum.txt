@@ -1,0 +1,8 @@
+原型:int GetFileNum(addr path);
+功能:取指定目录下的文件数
+举例:
+void main()
+{
+ printf("根目录下有%d个文件\n", GetFileNum("/"));
+ getchar();
+}

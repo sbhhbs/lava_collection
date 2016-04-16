@@ -1,0 +1,28 @@
+原型:int strcmp(int str1, int str2);
+功能:比较字符串s1和s2
+说明:当s1<s2时,返回值<0
+     当s1=s2时,返回值=0
+     当s1>s2时,返回值>0
+举例:
+char s1[] = "Hello, Programmers!";
+char s2[] = "Hello, programmers!";
+void main()
+{
+ int r;
+
+ SetScreen(0);
+ r = strcmp(s1, s2);
+ if (!r)
+ {
+  printf("s1等于s2");
+ }
+ else if (r < 0)
+ {
+  printf("s1小于s2");
+ }
+ else
+ {
+  printf("s1大于s2");
+ }
+ getchar();
+}

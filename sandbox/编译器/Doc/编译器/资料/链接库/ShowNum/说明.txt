@@ -1,0 +1,23 @@
+作者:Write By  Hex Lee 07,01,26
+原型:void Shownum(char x, char y, long a, long b, char mode, int w, int h)
+功能:显示数值 如游戏中HP MP AP等
+说明:x,y为屏幕坐标轴,a,b为两个要显示的数，w,h为偏移量x轴,y轴
+ mode:0:双纵显
+      1:双横显
+      2:单显
+注意:
+ 1.单显只显示 a,但b要有参数，可为任意值
+ 2.w,h为b坐标的微调值
+举例:
+#include <ShowNum.y>
+
+void main()
+{
+ long a, b;
+
+ a = 10;
+ b = 10000;
+ Shownum(11, 50, a, b, 0, 0, 1);//0 双纵显
+ Shownum(11, 30, a, b, 1, 8, 0);//1 双横显
+ Shownum(11, 10, a, b, 2, 0, 0);//2 单显
+}

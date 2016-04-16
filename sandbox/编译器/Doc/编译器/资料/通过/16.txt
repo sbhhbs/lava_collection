@@ -1,0 +1,56 @@
+long aaa;
+/**
+* @by eastsun
+* @参考资料: 见汇编区lee发布的NC3000SYS-TOOLS的源代码
+*/
+int playFlm2(int fn)
+{char fp,high,low,flags,byte,deta,ms;
+ char bmpBuf[1600],cutBuf[1600],fileHead[16];
+ int frame,process,n,m,count,length,speed;
+
+ if(!(fp=fopen(fn,"r")))return(0);fread(fileHead,1,16,fp);
+ if(fileHead[aaa=0]!='F'||fileHead[aaa=1]!='L'||fileHead[aaa=2]!='M'||fileHead[aaa=3]!=0x10){fclose(fp);return(0);}
+ if(fileHead[aaa=4])//压缩格式的flm文件
+  {frame=fileHead[aaa=5]+(fileHead[aaa=6]<<8);//祯数
+   speed=fileHead[aaa=7];//速度(延迟tick数)
+   process=0;
+   for(;;)
+    {ms=Getms();
+     low=getc(fp);high=getc(fp);length=low+((high&0xf)<<8)-2;
+     fread(cutBuf,1,length,fp);//读取压缩数据
+     cutBuf[length]=0xc1;flags=high>>4;//设置结束标记
+     if(!flags)memcpy(bmpBuf,cutBuf,1600);
+     else if(flags==1||flags==2)
+      {if(flags==1)memset(bmpBuf,0,1600);
+       n=0;m=0;//n->cutBuf,m->bmpBuf
+       do{byte=cutBuf[n];
+          if(byte<0x40){if(byte)count=byte;else count=0x40;m=m+count;n++;}//0
+          else if(byte<0x80)//1
+           {if(byte&0x3f)count=byte&0x3f;else count=0x40;
+            do{bmpBuf[m]--;m++;count--;}while(count);
+            n++;
+           }
+          else if(byte<0xc0)//2
+           {if(byte&0x3f)count=byte&0x3f;else count=0x40;
+            n++;
+            do{bmpBuf[m]=bmpBuf[m]+cutBuf[n];m++;n++;count--;}while(count); 
+           }
+          else
+           {if(byte&0x3f)count=byte&0x3f;else count=0x40;
+            deta=cutBuf[++n];
+            do{bmpBuf[m]=bmpBuf[m]+deta;m++;count--;}while(count);
+            n++;
+           }
+         }while(cutBuf[n]-0xc1);
+      }
+     WriteBlock(0,0,160,80,0x41,bmpBuf);
+     //if(speed){while(((Getms()-ms)&0xff)<speed);ms=Getms();}
+     if(process>=frame)break;process++;//播放结束
+    }
+  }
+ else{}
+ fclose(fp);return(1);
+}
+void main(){
+ playFlm2("/开机画面/单车王.ski");
+}

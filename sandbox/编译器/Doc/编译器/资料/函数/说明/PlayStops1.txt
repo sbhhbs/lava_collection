@@ -1,0 +1,107 @@
+原型:void PlayStops()
+功能:停止Dsp播放声音
+举例:
+char cush[8192];
+struct TIM
+{
+ int year;
+ char month;
+ char day;
+ char hour;
+ char minute;
+ char second;
+ char week;
+};
+struct TIM time1;
+struct TIM time2;
+char mhead[3] = {0x40};
+struct TIME
+{
+ char min1;
+ char min2;
+ char point;
+ char sec1;
+ char sec2;
+ char msec;//毫秒
+};
+//00:00 000
+//min1,min2,point,sec1,sec2,msec;
+struct TIME time;
+void Gettime(int t)
+{
+ GetTime(t);
+ *(t + 7) = Getms();
+}
+long GetLen()//计算播放长度
+{
+ int a, b, c;
+
+ a = time2.minute - time1.minute;
+ b = time2.second - time1.second;
+ c = time2.week - time1.week;
+ if (c < 0)
+ {
+  c = c + 256;
+  b--;
+ }
+ if (b < 0)
+ {
+  b = b + 60;
+  a--;
+ }
+ if (a < 0) a = a + 60;
+ return((a * 60 + b) * 100 + c * 100 / 256);
+}
+
+void main()
+{
+ char fp, key;
+ long filelen, cur;
+
+ SetScreen(0);
+ if (!(fp = fopen("/双语声音/a.vnt", "r")))
+ {
+  printf("无法打开文件！");
+  getchar();
+  return;
+ }
+ fread(mhead + 1, 1, 2, fp);//读取类型参数
+ if (PlayInit(mhead))
+ {
+  printf("电压不足够发音！");
+  getchar();
+  return;
+ }
+ filelen = fseek(fp, 0, 2);
+ printf("\n\n       播放中");
+ fseek(fp, 2, 0);
+ cur = 0;
+ for (;;)
+ {
+  time.min1 = (cur / 6000) / 10;
+  time.min2 = (cur / 6000) % 10;
+   //time.point=0x10;
+  time.sec1 = (cur % 6000 / 100) / 10;
+  time.sec2 = (cur % 6000 / 100) % 10;
+  time.msec = cur % 100 * 256 / 100;//播放时间计算
+  Gettime(time1);//记录播放前时间
+  if(PlayFile(fp, cur * 20 - cur * 20 % 32 + 2, filelen, time) == 255) return;//播放
+  Gettime(time2);//记录播放后时间
+  cur = cur + GetLen();//计算播放起始地址
+  PlayStops();
+  key = Inkey();
+  if (key == 'p')
+  {
+   SetScreen(0);
+   printf("\n\n       暂停中");
+   while (getchar() != 'p');
+   SetScreen(0);
+   printf("\n\n       播放中");
+  }
+  else if (key == 27) break;
+ }
+ PlaySleep();
+ SetScreen(0);
+ printf("\n\n      播放结束");
+ getchar();
+}

@@ -1,0 +1,12 @@
+原型:int Exec(long AppName, long param, int set);
+功能:运行程序
+说明:AppName，要运行的程序名
+     param，传递给运行程序的参数
+     set的bit7为1则要运行的程序不能再运行程序
+     返回运行的程序的退出码
+举例:
+void main()
+{
+ Exec("/ProgramFiles/中国麻将.lav", 0, 0);
+ getchar();
+}

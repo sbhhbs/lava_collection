@@ -1,0 +1,179 @@
+原型:char Getsign();
+功能:输入法。等待用户输入符号。
+举例:
+#include <stdio.y>
+void main()
+{
+ putchar(Getsign());
+ getchar();
+}
+原型:int Getstr(char &str[], int speed, int delay);
+功能:输入法。等待用户输入字符串。
+说明:str为在屏幕上打印提示信息（该参数可以为0），speed为光标闪动速度（一般为500），delay为连续响应键的时间（一般为60）。返回字符串的指针。该函数支持连续响应按键和光标闪动。
+举例:
+#include <stdio.y>
+char str[256];
+void main()
+{
+ strcpy(str, Getstr("Input string:", 500, 60));
+ printf("%s\n", str);
+ getchar();
+}
+原型:void puts(char &str[]);
+功能:在屏幕上打印字符串。
+举例:
+#include <stdio.y>
+void main()
+{
+ puts("Hello World!");
+ getchar();
+}
+原型:int gets(char &str[]);
+功能:输入法。等待用户输入字符串，返回字符串大小。字符串保存在str中。
+举例:
+#include <stdio.y>
+char str[256];
+void main()
+{
+ int size;
+
+ size = gets(str);
+ printf("%d:%s\n", size, str);
+ getchar();
+}
+原型:int fputs(char &str[], char fp);
+功能:往文件中写入字符串。返回实际写入字符个数。
+举例:
+#include <stdio.y>
+void main()
+{
+ char fp;
+ int size;
+
+ if ((fp = fopen("/LavaData/a.dat", "w")) == 0) return;
+ size = fputs("Hello World!\n", fp);
+ fclose(fp);
+ printf("write bytes:%d", size);
+ getchar();
+}
+原型:int fgets(char &str[], int size, char fp);
+功能:从文件中读出字符串。
+说明:size为要读出字符串大小，如果为0则一直读，直到遇到'\0'为止。返回实际读出的字符串大小（包含'\0'），错误时返回EOF。
+举例:
+#include <stdio.y>
+char str[30];
+void main()
+{
+ char fp;
+ int size;
+
+ if ((fp = fopen("/LavaData/a.dat", "r")) == 0) return;
+ size = fgets(str, 3, fp);
+ fclose(fp);
+ printf("%d:%s\n", size, str);
+ getchar();
+}
+原型:int sscanf(char &buf[], char &str[], long p);
+功能:从字符串buf中按字符串格式化输出到地址p中。返回已经接受字符的变量的个数。
+说明:参数str称为格式控制串，它包括两种信息:1.格式说明，由%和格式字符组成，作用是将输出的数据转换为指定的格式输出。该函数只支持%d,%s,%c。2.修饰符，不可缺少！由数字组成，跟在格式说明后面，表示接受字符的变量的宽度（比如:char型变量宽度为1,int型变量宽度为2,long型变量宽度为4）,根据该修饰符程序会自动算出接受字符的变量地址，写错或不写都有可能出错，因为函数的参数个数无法改变（即不能象printf函数一样可以改变参数个数），所以想要使用多个变量，这些变量必须连续的定义在一起（这样它们的地址才是连续的，才能通过修饰符计算出每个变量的正确地址），最好用结构体（结构体定义的变量的地址是连续的）。3.普通字符，即需要原样输出的字符。参数p为变量的地址，或第一个变量的地址。在输入数据时，遇以下情况时该数据认为结束。1.遇空格，或按输入键。2.按指定的宽度结束，如%3s，只取3列。3.遇非法输入。
+注意:此函数与C/C++里的函数不同。
+举例1:（使用一个变量的情况）
+#include <stdio.y>
+char s[] = "11323425";
+void main()
+{
+ char a;
+ int b;
+ long c;
+ char d[10];
+ int size;
+
+ sscanf(s, "%1d", &a);//如果写成sscanf(s,"%d",&a);则函数会自动根据数字大小赋值到a中。
+ sscanf(s, "%2d", &b);//写成sscanf(s,"%3d",&b);是错的，因为变量b是int型，即两个字节。
+ sscanf(s, "%4d", &c);
+ size=sscanf(s, "%10s", d);//因为数组d的大小为10个字节，所以要%10s。
+ printf("%d:%d %d %d\n%s", size, a, b, c, d);
+ getchar();
+}
+举例2:（使用多个变量的情况）
+#include <stdio.y>
+char s[] = "1132 d 3425";
+struct TT
+{
+ char s[30];
+ char c;
+ char b[10];
+};
+struct TT t;
+void main()
+{
+ int size;
+
+ size = sscanf(s,"%30s%c%10s", t);//注意格式！其中%c可以不用加修饰符（即不用这样写%1c）。
+ printf("%d:%s\n%c\n%s\n", size, t.s, t.c, t.b);
+ getchar();
+}
+原型:int scanf(char &s[], char &str[], long p);
+功能:输入法。等待用户输入并格式化输出到地址p中。返回已经接受字符的变量的个数，错误则返回EOF。
+说明:参数s为在屏幕打印提示信息（该参数可以为0），格式部分请参见sscanf函数。关于输入法的切换:
+ F2或←键:删除键，删除一个光标左边的字符，长按F2键可持续删除字符。
+ F3:光标移到始点。
+ F4:光标移到终点。
+ SHIFT:输入模式切换键，切换当前的输入模式，有数字和英文模式。
+ CAPS:大小写切换键，切换大小写。
+ 0:符号输入键，在英文模式下按数字0键可输入符号。
+ CR:确认键，保存当前输入的字符串。
+ ESC或↑键:取消所有输入。
+ 字母或数字键:输入字母或数字，长按键可持续输入该字母或数字。
+注意:此函数与C/C++里的函数不同。
+举例:
+#include <stdio.y>
+void main()
+{
+ int p;
+ char i;
+ long o;
+ char s[10];
+
+ p = scanf("%c%4d%10s", &i);//最后一个参数&i是第一个要接受字符的变量的地址。
+ printf("%d:%c %d %s\n", p, i, o, s);
+ getchar();
+}
+原型:int fprintf(char fp, char &str[], long p);
+功能:将字符串格式化写入到文件中。返回实际写入字符个数。参数p为变量地址。
+说明:请参见sscanf函数。
+举例:
+#include <stdio.y>
+void main()
+{
+ int size;
+ long i;
+ char fp;
+
+ i = 30;
+ if ((fp = fopen("/LavaData/a.dat", "w")) == 0) return;
+ size = fprintf(fp, "number:%4d\n", &i);
+ fclose(fp);
+ printf("write byte:%d", size);
+ getchar();
+}
+原型:char fscanf(char fp,char &str[],long p);
+功能:从文件中格式化输出到变量中。返回已经接受字符的变量的个数，错误则返回EOF。
+注意:此函数与C/C++里的函数不同。
+举例:
+#include <stdio.y>
+void main()
+{
+ int size;
+ long i;
+ char fp;
+
+ i = 30;
+ if ((fp = fopen("/LavaData/a.dat", "r")) == 0) return;
+ size = fscanf(fp, "number:%4d\n", &i);
+ fclose(fp);
+ printf("%d:%d", size, i);
+ getchar();
+}
+原型:int getw(char fp);
+功能:从文件中读取一个整数（2个字节）

@@ -1,0 +1,13 @@
+原型:void strcat(addr dest,addr src);
+功能:把src指向的字符串附加到dest结尾
+举例:
+char d[20] = "Made in";
+char s[] = " China";
+
+void main()
+{
+ SetScreen(0);
+ strcat(d, s);
+ printf("%s", d);
+ getchar();
+}

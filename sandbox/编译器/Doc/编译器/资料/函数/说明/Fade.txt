@@ -1,0 +1,26 @@
+原型:void Fade(int bright);
+功能:淡入淡出特效
+说明:缓冲区的图形以指定的最大亮度在屏幕上显示,仅灰度模式下有效
+举例:
+void main()
+{
+ int i;
+
+ SetGraphMode(4);
+ SetFgColor(3);
+ SetBgColor(15);
+ ClearScreen();
+ TextOut(52, 32, "LeeSoft", 0x81);
+ for (i = 0; i < 16; i++)
+ {
+  Fade(i);
+  Delay(50);
+ }
+ Delay(2000);
+ for (i = 15; i >= 0; i--)
+ {
+  Fade(i);
+  Delay(50);
+ }
+ getchar();
+}

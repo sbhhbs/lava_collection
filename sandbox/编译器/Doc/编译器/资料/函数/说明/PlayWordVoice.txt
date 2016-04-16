@@ -1,0 +1,7 @@
+原型:void PlayWordVoice(char p2,char p1,char p0);
+功能:调用字典发音函数，单词发音
+说明:文曲星英汉辞典的ID占3个byte，p0为低8位，p2为高8；
+     ID值与具体情况相同
+举例:
+PlayWordVoice(0,0,0)将发 A 的音，
+PlayWordVoice(0,0,2)将发 a bit的音

@@ -1,0 +1,50 @@
+原型:char PlayFile(char fp, long ps, long pe, int time);
+功能:播放音频文件，支持A1600,vnt文件
+输入:fp:文件句柄
+     ps:要发声的内容起点
+     pe:要发声的内容终点
+     time:显示的时间
+输出:如果=255，则为失败。0为成功
+举例:
+char mhead[3] = {0x40};
+struct TIME
+{
+ char min1;
+ char min2;
+ char point;
+ char sec1;
+ char sec2;
+ char msec;//毫秒
+};
+//00:00 000
+//min1,min2,point,sec1,sec2,msec;
+struct TIME time;
+void main()
+{
+ char fp;
+ long filelen;
+
+ SetScreen(0);
+ if (!(fp = fopen("/双语声音/a.vnt", "r")))
+ {
+  printf("无法打开文件！");
+  getchar();
+  return;
+ }
+ fread(mhead + 1, 1, 2, fp);//读取类型参数
+ if (PlayInit(mhead))
+ {
+  printf("电压不足够发音！");
+  getchar();
+  return;
+ }
+ filelen = fseek(fp, 0, 2);
+ printf("\n\n       播放中");
+ fseek(fp, 2, 0);
+ if (PlayFile(fp, 2, filelen, time) == 255) return;//播放
+ PlaySleep();
+ SetScreen(0);
+ printf("\n\n      播放结束");
+ getchar();
+ getchar();
+}

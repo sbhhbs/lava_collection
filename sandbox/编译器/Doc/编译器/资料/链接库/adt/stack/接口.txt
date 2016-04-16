@@ -1,0 +1,9 @@
+0	fptr		0
+1	SwitchStack	1
+1	InitStack	1
+1	StackFull	1
+1	StackEmpty	1
+1	StackDepth	1
+1	GetTop		0
+1	Push		0
+1	Pop		0

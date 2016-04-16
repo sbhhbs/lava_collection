@@ -1,0 +1,118 @@
+#define ESC 27
+long aaa;
+int feiy,tfeiy,goup,godown,distance,best,i,j,esc;
+int muban[][4]={
+                 15,75,0,10,
+                 15,160,2,10};
+char ch,d[12],b[12];
+struct person
+{
+int best;
+};
+struct person luo;
+//所有的图形数据
+char feiji[]={
+//飞机   16，8
+0x07, 0xff, 0x00, 0x20, 0x80, 0xfc, 0xc1, 0xc6, 0xff, 0x82, 0xff, 0x03, 0x01, 0xfe, 0x00, 0xfc};
+
+//取一个新的木板
+void new()
+{
+muban[aaa=1][aaa=0]=24+rand()%12;//木板上下位置
+muban[aaa=1][aaa=1]=160;//木板左右位置
+muban[aaa=1][aaa=2]=18+rand()%6;//木板的长度
+muban[aaa=1][aaa=3]=10;//木板的宽度
+}
+
+//绘图
+void draw()
+{
+if(muban[aaa=0][aaa=1]<=4)muban[aaa=0][aaa=3]=muban[aaa=0][aaa=3]-3;
+if(muban[aaa=0][aaa=3]<=4)
+  {
+   for(j=0;j<4;j++)
+   muban[aaa=0][j]=muban[aaa=1][j];
+   new();
+   }
+ClearScreen();
+WriteBlock(47,feiy,16,8,1,feiji);
+Line(0,0,160,0,0x21);
+Line(0,65,160,65,0x21);
+Line(0,15,160,15,0x21);
+Line(0,79,160,79,0x21);
+for(i=0;i<2;i++)
+Block(muban[i][aaa=1],muban[i][aaa=0],muban[i][aaa=1]+muban[i][aaa=3],muban[i][aaa=0]+muban[i][aaa=2],1);
+TextOut(55,2,"just_fly",1);
+TextOut(0,67,"distance:      best:",1);
+sprintf(d,"%d",distance);
+sprintf(b,"%d",best);
+TextOut(55,67,d,1);
+TextOut(120,67,b,1);
+Refresh();
+}
+
+//判断是否能通过，即有无撞机
+void pass()
+{
+   if(muban[aaa=0][aaa=1]<=62&&muban[aaa=0][aaa=1]>=47)
+    {
+     if(feiy+8>muban[aaa=0][aaa=0]&&feiy<muban[aaa=0][aaa=0]+muban[aaa=0][aaa=2])esc=1;
+     }
+if(feiy<=15||feiy>=58)esc=1;
+}
+
+//读入操作
+void control()
+{
+if(CheckKey(128)){tfeiy=tfeiy-goup;goup++;godown=10;}
+else {tfeiy=tfeiy+godown;godown++;goup=10;}
+feiy=tfeiy/10;
+for(i=0;i<2;i++)
+if(muban[i][aaa=1])muban[i][aaa=1]=muban[i][aaa=1]-3;
+distance++;
+}
+
+
+void main()
+{
+int fp;
+fp=fopen("/LavaData/justfly.sav","r");
+fread(luo,1,sizeof(struct	person),fp);;
+fclose(fp);
+best=luo.best;
+godown=10;
+goup=10;
+for(;;)
+  {
+   new();
+   distance=0;
+   tfeiy=300;
+   feiy=30;
+   SetScreen(1);
+   Locate(1,8);
+   printf("just_fly\npress and hold anykey\n        to go up\nrelease to go down");
+   ch=getchar();
+   ch=getchar();
+   if(ch==ESC)break;
+   esc=0;
+   for(;;)
+    {
+     draw();
+     pass();
+     if(esc)break;
+     control();
+     }
+   if(distance>best)best=distance;
+   muban[aaa=0][aaa=0]=15;muban[aaa=0][aaa=1]=75;muban[aaa=0][aaa=2]=0;muban[aaa=0][aaa=3]=10;
+   ClearScreen();
+   Refresh();
+  }
+SetScreen(1);
+Locate(0,0);
+printf("just_fly简装版\nVersion:1.0\n2004.2.20\nQQ:172313760\nE-mail:020131323@163.com\n本软件由罗洛编写");
+luo.best=best;
+fp=fopen("/LavaData/justfly.sav","w");
+fwrite(luo,1,sizeof(struct	person),fp);
+fclose(fp);
+getchar();
+}

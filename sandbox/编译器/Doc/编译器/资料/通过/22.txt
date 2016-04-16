@@ -1,0 +1,2725 @@
+#define KEY_ESC 27
+#define KEY_SHIFT 26
+#define KEY_HELP 25
+long aaa;
+char FileType;
+char fpMark;
+char font;
+char linesize;
+long p_readpath;
+char KEY;
+char cmd;
+char filedata[205];
+char fp;
+long thispage_begin;
+long thispage_end;
+long nextpage_begin;
+long nextpage_end;
+long nextline_begin;
+long nextline_end;
+long lastpage_begin;
+long lastpage_end;
+long lastline_begin;
+long lastline_end;
+char path[4][16];
+char pathpoint;
+char filestr[15];
+char SHIFTaBYTE;
+
+char tofindstrs[53];
+
+char Auto_ByHand;
+int ms=4000;
+
+long parentdir;//此变量基本没用，可删
+long SubDir_add[5];//
+long SubDir_name[5];//
+char Num_of_SubDir;//
+long CurSubDirNp;//
+
+long dataBegin;		//EBK_only_for_mark_begin-8
+long dataEnd;
+
+char mark_begin[2];
+char dir_p;
+long dir[10];
+long BlockOffset;
+char CurSubDir_p[10];
+char CurrentSubDir;
+char fromSubDir;
+long dir_add;
+long VTorId_maxID;
+long VTorId_minID;
+long VTorId_i;
+long VTorId_add;
+long BlockID;
+char mark_end[2];//EBK_only_for_mark_end
+int ebk_v_BEGIN;
+int ebk_v_END;
+char DatFileIsOK;
+
+char password[53];
+char fav_setting[4];
+/*
+char B16_order[]={           //(16+16)*16= 	  
+			 
+				0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,//0	 便于编程,未用到 
+				0,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,//1
+				0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,//2
+				0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,//3
+				0,1,1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,1,0,1,1,0,1,0,1,1,0,1,0,1,1,//4
+				0,1,0,1,0,1,1,0,1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,0,1,0,1,1,//5
+				0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,//6
+				1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,//7
+				1,0,1,0,1,0,0,1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,1,0,0,//8
+				1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0,1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0,//9
+				1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0,//a
+				1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,//b
+				1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,//c
+				1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,//d
+				1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,//e
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 //f
+				};//WQX与BMP相反
+*/
+
+struct TIME
+{
+int year;
+char month;
+char day;
+char hour;
+char minute;
+char second;
+char week;
+};
+struct TIME time;
+
+char inputpass(int show_word,int str_add)
+{
+char word[3];
+char strings[78];
+char word_num;
+char show_pass[10];
+int c;
+char i;
+char string_return[10];
+word[aaa=2]=0;
+word_num=0;
+string_return[aaa=0]=0;
+memset(strings,0,78);
+SetScreen(1);
+Box(31,20,128,63,1,0);
+Box(32,21,126,61,0,1);
+Line(33,62,127,62,1);
+Line(127,22,127,62,1);
+Line(35,38,123,38,1);
+TextOut(34,24,show_word,97);
+TextOut(34,43,"密 码:",97);
+while(1) 
+{
+c=getchar();
+if (c==13) break;
+else if (((c==29)||(c==23))&&word_num)word_num--;
+else if(c==27)return(0);
+else if(word_num==8)continue;
+else if ((c&0xff00)==0 && isprint(c))
+{
+word[aaa=0]=c;
+word[aaa=1]=0;
+strcpy(strings+3*word_num,word);
+word_num++;
+}
+show_pass[aaa=0]=0;
+for(i=0;i<word_num;i++)strcat(show_pass,"*");
+string_return[aaa=0]=0;
+for(i=0;i<word_num;i++)strcat(string_return,strings+3*i);
+Box(72,43,120,56,1,0);
+TextOut(72,43,show_pass,97);
+}
+strcpy(str_add,string_return);
+return 1;
+}
+
+
+char MsgBox(int show_word,char mode)
+{
+char c;
+mode=abs(--mode);
+Box(31,20,128,63,1,0);
+Box(32,21,126,61,0,1);
+Line(33,62,127,62,1);
+Line(127,22,127,62,1);
+Line(35,38,123,38,1);
+TextOut(34,24,show_word,97);
+TextOut(42,44,"是(Y)  否(N)",97);
+Box(38,42,74,57,0,2);
+Box(81,42,117,57,0,2);
+for(;;)
+{
+Box(39+(43*mode),43,73+(43*mode),56,1,2);
+c=getchar();
+Box(39+(43*mode),43,73+(43*mode),56,1,2);
+if(c==22||c==23||c==20||c==21) mode=abs(--mode);
+if(c==KEY_ESC) return 0;
+if(c==13) return abs(--mode);
+if(c=='y') return 1;
+if(c=='n') return 0;
+}
+}
+
+char DELETEorNOT()
+{
+if(MsgBox("删除此文件?",0))
+{fclose(fp);fp=0;DeleteFile(filestr);SetScreen(1);printf("已删除%s",filestr);Delay(1000);return 1;}
+else {SetScreen(1);printf("已放弃删除");}Delay(500);return 0;
+}
+
+void printHELP()
+{
+char c;
+C1:
+SetScreen(1);
+printf(" 【Reader2_29  按键说明】 [方向键]     翻行/翻页    [Q]+[方向键] 连续响应浏览 [S]/[L]      存/读书签    [SHIFT]+[L]  管理所有书签 [空格]       配置设置     ");
+Line(159,19,159,79,1);
+for(;;){
+c=getchar();
+if(c==14||c==21||c==22) break;
+if(c==27) return;
+}
+C2:
+SetScreen(1);
+printf("[F1]    浏览模式设置      [F2]    删除当前文件      [F3]  查找 [符号] 查下一个[.]     调整乱码          [P]   查看时间 此状态下按 [输入]  查看/修改当前位置 ");
+Line(159,0,159,79,1);
+Line(159,20,159,39,0);
+for(;;){
+c=getchar();
+if(c==14||c==21||c==22) break;
+if(c==19||c==20||c==23) goto C1;
+if(c==27) return;
+}
+C3:
+SetScreen(1);
+printf("本软件是由Dojo在Reader2_27的基础上改进的，这里感谢原作者，若涉及版权问题都归他所有。要联系我：\nEmail:dojosoft@163.com    http://dojosoft.ys168.com");
+Line(159,0,159,79,1);
+Line(159,40,159,59,0);
+for(;;){
+c=getchar();
+if(c==14||c==21||c==22) break;
+if(c==19||c==20||c==23) goto C2;
+if(c==27) return;
+}
+SetScreen(1);
+printf("==== 以下原作者的帮助 ====Email:\ncnyahoocom-xx@yahoo.com.cn给我发邮件时注明，是否将来有关键更新或者有新的而我没在网上更新时接受我的邮件。");
+Line(159,0,159,59,1);
+for(;;){
+c=getchar();
+if(c==19||c==20||c==23) goto C3;
+if(c==27) return;
+}
+}
+
+
+long fsize(char fsize_fp)
+{
+fseek(fsize_fp,0,SEEK_END);
+return ftell(fsize_fp);
+}
+
+char fopen_fp()
+{
+    while(1) 
+    	{
+        if (!FileList(filestr))
+        	{
+        	if (pathpoint==0) exit(0);
+        	ChDir("..");
+        	strcpy(path[--pathpoint],"/");
+        	continue;
+        	}
+        else if (ChDir(filestr)) 
+        		{
+        		if (!strcmp(filestr,".."))
+        			{if(pathpoint)strcpy(path[--pathpoint],"/");  }
+        		else {strcat(path[pathpoint++],filestr);strcpy(path[pathpoint],"/");}
+        		continue;
+        		}
+        break;
+    	}    
+    if ((fp=fopen(filestr,"r"))==0) {SetScreen(1);printf("打开文件 %s 失败!",filestr);getchar();return 0;}
+return 1;
+}
+
+char TYPEofFILE()
+{
+char type_flag[5];
+rewind(fp);
+fread(type_flag,1,5,fp);
+rewind(fp);
+if((!type_flag[aaa=0])&&(!type_flag[aaa=1])&&(!type_flag[aaa=2]))
+	{
+	if((!type_flag[aaa=3])&&(!type_flag[aaa=4]))return 1;//TXT
+	else return 2;//EBK
+	}
+else if((type_flag[aaa=0]=='B')&&(type_flag[aaa=1]=='1')&&(type_flag[aaa=2]=='6'))return 3;//B16
+else if((type_flag[aaa=0]=='B')&&(type_flag[aaa=1]=='M'))return 4;//BMP
+else if((type_flag[aaa=0]=='F')&&(type_flag[aaa=1]=='L')&&(type_flag[aaa=2]=='M'))return 5;//FLM
+else if(type_flag[aaa=0]&&type_flag[aaa=1]&&type_flag[aaa=2]&&type_flag[aaa=3]&&type_flag[aaa=4])return 1;
+else return 0;
+}
+
+long getnum(char getnum_fp,long getnum_OffSet,char digitals)//digitals<=4
+{
+long getnum_Num;
+char digital[4];
+char i;
+getnum_Num=0;
+fseek(getnum_fp,getnum_OffSet,0);
+for(i=0;i!=digitals;i++)digital[i]=getc(getnum_fp);
+while(digitals--)getnum_Num=getnum_Num*256+digital[digitals];
+return getnum_Num;
+}
+
+void progress()
+{
+char y1;
+char y2;
+if(dataEnd-dataBegin)
+	{
+	y1=(79*(thispage_begin-dataBegin))/(dataEnd-dataBegin);
+	y2=1+(79*(thispage_end-dataBegin))/(dataEnd-dataBegin);
+	Line(159,0,159,79,1);
+	Line(159,y1,159,y2,0);
+	}
+else Line(159,0,159,79,0);
+}
+
+long ismid(long nowp,long end){
+long i;
+for(i=nowp;*i>=160&&i>=end;i--);
+return(!((nowp-i)%2));
+}
+char stri(char y,char x,int title,int o,int maxl){
+char ch[3],show[21],str[60];
+int word,n,l,sx;
+SetScreen(0);
+printf("%s",title);
+memset(str,0,maxl+1);
+memset(ch,0,3);
+strcpy(str,o);
+n=0;
+sx=0;
+while(ch[aaa=0]!=13){
+memset(show,0,21);
+if(n<sx)sx=n;
+if(n>sx+20)sx=n-20;
+memcpy(show,str+sx,20);
+l=strlen(str);
+if(show[aaa=0]>=160&&ismid(str+sx,str))show[aaa=0]='_';
+if(show[aaa=19]>=160&&!ismid(show+19,show))show[aaa=19]='_';
+Locate(4,0);printf("                    ");
+Locate(y,0);printf("%s  ",show);Box(8*(n-sx),16*y,8*(n-sx)+1,16*y+16,1,2);
+if(ch[aaa=0]==22||ch[aaa=0]==23){Delay(80);ReleaseKey(128);}
+word=GetWord(3);
+ch[aaa=0]=word;
+if(isprint(ch[aaa=0])&&l<maxl){memmove(str+n+1,str+n,l-n);str[n]=ch[aaa=0];n++;}
+else if(ch[aaa=0]>=160&&l<maxl-1){ch[aaa=1]=word>>8;memmove(str+n+2,str+n,l-n);memcpy(str+n,ch,2);n=n+2;}
+else if(ch[aaa=0]==27){strcpy(str,"");return 0;}
+else if(ch[aaa=0]==29&&n>0){
+ if(str[n-1]>=160){memmove(str+n-2,str+n,l-n);memset(str+l-2,0,2);n=n-2;}
+ else {memmove(str+n-1,str+n,l-n);str[l-1]=0;n--;}}
+else if(ch[aaa=0]==23){if(n==0)n=l;else if(str[n-1]>=160)n=n-2;else n--;
+  }//if完
+else if(ch[aaa=0]==22){if(n>=l)n=0;else if(str[n]>=160)n=n+2;else n++;
+  }//if完
+else if(ch[aaa=0]==30){memset(str,0,maxl+1);Locate(y,0);printf("                    ");n=0;}
+else if(ch[aaa=0]==28)n=0;
+else if(ch[aaa=0]==31)n=strlen(str);
+ }//while完
+strcpy(tofindstrs,str);
+return 1;
+}
+
+
+long inputnum(long num_old,char figures,char num_begin_x,char num_begin_y,long min,long max)
+{
+char c;
+char one_figure[10];
+char i;
+char j;
+long num_input;
+
+Inkey();
+num_input=num_old;
+i=0;
+Locate(num_begin_x,num_begin_y);
+do	{
+	j=figures;
+	while(j--)
+		{
+		one_figure[j]=num_input%10;
+		one_figure[j]=one_figure[j]+0x30;
+		num_input=num_input/10;
+		}
+	one_figure[figures]=0;
+
+	
+	printf("%s",one_figure);
+	Box(6*(num_begin_y+i)+2,13*num_begin_x,6*(num_begin_y+i)+8,13*num_begin_x+13,1,2);
+	Locate(num_begin_x,num_begin_y);
+	c=getchar();
+	if(c==21){if(one_figure[i]>'0')one_figure[i]--;else one_figure[i]='9';}
+	else if(c==20){if(one_figure[i]<'9')one_figure[i]++;else one_figure[i]='0';}
+	else if((i)&&(c==23))i--;
+	else if((i<figures-1)&&(c==22))i++;
+	else 
+		{
+		if(c=='0') one_figure[i]='0';
+		else if(c=='b') one_figure[i]='1';
+		else if(c=='n') one_figure[i]='2';
+		else if(c=='m') one_figure[i]='3';
+		else if(c=='g') one_figure[i]='4';
+		else if(c=='h') one_figure[i]='5';
+		else if(c=='j') one_figure[i]='6';
+		else if(c=='t') one_figure[i]='7';
+		else if(c=='y') one_figure[i]='8';
+		else if(c=='u') one_figure[i]='9';
+
+		if(i<figures-1)i++;
+		else i=0;
+		}
+	for(num_input=(j=0);j<figures;j++)num_input=10*num_input+one_figure[j]-0x30;
+	if(num_input<min)num_input=min;
+	else if(num_input>max)num_input=max;
+	}while((c!=13)&&(c!=27))
+
+if(c==27)return num_old;
+else return num_input;
+}
+
+
+char nextfile(int memadd)
+{
+char filestr_new[15];
+char filestr_temp[15];
+char NUMs[16];
+
+long p;
+char i;
+char j;
+char k;
+char l;
+
+
+p=-1;l=1;
+while(strstr(filestr+p+(aaa=1),"."))p=(strstr(filestr,".")-(aaa=filestr));
+strcpy(filestr_temp,filestr);
+if(p!=-1)filestr_temp[p]=0;
+
+k=strlen(filestr_temp);
+i=k-1;
+while(i){if(!isdigit(filestr_temp[i])){break;}i--;}
+
+if(i==k-1){*memadd=0;return(0);}
+
+j=0;i++;
+while(j<i){filestr_new[j]=filestr_temp[j];j++;}filestr_new[j]=0;
+j=i;
+while(j<k){NUMs[j]=filestr_temp[j]-48;j++;}
+
+while((--k)>=i)
+	{
+	if(l)
+		if(NUMs[k]==9){NUMs[k]=0;}
+		else {NUMs[k]++;l=0;}
+	//k--;
+	}
+if(l){filestr_temp[aaa=0]=49;k=1;}
+else k=0;
+while(i<j)filestr_temp[k++]=NUMs[i++]+48;
+filestr_temp[k]=0;
+strcat(filestr_new,filestr_temp);
+if(p!=-1)strcat(filestr_new,filestr+p);
+if (strlen(filestr_new)>14)
+	{
+	*memadd=0;
+	return 0;
+	}
+else
+	{
+	memcpy(memadd,filestr_new,15);
+	return 1;
+	}
+}
+
+
+
+long find(long returnIFfaild,long Seekfrom,char NewSearch)
+{
+
+char data[1077];
+
+int c;
+char i;
+int CanRead;
+int strstr_value;
+int strstr_value1;
+int Temp_strstr_value;
+long lastestCrLf;
+long seek;
+char CrLf[2];
+long find_result;
+long SeachBegin;
+char half;
+long CharsRest;//CHARS from CrLf to STRING
+
+
+data[aaa=1076]=0;
+lastestCrLf=0;
+CrLf[aaa=0]=10;CrLf[aaa=1]=0;
+half=0;
+
+if(NewSearch)if(!stri(1,1,"输入要查找的字符串:",tofindstrs,20))return(returnIFfaild);
+
+//strcpy(tofindstrs,"从门缝看过去");//FOR TEST ON PC
+
+
+if(FileType==1){SetScreen(0);printf("正在查找，稍候...");}
+
+SeachBegin=Seekfrom;
+seek=Seekfrom;
+
+while(1)
+	{
+	while(1)
+		{
+		//printf(".");
+		if(Inkey()==27){if(FileType==2)return (-2);else return(returnIFfaild);}
+		fseek(fp,seek,0);
+		CanRead=fread(data,1,1076,fp);
+		
+		if(seek+CanRead>dataEnd){CanRead=dataEnd-seek;data[CanRead]=0;}
+		else data[CanRead]=0;
+		Temp_strstr_value=data;
+		if(strstr_value1=strstr(data,tofindstrs))
+			{
+			while(strstr_value=strstr(Temp_strstr_value,CrLf))
+				{
+				if(strstr_value<strstr_value1)lastestCrLf=seek+strstr_value-data;
+				else break;
+				Temp_strstr_value=strstr_value+1;
+				}
+			break;
+			}
+		else{
+			while(strstr_value=strstr(Temp_strstr_value,CrLf))
+				{
+				lastestCrLf=seek+strstr_value-data;
+				Temp_strstr_value=strstr_value+1;
+				}		
+			}
+		if(CanRead!=1076)break;
+		seek=seek+1024;
+		}
+	if((CanRead!=1076)&&(!strstr_value1))
+		{
+		SetScreen(1);
+		if(FileType==1)
+			{
+			printf("已搜索至TXT文件尾,");
+			printf("\n未发现字符串:\n\n%s",tofindstrs);getchar();
+			}
+		return(returnIFfaild);
+		}
+	else 
+		{
+		find_result=seek+strstr_value1-data;
+		if(!lastestCrLf)lastestCrLf=Seekfrom-1;
+		fseek(fp,lastestCrLf+1,0);
+		
+		CharsRest=find_result-lastestCrLf;//CharsRest从这里开始是到find_result的距离
+		i=0;
+		while(CharsRest>1076)
+			{
+			//printf("~");
+			if(Inkey()==27){if(FileType==2)return (-2);else return(returnIFfaild);}
+			if(half){c++;half=0;}
+			fread(data,1,1076,fp);
+			c=0;
+			while(c<1075)
+				{
+				if(data[c]>128)
+					{
+					if(i==25)i=2;
+					else i=i+2;
+					c=c+2;
+					}
+				else {c++;i++;}
+				if(i==26)i=0;
+				}
+			if((c==1075)&&(data[aaa=1075]>128))half=1;
+			CharsRest=CharsRest-1076;
+			}
+		fread(data,1,CharsRest,fp);
+		
+		CharsRest--;
+		c=0;
+		//printf("^");
+		if(Inkey()==27){if(FileType==2)return (-2);else return(returnIFfaild);}
+		while(CharsRest>1)
+			{
+			if(data[c]>128)
+				{
+				if(i==25)i=2;
+				else i=i+2;
+				c=c+2;
+				CharsRest=CharsRest-2;
+				}
+			else {c++;i++;CharsRest--;}
+			if(i==26)i=0;
+			}
+		if(CharsRest==1)
+			{
+			if(data[c]>128){SeachBegin=find_result+1;seek=SeachBegin;continue;}//strstr可能从汉字的一二字节间找到tofindstrs
+			else return(find_result-i-1);
+			}
+		else return(find_result-i);
+		}
+	}
+
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+
+long EBK_find_inBlock()
+{
+long find_result;
+fseek(fp,BlockOffset+BlockID*9,0);
+KEY=getc(fp);
+dataBegin=getc(fp)+getc(fp)*256+getc(fp)*256*256;
+dataEnd=getc(fp)+getc(fp)*256+getc(fp)*256*256;
+if(thispage_begin==-1)thispage_end=dataBegin-1;
+if (KEY==0)
+	{
+	find_result=find(-1,thispage_end+1,0);/////////////////
+	return (find_result);
+	}
+else return (-1);
+}
+
+long EBK_find_inDir(long add)
+{
+long find_result;
+find_result=-1;
+fseek(fp,add+7,0);
+
+VTorId_minID=getc(fp)+getc(fp)*256;
+getc(fp);getc(fp);getc(fp);
+VTorId_maxID=getc(fp)+getc(fp)*256;
+
+BlockID=VTorId_minID;
+do{
+	if((find_result=EBK_find_inBlock())!=-1)break;
+	
+	BlockID++;
+}while(BlockID<VTorId_maxID)
+
+return (find_result);	
+}
+
+long EBK_changeNextDir()
+{
+long add;
+char c;
+long dir_return;
+long dir_unknow;
+
+while(1)
+	{
+	if(CurrentSubDir+1<Num_of_SubDir)//下一个
+		{
+		CurrentSubDir++;
+		CurSubDir_p[dir_p]=CurrentSubDir;
+		fseek(fp,dir_add+3+2*CurrentSubDir,0);
+		dir_unknow=getc(fp)+getc(fp)*256;
+	
+		fseek(fp,dir[dir_p],0);
+		while(getc(fp)!=0xff);
+		dir[dir_p]=ftell(fp);
+		
+		break;
+		}
+	else //回上一层
+		{
+		if(!dir_p) {return(-1);}
+		fseek(fp,dir_add+1,0);parentdir=getc(fp)+getc(fp)*256;
+		fseek(fp,parentdir,0);
+		Num_of_SubDir=getc(fp);
+		dir_add=parentdir;parentdir=getc(fp)+getc(fp)*256;
+		CurSubDir_p[dir_p]=0;
+		CurrentSubDir=CurSubDir_p[--dir_p];//if(CurrentSubDir+1<Num_of_SubDir)则上边；
+		}
+	}
+	
+	
+	
+while(1)//进目录
+	{
+	fseek(fp,dir_unknow,0);
+	c=getc(fp);
+	if((!c)||(dir_p>9))break;//(dir_p>9)防止意外
+	else
+		{
+		CurrentSubDir=0;CurSubDir_p[++dir_p]=0;
+		Num_of_SubDir=c;parentdir=dir_add;dir_add=dir_unknow;
+		fseek(fp,dir_add+3,0);dir_unknow=getc(fp)+getc(fp)*256;
+		dir[dir_p]=dir_add+3+2*Num_of_SubDir;
+		}
+	}
+	
+thispage_begin=-1;//重要！EBK_find_inBlock()中有作用
+return(dir_unknow);
+
+}
+
+
+long findInEBK(long returnIFfaild,char NewSearch)
+{
+long old_dataBegin;
+long old_dataEnd;
+char CurSubDir_p_old[10];
+char dir_p_old;
+long dir_old[10];
+char CurrentSubDir_old;
+long parentdir_old;	
+long dir_add_old;
+long VTorId_maxID_old;
+long VTorId_minID_old;
+long VTorId_i_old;
+long VTorId_add_old;
+int Num_of_SubDir_old;
+
+long find_result;
+
+if(NewSearch)if(!stri(1,1,"输入要查找的字符串:",tofindstrs,20))return(returnIFfaild);
+//strcpy(tofindstrs,"INT");
+if(tofindstrs[aaa=0]==0)return(returnIFfaild);
+
+SetScreen(0);printf("正在查找，稍候...");
+old_dataBegin=dataBegin;
+old_dataEnd=dataEnd;
+memcpy(CurSubDir_p_old,CurSubDir_p,10);
+CurrentSubDir_old=CurrentSubDir;
+parentdir_old=parentdir;
+memcpy(dir_old,dir,40);
+dir_add_old=dir_add;
+dir_p_old=dir_p;
+VTorId_maxID_old=VTorId_maxID;
+VTorId_minID_old=VTorId_minID;
+VTorId_i_old=VTorId_i;
+VTorId_add_old=VTorId_add;
+Num_of_SubDir_old=Num_of_SubDir;
+
+find_result=-1;
+
+do{
+	
+	if((find_result=EBK_find_inDir(VTorId_add))!=-1)break;
+	else
+		{
+		
+		VTorId_add=EBK_changeNextDir();
+		
+		}
+	}while(VTorId_add!=-1)
+
+
+if((find_result!=-1)&&(find_result!=-2))return(find_result);
+else
+	{
+	dataBegin=old_dataBegin;
+	dataEnd=old_dataEnd;
+	memcpy(CurSubDir_p,CurSubDir_p_old,10);
+	CurrentSubDir=CurrentSubDir_old;
+	parentdir=parentdir_old;
+	memcpy(dir,dir_old,40);
+	dir_add=dir_add_old;
+	dir_p=dir_p_old;
+	VTorId_maxID=VTorId_maxID_old;
+	VTorId_minID=VTorId_minID_old;
+	VTorId_i=VTorId_i_old;	
+	VTorId_add=VTorId_add_old;
+	Num_of_SubDir=Num_of_SubDir_old;
+	if(find_result==-2)return(returnIFfaild);
+	SetScreen(1);
+	printf("搜索至文件尾，未发现\n\n%s",tofindstrs);
+	getchar();
+	return(returnIFfaild);
+	} 
+}
+///////////////////////////////////////////////////////////////////////////////////////
+
+
+void set_nextpage()
+{
+char i;
+char space_rest;
+char tempchar;
+char CanRead;
+
+nextpage_begin=thispage_end+1;
+if(nextpage_begin<dataEnd)fseek(fp,nextpage_begin,0);
+else {SetScreen(1);printf("\n\n\n\n\n         [END]");progress();cmd=254;return;}
+CanRead=fread(filedata,1,164,fp);
+if(ftell(fp)>dataEnd)CanRead=CanRead-(ftell(fp)-dataEnd);
+
+if(font)space_rest=156;else space_rest=100;
+for(i=0;i<CanRead;i++)
+	{
+	tempchar=filedata[i];
+	if(tempchar<128) 
+		{
+		if((tempchar==13)||(tempchar==10)) 
+			{
+			space_rest=((space_rest-1)/linesize)*linesize;
+			if(filedata[i+1]==10)i++;
+			}
+		else space_rest--;
+		}
+	else 
+		{
+		if((space_rest%linesize)==1)
+			{
+			if(space_rest==1){i--;break;}
+			space_rest--;
+			}
+		space_rest=space_rest-2;
+		i++;
+		}
+	if((!space_rest)||(space_rest>156)||(CanRead<=i+1))break;
+	}
+if(filedata[i]==10)filedata[i]=0;else filedata[i+1]=0;
+if(CanRead<=i+1)filedata[CanRead]=0;
+nextpage_end=nextpage_begin+i;
+SetScreen(font);
+if(SHIFTaBYTE)filedata[aaa=0]=63;//Chr(63)='?'
+printf("%s",filedata);
+thispage_begin=nextpage_begin;
+thispage_end=nextpage_end;
+progress();
+if(Auto_ByHand=='h'){do cmd=getchar();while(cmd=='q') if(CheckKey('q'))ReleaseKey(cmd);}else if(Auto_ByHand=='l')cmd=21;else cmd=14;
+}
+
+void set_nextline()
+{
+char i;
+char space_rest;
+char tempchar;
+char CanRead;
+
+nextline_begin=thispage_begin;
+if(nextline_begin<dataEnd)fseek(fp,nextline_begin,0);
+else {SetScreen(font);printf("\n\n\n\n\n         [END]");progress();cmd=254;return;}
+CanRead=fread(filedata,1,30,fp);
+if(ftell(fp)>dataEnd)CanRead=CanRead-(ftell(fp)-dataEnd);
+if(font)space_rest=26;else space_rest=20;
+for(i=0;i<CanRead;i++)
+	{
+	tempchar=filedata[i];
+	if(tempchar<128) 
+		{
+		if((tempchar==13)||(tempchar==10)) 
+			{
+			space_rest=0;
+			if(filedata[i+1]==10)i++;
+			break;
+			}
+		else space_rest--;
+		}
+	else 
+		{
+		if(space_rest==1)
+			{
+			i--;
+			space_rest--;
+			break;
+			}
+		space_rest=space_rest-2;
+		i++;
+		}
+	if((!space_rest)||(space_rest>linesize))break;
+	}
+if(filedata[i]==10)filedata[i]=0;else filedata[i+1]=0;
+if(CanRead<=i+1)filedata[CanRead]=0;
+nextline_end=nextline_begin+i;
+thispage_end=nextline_end;
+set_nextpage();
+}
+
+long findlastCrLf(long thisCrLf)
+{
+char CrLf[2];
+char data[513];
+int data_p;
+int temp_p;
+int chars_read;
+long LastCrLf;
+int i;
+char Reach_textbegin;
+
+CrLf[aaa=0]=10;CrLf[aaa=1]=0;data[aaa=512]=0;
+i=0;LastCrLf=0;
+Reach_textbegin=0;
+
+if(thisCrLf<=dataBegin)return dataBegin-1;
+do	{
+	i++;
+	if(Reach_textbegin){LastCrLf=dataBegin-1;break;}
+	if(thisCrLf-512*i>dataBegin) fseek(fp,thisCrLf-512*i,0);
+	else {Reach_textbegin=1;fseek(fp,dataBegin,0);}
+	
+	if((chars_read=fread(data,1,512,fp))!=512)data[chars_read]=0;
+
+	data[aaa=512]=0;
+	if(i==-1)data[thisCrLf-0]=0;
+	if(Reach_textbegin)data[(thisCrLf-dataBegin)%512]=0;
+	
+	data_p=data;
+	while ((temp_p=strstr(data_p+1,CrLf))!=NULL) 
+		{
+		data_p=temp_p;
+		LastCrLf=ftell(fp)-chars_read+data_p-data;
+		}
+		if(LastCrLf!=0)break;
+	}while(1)
+return LastCrLf;
+}
+
+long Spaceused(long LastCrLf,long thisCrLf,char counttype,long linerest)
+{
+int i;
+char data[513];
+int k;
+char not_end;
+char half;
+char line_spaces_rest;
+long restchars;
+long Spaces_used;
+long debug;
+
+i=0;not_end=1;half=0;line_spaces_rest=linesize;Spaces_used=0;data[aaa=512]=0;
+
+if((counttype=='c')&&(!linerest))return(LastCrLf+1);
+if(LastCrLf-thisCrLf>10000)//快速处理长段
+	{
+	if(counttype=='l')//line
+		return((LastCrLf-thisCrLf)%linesize);
+	else if(counttype=='a')//all
+		return(LastCrLf-thisCrLf);
+	else if(counttype=='c')//count
+		return(LastCrLf-thisCrLf)/linesize*linesize+linesize;
+	}
+
+
+while (not_end)
+	{
+	if((LastCrLf+i*512+512)<thisCrLf)
+		{
+		fseek(fp,LastCrLf+i*512+1,0);fread(data,1,512,fp);
+		if(half)k=1;else {k=0;half=0;}
+		for(;k<512;k++)
+			{
+			if(data[k]>127)
+				{
+				if(!(k-511))half=1;
+				if(line_spaces_rest==1){line_spaces_rest=linesize;Spaces_used++;linerest--;if((!linerest)&&(counttype=='c')){k--;not_end=0;break;}}
+				line_spaces_rest=line_spaces_rest-2;
+				Spaces_used=Spaces_used+2;
+				k++;
+				}
+			else 
+				{
+				if(line_spaces_rest==1){line_spaces_rest=linesize;linerest--;if((!linerest)&&(counttype=='c')){k--;not_end=0;break;}}
+				else line_spaces_rest--;
+				Spaces_used++;
+				}
+			if(!line_spaces_rest){line_spaces_rest=linesize;linerest--;if((!linerest)&&(counttype=='c')){not_end=0;break;}}
+			}
+		}
+	else 
+		{
+		fseek(fp,LastCrLf+i*512+1,0);
+		restchars=thisCrLf-LastCrLf-1-i*512;
+		fread(data,1,restchars,fp);
+		if(data[restchars-1]==13)data[--restchars]=0;else data[restchars]=0;
+		if(half)k=1;else {k=0;half=0;}
+		while (k<restchars)
+			{
+			if(data[k]>127)
+				{
+				if(line_spaces_rest==1){line_spaces_rest=linesize;Spaces_used++;linerest--;if((!linerest)&&(counttype=='c')){k--;not_end=0;break;}}
+				line_spaces_rest=line_spaces_rest-2;
+				Spaces_used=Spaces_used+2;
+				k++;
+				}
+			else
+				{
+				//debug[aaa=0]=data[k];debug[aaa=1]=0;debug[aaa=2]=0;
+				if(line_spaces_rest==1){line_spaces_rest=linesize;linerest--;if((!linerest)&&(counttype=='c')){k--;not_end=0;break;}}
+				else line_spaces_rest--;
+				Spaces_used++;
+				}
+			if(!line_spaces_rest){line_spaces_rest=linesize;linerest--;if((!linerest)&&(counttype=='c')){not_end=0;break;}}
+			k++;
+			}
+		not_end=0;			
+		}
+	i++;
+	}
+	debug=LastCrLf+i*512-510+k;
+	123;
+if(counttype=='l')//line
+	return(line_spaces_rest);
+else if(counttype=='a')//all
+	return(Spaces_used);
+else if(counttype=='c')//count 返回文件指针
+	return(LastCrLf+i*512-510+k);
+}
+
+
+
+void set_lastpage()
+{
+char i;
+char space_rest;
+char tempchar;
+char CanRead;
+long lastCrLf;
+
+lastpage_end=thispage_begin-1;
+if(lastpage_end>=162+dataBegin){fseek(fp,lastpage_end-162,0);CanRead=fread(filedata,1,163,fp);}
+else {fseek(fp,dataBegin,0);CanRead=fread(filedata,1,lastpage_end+1-dataBegin,fp);}
+
+if(font)space_rest=156;else space_rest=100;
+for(i=CanRead-1;i<CanRead;i--)
+	{
+	tempchar=filedata[i];
+	if(tempchar<128)
+		{
+		if(tempchar==10)
+			{
+			if(space_rest%linesize){space_rest=space_rest/linesize*linesize;if(!space_rest)break;}
+			lastCrLf=findlastCrLf(thispage_begin-CanRead+i);
+			space_rest=space_rest-Spaceused(lastCrLf,thispage_begin-CanRead+i,'l',0);
+			if(filedata[i-1]==13)i--;
+			}
+		else space_rest--;
+		}
+	else 
+		{
+		if((space_rest%linesize)==1)
+			{
+			if(space_rest==1){space_rest=0;i++;break;}
+			space_rest--;
+			}
+		space_rest=space_rest-2;
+		i--;
+		}
+	
+	if((!space_rest)||(space_rest>250)||(thispage_begin+i-CanRead<=0))break;
+	}
+if(filedata[CanRead-1]==10)filedata[CanRead-1]=0;else filedata[CanRead]=0;
+
+lastpage_begin=thispage_begin-CanRead+i;//if(i>CanRead)lastpage_begin=lastpage_begin-256;//char 溢出
+SetScreen(font);
+if(SHIFTaBYTE)filedata[i]=63;
+if((space_rest)&&(space_rest<=156)){if(thispage_begin-dataBegin>200){cmd=255;return;}thispage_end=dataBegin-1;set_nextpage();return;}////////自己也忘了是干什么的
+else {printf("%s",filedata+i);memmove(filedata,filedata+i,46);}
+thispage_begin=lastpage_begin;
+thispage_end=lastpage_end;
+progress();
+if(Auto_ByHand=='h'){do cmd=getchar();while(cmd=='q') if(CheckKey('q'))ReleaseKey(cmd);}else if(Auto_ByHand=='l')cmd=21;else cmd=14;
+}
+
+
+void set_lastline()
+{
+char i;
+char space_rest;
+char tempchar;
+char CanRead;
+long lastCrLf;
+
+lastline_end=thispage_begin-1;
+
+if(lastline_end>=29+dataBegin){fseek(fp,lastline_end-29,0);CanRead=fread(filedata,1,30,fp);}
+else {fseek(fp,dataBegin,0);CanRead=fread(filedata,1,lastline_end+1-dataBegin,fp);}
+
+space_rest=linesize;
+
+for(i=CanRead-1;i<CanRead;i--)
+	{
+	tempchar=filedata[i];
+	if(tempchar<128) 
+		{
+		if(tempchar==10)
+			{
+			if(space_rest!=linesize)space_rest=0;
+			else 
+				{
+				lastCrLf=findlastCrLf(thispage_begin-CanRead+i);
+				space_rest=space_rest-Spaceused(lastCrLf,thispage_begin-CanRead+i,'l',0);
+				}
+			if(filedata[i-1]==13)i--;
+			}
+		else space_rest--;
+		}
+	else 
+		{
+		//debug[aaa=0]=filedata[i-1];debug[aaa=1]=filedata[i];debug[aaa=2]=0;
+		if(space_rest==1){space_rest=0;i++;break;}
+		space_rest=space_rest-2;
+		i--;
+		}
+	
+	if((!space_rest)||(space_rest>250)||(thispage_begin+i-CanRead<=0))break;
+	}
+
+lastline_begin=thispage_begin-CanRead+i;//if(i>CanRead)lastpage_begin=lastpage_begin-256;//char 溢出
+if((space_rest)&&(space_rest<=linesize)){if(thispage_begin-dataBegin>200){cmd=255;return;}thispage_end=dataBegin-1;}////////
+else thispage_end=lastline_begin-1;
+set_nextpage();
+}
+
+long seeknextCrLf(long from)
+{
+long seek;
+long result;
+char data[513];
+char CrLf[2];
+long nextCrLf;
+
+//if(from<=dataBegin)return ;
+CrLf[aaa=0]=10;CrLf[aaa=1]=0;data[aaa=512]=0;
+seek=from;
+result=0;
+if(seek<dataBegin)return dataBegin-1;
+while(seek+512<dataEnd)
+	{
+	fseek(fp,seek,0);fread(data,1,512,fp);
+	result=strstr(data,CrLf);
+	if(result)break;
+	seek=seek+512;
+	}
+if(!result){fseek(fp,seek,0);fread(data,1,dataEnd-seek,fp);data[dataEnd-seek]=0;result=strstr(data,CrLf);}
+nextCrLf=seek+result-data;
+if(!result)return(dataEnd-1);
+else return(seek+result-data);
+}
+
+
+void print_6or5_ph(long page_begin)
+{
+char i;
+char j;
+char k;
+char c;
+long next_ph;
+long HeadOFph[7];
+long positionINph[6];
+long ph_len[6];
+long ph_right[6];
+long ph_blank[6];
+char fastseekposition[6];
+
+char ph_blank_test;
+
+long nextCrLf;
+long temp_CrLf;
+long cols;
+
+char chars[28];
+char ii;
+char jj;
+char spacerest;
+char CanRead;
+long Line_begin;
+
+
+next_ph=page_begin;nextCrLf=page_begin;
+c=0;cols=0;
+for(i=0;i<6;i++){ph_blank[i]=0;fastseekposition[i]=1;}
+if(font)j=6;else j=5;
+
+while(c!=28)
+	{
+
+	filedata[aaa=0]=0;
+	if(!c) {c=14;HeadOFph[j]=page_begin;}
+	else
+		{
+		for(i=0;i<j;i++)
+			{
+			if(ph_blank[i]>0)
+				{
+				memset(filedata+linesize*i,' ',linesize);
+				filedata[linesize*i+linesize]=0;
+				continue;
+				}
+			Line_begin=positionINph[i];
+			ii=0;
+			spacerest=linesize;
+			if(Line_begin<dataEnd)fseek(fp,Line_begin,0);
+			if(Line_begin>=HeadOFph[i+1]) CanRead=0;
+			else{
+				if(Line_begin+27<=HeadOFph[i+1])
+					{
+					CanRead=fread(chars,1,27,fp);
+					}
+				else CanRead=fread(chars,1,HeadOFph[i+1]-Line_begin,fp);
+				}
+			chars[CanRead]=10;
+			if(!CanRead)ph_blank[i]++;
+			
+			while(spacerest)
+				{
+				if(chars[ii]>128){ii=ii+2;spacerest=spacerest-2;}
+				else if(chars[ii]==13){chars[ii]=0x20;ii++;spacerest--;}
+				else if(chars[ii]!=10){ii++;spacerest--;}
+				else {chars[ii]=0x20;ii++;break;}
+				if(spacerest==1)if(chars[ii]>128){fastseekposition[i]=0;break;}
+				}
+			for(jj=ii;jj<linesize;jj++)chars[jj]=0x20;
+
+			chars[linesize]=0;
+			strcat(filedata,chars);
+			
+			if(ii==1)ii=0;//不完美程序需要
+			ph_right[i]=Line_begin+ii;
+			}
+		SetScreen(font);
+		printf("%s",filedata);
+	
+		do c=getchar();while((c!=14)&&(c!=19)&&(c!=20)&&(c!=21)&&(c!=28)&&(c!=22)&&(c!=23))
+		}	
+	if(c==21)
+		{
+		for(i=0;i<j-1;i++)
+			{
+			HeadOFph[i]=HeadOFph[i+1];
+			positionINph[i]=positionINph[i+1];
+			ph_blank[i]=ph_blank[i+1];
+			}
+		HeadOFph[j-1]=HeadOFph[j];
+		HeadOFph[j]=seeknextCrLf(HeadOFph[j-1])+1;
+		positionINph[j-1]=Spaceused(HeadOFph[j-1]-1,HeadOFph[j],'c',cols);
+		ph_blank[j-1]=0;//ph_blank[j-1]=cols-(positionINph[j-1]-HeadOFph[j-1])/linesize+1;
+
+		}//ld
+	else if(c==14)
+		{
+		HeadOFph[aaa=0]=HeadOFph[j];
+		ph_blank[aaa=0]=0;//ph_blank[aaa=0]=cols-(positionINph[aaa=0]-HeadOFph[aaa=0])/linesize+1;
+		for(i=0;i<j;i++)
+			{
+			HeadOFph[i+1]=seeknextCrLf(HeadOFph[i])+1;
+			positionINph[i]=Spaceused(HeadOFph[i]-1,HeadOFph[i+1],'c',cols);
+			ph_blank[i]=0;//if(positionINph[i]==HeadOFph[i+1])ph_blank[i]=cols-(positionINph[i]-HeadOFph[i])/linesize+1;
+			}
+		}//pd
+	else if(c==20)
+		{
+		temp_CrLf=findlastCrLf(HeadOFph[aaa=0]-1)+1;
+		if((temp_CrLf>=dataBegin)&&(HeadOFph[aaa=0]>dataBegin))
+			{
+			HeadOFph[j]=HeadOFph[j-1];
+			for(i=j-1;i>0;i--)
+				{
+				HeadOFph[i]=HeadOFph[i-1];
+				positionINph[i]=positionINph[i-1];
+				ph_blank[i]=ph_blank[i-1];
+				}
+			HeadOFph[aaa=0]=temp_CrLf;
+			positionINph[aaa=0]=Spaceused(HeadOFph[aaa=0]-1,HeadOFph[aaa=1],'c',cols);
+			ph_blank[aaa=0]=0;//ph_blank[aaa=0]=cols-(positionINph[aaa=0]-HeadOFph[aaa=0])/linesize+1;
+			}
+		}//lu
+	else if(c==19)
+		{
+		HeadOFph[j]=HeadOFph[aaa=0];
+		for(k=6;k;k--)
+			{
+			temp_CrLf=findlastCrLf(HeadOFph[aaa=0]-1)+1;
+			if((temp_CrLf>=dataBegin)&&(HeadOFph[aaa=0]>dataBegin))
+				{
+				for(i=j-1;i>0;i--)
+					{
+					HeadOFph[i]=HeadOFph[i-1];
+					positionINph[i]=positionINph[i-1];
+					ph_blank[i]=ph_blank[i-1];
+					}
+				HeadOFph[aaa=0]=temp_CrLf;
+				positionINph[aaa=0]=Spaceused(HeadOFph[aaa=0]-1,HeadOFph[aaa=1],'c',cols);
+				ph_blank[aaa=0]=0;//ph_blank[aaa=0]=cols-(positionINph[aaa=0]-HeadOFph[aaa=0])/linesize+1;
+				}
+			}
+		}//lu*6=pu
+	else if(c==22)
+		{
+		for(i=0;i<6;i++)
+			{
+			positionINph[i]=ph_right[i];
+			}
+		cols++;
+		}//right
+	else if(c==23)
+		{
+		if(cols)
+			{
+			cols--;
+			for(i=0;i<6;i++)
+				{
+				if(ph_blank[i]>0){ph_blank[i]--;if(!ph_blank[i])positionINph[i]=Spaceused(HeadOFph[i]-1,HeadOFph[i+1],'c',cols);}//ph_blank[i]=ph_blank[i]-2;
+				else
+					{
+					if(fastseekposition[i])positionINph[i]=HeadOFph[i]+linesize*cols;
+					else positionINph[i]=Spaceused(HeadOFph[i]-1,HeadOFph[i+1],'c',cols);
+					ph_blank[i]=0;//ph_blank[i]=cols-(positionINph[i]-HeadOFph[i])/linesize+1;
+					
+					}
+				}
+			}
+		}//left
+
+	ph_blank_test=1;
+	for(i=0;i<j;i++)if(!ph_blank[i])ph_blank_test=0;
+	if(ph_blank_test){for(i=0;i<j;i++)ph_blank[i]--;cols--;}
+	}
+	
+thispage_begin=HeadOFph[aaa=0];
+}
+
+
+char CheckExistDATfile()
+{
+char fp_check;
+char blankMemory[64];
+char i;
+ChDir("/");if(!ChDir("LavaData"))MakeDir("LavaData");ChDir("/");
+if ((!(fp_check=fopen("/LavaData/Reader2.dat","r+")))||(fp_check&&(fsize(fp_check)!=8192)))
+	{
+	if(fp_check){fclose(fp_check);fp_check=0;}
+	if(!(fp_check=fopen("/LavaData/Reader2.dat","w+"))){SetScreen(1);printf("无法创建DAT文件 :(");Delay(1000);return 0;}
+	else 
+		{
+		SetScreen(1);printf("正在创建DAT文件.....");
+		memset(blankMemory,0,64);
+		for(i=0;i<128;i++)fwrite(blankMemory,1,64,fp_check);
+		return fp_check;
+		}
+	}
+else return fp_check;
+
+}
+
+void SetMark(char Action)
+{
+int i;
+long temp_long;
+int num;
+char oldest_i;
+int oldest_num;
+int newest;
+char Mark[20];
+long MarkBegin[20];
+int Mark_num[20];
+long exchange_temp;
+char j;
+char c;
+char k;
+char blank;
+char fp_TFiExORnot;
+int Mem_add1;
+int Mem_add2;
+int Mem_add3;
+//char FileTypeS[5];
+i=0;
+oldest_num=0x7fff;
+oldest_i=0;
+newest=0;
+blank=20;
+
+if(!DatFileIsOK)return;
+else {if(FileType!=255)fclose(fp);fp=0;fpMark=fopen("/LavaData/Reader2.dat","r+");}
+
+filedata[aaa=127]=0;
+
+for(i=0;i!=pathpoint;i++)strcat(filedata+(aaa=127),path[i]);
+strcat(filedata+(aaa=127),"/");strcat(filedata+(aaa=127),filestr);
+
+if (Action==1)
+	{
+	SetScreen(1);printf("正在检查DAT文件.....");
+	fseek(fpMark,0,0);
+	fread(Mark_num,1,40,fpMark);
+	for(i=0;i<20;i++)
+		{
+		if(Mark_num[i]==0)blank=i;
+		else 
+			{
+			if(Mark_num[i]<oldest_num){oldest_num=Mark_num[i];oldest_i=i;}
+			if(Mark_num[i]>newest)newest=Mark_num[i];
+			}
+		}
+
+	if(blank==20) 
+		{SetScreen(1);
+		printf("书签已达20,\n\n是否删除失效书签 Y/N ?");
+		if (getchar()=='y')
+			{
+			SetScreen(1);printf("正在删除失效书签.....");
+			for(i=0;i<20;i++)
+				{
+				fseek(fpMark,128*i+258,0);
+				fread(filedata+(aaa=48),1,75,fpMark);	
+				if ((!(fp_TFiExORnot=fopen(filedata+(aaa=48),"r")))&&(strcmp(filedata+(aaa=48),filedata+(aaa=127)))) 
+					{
+					blank=i;
+					fseek(fpMark,128*i+258,0);putc(0,fpMark);
+					fseek(fpMark,i*2,0);putc(0,fpMark);putc(0,fpMark);	
+					}
+				else {fclose(fp_TFiExORnot);fp_TFiExORnot=0;}
+				}
+			if (blank==20)
+				{
+				SetScreen(1);
+				printf("没有失效书签,\n\n是否删除最旧的书签 Y/N ?");
+				if (getchar()=='y') blank=oldest_i;else {SetScreen(1);printf("\n\n未添加书签");Delay(1000);goto exit_SetMark;}
+				}
+			}
+		else 
+			
+			{
+			SetScreen(1);
+			printf("\n\n是否删除最旧的书签 Y/N ?");
+			if (getchar()=='y') blank=oldest_i;else {SetScreen(1);printf("\n\n  未添加书签");Delay(1000);goto exit_SetMark;}
+			}
+		}
+	fseek(fpMark,128*blank+256,0);
+	
+	num=newest+1;
+	filedata[aaa=125]=num;filedata[aaa=126]=num>>8;//putc(num&0x00ff,fpMark);putc(num>>8,fpMark);
+	filedata[strlen(filedata+(aaa=127))+127]=0;
+
+	fwrite(filedata+(aaa=125),1,76,fpMark);
+	
+	/*putc(0,fpMark);	
+	temp_long=thispage_begin;
+	for (i=0;i<4;i++){putc((temp_long&0x00ff),fpMark);temp_long=temp_long>>8;}//thispage_begin
+	putc(0,fpMark);*/
+	//*
+	i=p_readpath;
+	filedata[i++]=0;	
+	temp_long=thispage_begin;
+	j=4;while(j--){filedata[i++]=temp_long;temp_long=temp_long>>8;}//thispage_begin
+	filedata[i++]=0;
+	fwrite(filedata+(aaa=48),1,6,fpMark);//*/
+	fwrite(filedata,1,46,fpMark);
+	
+	fseek(fpMark,blank*2,0);putc(num%256,fpMark);putc(num>>8,fpMark);
+	
+	
+	if(FileType==2)
+		{
+		fseek(fpMark,128*blank+2816,0);
+		fwrite(ebk_v_BEGIN-8,1,ebk_v_END-ebk_v_BEGIN+8,fpMark);
+		}
+	
+	filedata[aaa=46]=0;
+	SetScreen(1);
+	printf("%s\n",filedata);
+	Locate(4,16);printf("                                    ");
+	Locate(4,0);printf(" << 已设置书签: %s",filedata+(aaa=127));
+	thispage_end=thispage_begin-1;
+	Delay(500);
+	}
+else if (Action==2)
+	{ 
+
+	j=0;
+	for(i=0;i<20;i++)
+		{
+		fseek(fpMark,128*i+256,0);fread(filedata,1,82,fpMark);
+		if (!strcmp(filedata+(aaa=2),filedata+(aaa=127)))
+			{
+			Mark[j]=i;MarkBegin[j]=(filedata[aaa=77]+(filedata[aaa=78]+(filedata[aaa=79]+filedata[aaa=80]*256)*256)*256);
+			Mark_num[j]=filedata[aaa=0]+filedata[aaa=1]*256;
+			j++;
+			}
+		}
+	for(k=1;k<j;k++)
+		{
+		for(i=j-1;i>=k;i--)
+			{
+			if(Mark_num[i]>Mark_num[i-1])
+				{
+				exchange_temp=Mark_num[i];Mark_num[i]=Mark_num[i-1];Mark_num[i-1]=exchange_temp;				
+				exchange_temp=Mark[i];Mark[i]=Mark[i-1];Mark[i-1]=exchange_temp;
+				exchange_temp=MarkBegin[i];MarkBegin[i]=MarkBegin[i-1];MarkBegin[i-1]=exchange_temp;
+				}
+			
+			}
+		}
+		i=0;
+	if(j!=0)
+		do{	
+			fseek(fpMark,Mark[i]*128+338,0);fread(filedata,1,46,fpMark);filedata[aaa=46]=0;
+			SetScreen(1);
+			printf("%s",filedata);
+			Locate(5,1);printf("%d 号书签<共 %d 个>",i+1,j);
+			if (((c=getchar())==21)&&(i>0)) i--;
+			else if ((c==20)&&(i<j-1)) i++;
+			else if(c==29)
+				{
+				fseek(fpMark,2*Mark[i],0);putc(0,fpMark);putc(0,fpMark);
+				fseek(fpMark,128*Mark[i]+258,0);putc(0,fpMark);
+				if(i==j-1){j--;i--;}else {for(k=i;k<j-1;k++){Mark[k]=Mark[k+1];MarkBegin[k]=MarkBegin[k+1];}j--;}
+				if(j==0)break;
+				}
+								
+			}while((c!=13)&&(c!=27))
+	if(j==0){SetScreen(1);Locate(3,1);printf("     目前无书签",i+1,j);Delay(800);c=0;}
+	
+	if (c==13) 
+		{
+		if(FileType==2)
+			{
+			fseek(fpMark,128*Mark[i]+2816,0);
+			fread(ebk_v_BEGIN-8,1,ebk_v_END-ebk_v_BEGIN+8,fpMark);
+			}
+		thispage_begin=MarkBegin[i];
+		SetScreen(1);Locate(4,0);printf(" >> 已读取书签...");Delay(500);
+		
+		}
+
+	}
+else if (Action==3)
+	{
+	j=0;
+	for(i=0;i<20;i++)
+		{
+		fseek(fpMark,128*i+256,0);fread(filedata,1,82,fpMark);
+		if(filedata[aaa=2]!=0)
+			{
+			Mark[j]=i;MarkBegin[j]=(filedata[aaa=77]+(filedata[aaa=78]+(filedata[aaa=79]+filedata[aaa=80]*256)*256)*256);
+			Mark_num[j]=filedata[aaa=0]+filedata[aaa=1]*256;
+			j++;
+			}
+		}
+		
+	i=0;
+	if(j!=0)
+		do{	
+			fseek(fpMark,Mark[i]*128+258,0);fread(filedata,1,126,fpMark);filedata[aaa=126]=0;
+			SetScreen(1);
+			for(Mem_add1=filedata;(Mem_add1=strstr(Mem_add1+1,"/"));)Mem_add2=Mem_add1;
+			printf("\n\n%s",filedata+(aaa=80));
+			Locate(0,0);printf("%d/%d>>%s\n",i+1,j,Mem_add2+1);
+			do c=getchar();while((c!=20)&&(c!=21)&&(c!=13)&&(c!=27)&&(c!=29))
+			if ((c==21)&&(i>0)) i--;
+			else if ((c==20)&&(i<j-1)) i++;
+			else if(c==29)
+				{
+				fseek(fpMark,2*Mark[i],0);putc(0,fpMark);putc(0,fpMark);
+				fseek(fpMark,128*Mark[i]+258,0);putc(0,fpMark);
+				if(i==j-1){j--;i--;}else {for(k=i;k<j-1;k++){Mark[k]=Mark[k+1];MarkBegin[k]=MarkBegin[k+1];}j--;}
+				if(j==0)break;
+				}
+								
+			}while((c!=13)&&(c!=27))
+	if(j==0){SetScreen(1);Locate(3,1);printf("     目前无书签",i+1,j);Delay(800);c=0;}
+	if (c==13)
+		{
+		if(strcmp(filedata,filedata+(aaa=127)))
+			{
+			fseek(fpMark,128*Mark[i]+2816,0);
+			fread(filedata+(aaa=127),1,ebk_v_END-ebk_v_BEGIN+8,fpMark);//fread(ebk_v_BEGIN-8,1,ebk_v_END-ebk_v_BEGIN+8,fpMark);
+			fclose(fpMark);fpMark=0;
+			if (fp_TFiExORnot=fopen(filedata,"r")) 
+				{
+				if(!ChDir("/")){SetScreen(1);printf("打开根目录失败！");getchar();goto exit_SetMark;}		
+				pathpoint=0;Mem_add1=strstr(filedata,"/");Mem_add3=0;
+				do	{
+					strcpy(path[pathpoint],"/");
+					if((Mem_add1)||(Mem_add3))
+						{
+						if(Mem_add3=strstr(Mem_add1+1,"/"))
+							{
+							*Mem_add3=0;
+							Mem_add2=Mem_add1;
+							strcat(path[pathpoint],Mem_add1+1);
+							if(strstr(path[pathpoint]+1,"/"))*strstr(path[pathpoint]+1,"/")=0;
+							if(!ChDir(Mem_add1+1)){SetScreen(1);printf("打开目录%s失败！",Mem_add1+1);getchar();goto exit_SetMark;}
+							pathpoint++;
+							}
+						else {strcpy(filestr,Mem_add1+1);}
+						Mem_add1=Mem_add3;
+						}
+					else break;
+					}while(1)
+				fp=fp_TFiExORnot;
+				}
+			else {SetScreen(1);printf("打开文件失败！");getchar();goto exit_SetMark;}
+			}
+		
+		else 
+			{
+			fseek(fpMark,128*Mark[i]+2816,0);
+			fread(filedata+(aaa=127),1,ebk_v_END-ebk_v_BEGIN+8,fpMark);//fread(ebk_v_BEGIN-8,1,ebk_v_END-ebk_v_BEGIN+8,fpMark);
+			fclose(fpMark);fpMark=0;fp=fopen(filestr,"r");
+			}
+		memcpy(ebk_v_BEGIN-8,filedata+(aaa=127),ebk_v_END-ebk_v_BEGIN+8);
+		
+		FileType=TYPEofFILE();
+		if(FileType!=2){FileType=1;rewind(fp);if(getc(fp)==0)dataBegin=24;else dataBegin=0;dataEnd=fsize(fp);}
+			
+		thispage_begin=MarkBegin[i];cmd=255;
+		SetScreen(1);Locate(4,0);printf(" >> 已读取书签...");Delay(500);return;
+		
+		}
+
+	}
+
+exit_SetMark:if(fpMark)fclose(fpMark);fpMark=0;fp=fopen(filestr,"r");cmd=255;
+}
+
+void Setms()
+{
+char c;
+
+SetScreen(1);
+printf("\n    现在翻页时间 %d.%ds\n\n   设定请按 上、下 键...\n   <输入>键确认...",ms/1000,ms/100-((ms)/1000)*10);
+
+	while ((c=getchar())!=13)	{		
+		if ((c==20)&&(ms<=19900)) {ms=ms+100;ReleaseKey(20);}
+		else if ((c==19)&&(ms<=19900)) {if(ms<=19000) ms=ms+1000; else ms=20000;ReleaseKey(19);}
+		else if ((ms>201)&&(c==21)) {ms=ms-100;ReleaseKey(21);}
+		else if ((ms>201)&&(c==14)) {if(ms>1200)ms=ms-1000;else ms=200;ReleaseKey(14);}			
+		Locate(1,16);
+		printf(" %d.%ds  ",ms/1000,ms/100-((ms)/1000)*10);
+        Delay(80);
+		ReleaseKey(128);
+		}
+}
+
+void Delay_or_Inkey()
+{
+char inkey_value;
+char RestTime;
+
+inkey_value=0;
+
+RestTime=(ms-200)/100;
+while(1)
+	{
+	if(CheckKey('q')){do inkey_value=getchar();while(inkey_value=='q') ReleaseKey(inkey_value);cmd=inkey_value;break;}
+	else 
+		{
+		inkey_value=Inkey();
+		if(inkey_value){cmd=inkey_value;break;}
+		}
+	if(!RestTime)break;
+	Delay(100);RestTime--;
+	}
+
+//if(CheckKey('q')&&inkey_value)ReleaseKey(inkey_value);
+
+}
+
+void pause()
+{
+char c;
+char i;
+long dataEnd_temp;
+long num_input;
+Inkey();
+SetScreen(0);
+while(((c=Inkey())!='p')&&(c!=15))
+	{
+	if(c==13)
+		{
+		
+		do	{
+			SetScreen(1);
+			dataEnd_temp=dataEnd;for(i=0;dataEnd_temp;i++)dataEnd_temp=dataEnd_temp/10;
+			printf("当前位置:\n\n %d",thispage_begin);
+			Locate(2,9);printf("字节\n\n\n %d %% ; %d ‰",(thispage_begin-dataBegin)*100/(dataEnd-dataBegin+1),((thispage_begin-dataBegin)*500/(dataEnd-dataBegin+1))*2);
+			Locate(3,1);printf("%d ～ %d",dataBegin,dataEnd);
+			if((c=getchar())==13)
+				{
+				Locate(5,0);printf("               "); num_input=inputnum(thispage_begin,i,2,1,dataBegin,dataEnd);
+				if(thispage_begin==num_input)continue;
+				else{thispage_begin=num_input;return;}}
+
+			}while(c!=27)
+		SetScreen(0);
+		}
+	GetTime(time);
+	Locate(2,2);printf("现在时间 %d:%d:%d   ",time.hour,time.minute,time.second);
+	Delay(100);	
+	}
+}
+
+void set_fav()
+{
+
+char c;
+char i;
+char j;
+char menuNUM;
+
+menuNUM=4;
+SetScreen(1);
+
+filedata[aaa=0]=0;
+if(fav_setting[aaa=0])strcat(filedata," *");else strcat(filedata,"  ");strcat(filedata,"  阅毕提示删除文本\n");
+if(fav_setting[aaa=1])strcat(filedata," *");else strcat(filedata,"  ");strcat(filedata,"  跳出文本需确认\n");
+if(fav_setting[aaa=2])strcat(filedata," *");else strcat(filedata,"  ");strcat(filedata,"  猜测文件名，并提示打开");
+if(fav_setting[aaa=3])strcat(filedata," *");else strcat(filedata,"  ");strcat(filedata,"  使用屏保(密码)(  min)");
+printf("%s",filedata);
+Locate(3,19);printf("%d",fav_setting[aaa=3]);
+i=0;
+Box(1,0,158,12,1,2);
+do	{
+	do c=getchar();while((c!=20)&&(c!=21)&&(c!=KEY_ESC)&&(c!=13)&&(c!=23)&&(c!=22))
+	j=i;
+	if((c==20)&&((i)))i--;
+	else if((c==21)&&(i<menuNUM-1))i++;
+	else if(c==13)
+			{
+			Locate(i,1);
+			if(fav_setting[i]){printf(" ");fav_setting[i]=0;Locate(3,19);printf("0 ");}else {printf("*");fav_setting[i]=1;}
+			if(i==3){Locate(3,19);printf("%d",fav_setting[aaa=3]);}
+			Box(1,13*i,158,13*i+12,1,2);
+			}
+	else if((c==23)&&(i==3)&&(fav_setting[aaa=3])){fav_setting[aaa=3]--;Locate(3,19);printf("%d",fav_setting[aaa=3]);if(fav_setting[aaa=3]<10)printf(" ");if(!fav_setting[aaa=3]){Locate(3,1);printf(" ");}Box(1,13*i,158,13*i+12,1,2);}
+	else if((c==22)&&(i==3)&&(fav_setting[aaa=3]<60)){fav_setting[aaa=3]++;Locate(3,19);printf("%d",fav_setting[aaa=3]);if(fav_setting[aaa=3]<10)printf(" ");if(fav_setting[aaa=3]){Locate(3,1);printf("*");}Box(1,13*i,158,13*i+12,1,2);}
+	else if(c==KEY_ESC)break;
+	else continue;
+	Box(1,13*j,158,13*j+12,1,2);
+	Box(1,13*i,158,13*i+12,1,2);
+	}while(1)
+123;
+}
+
+void menu_SPACE()
+{
+char Auto_ByHand_str[6];
+char c;
+char menuNUM;
+char menu_str[27];
+char i;
+char j;
+char OKisPrinted;
+char PassWord_is_OK;
+
+i=0;menuNUM=6;OKisPrinted=0;
+
+if(Auto_ByHand=='a')strcpy(Auto_ByHand_str,"翻页 ");
+else if(Auto_ByHand=='l')strcpy(Auto_ByHand_str,"翻行 ");
+else strcpy(Auto_ByHand_str,"手动 ");
+SetScreen(1);
+ClearScreen();
+
+sprintf(menu_str,"手动/翻页/翻行(当前%s)",Auto_ByHand_str);
+TextOut(0,0,menu_str,1);
+sprintf(menu_str,"设置翻页时间 (当前 %d.%ds )",ms/1000,ms/100-((ms)/1000)*10);
+TextOut(0,13,menu_str,1);
+TextOut(0,26,"保存上面两项为默认设置",1);
+TextOut(0,39,"设置当前目录为默认目录",1);
+TextOut(0,52,"设置/更改 使用密码",1);
+TextOut(0,65,"个人操作偏好设置",1);
+Block(1,0,158,12,2);
+Refresh();
+if(DatFileIsOK){fclose(fp);fp=0;fpMark=fopen("/LavaData/Reader2.dat","r+");}
+
+do	{
+	do c=getchar();while((c!=20)&&(c!=21)&&(c!=KEY_ESC)&&(c!=13))
+	if(OKisPrinted){TextOut(135,13*OKisPrinted,"   ",2);OKisPrinted=0;}
+	j=i;
+	if((c==20)&&((i)))i--;
+	else if((c==21)&&(i<menuNUM-1))i++;
+	else if(c==13)
+			{
+			if(i==1)
+			{
+			Setms();
+			//ms=inputnum(ms,5,2,0,0,20000);
+			sprintf(menu_str,"设置翻页时间 (当前 %d.%ds ) ",ms/1000,ms/100-((ms)/1000)*10);
+			TextOut(0,13,menu_str,2);
+			}
+			else if(i==0)
+					{
+if(Auto_ByHand=='a'){Auto_ByHand='l';TextOut(114,0,"翻行",2);}
+else if(Auto_ByHand=='l'){Auto_ByHand='h';TextOut(114,0,"手动",2);}
+else {Auto_ByHand='a';TextOut(114,0,"翻页",2);}
+					}
+			else if((i==2)||(i==3)||(i==4)||(i==5))
+					{
+					if(!DatFileIsOK){SetScreen(1);printf("DAT文件打开/创建失败!");getchar();}
+					else
+						{
+						
+						if(i==2)
+						 	{
+						 	fseek(fpMark,106,0);putc(1,fpMark);putc(ms&0x00ff,fpMark);putc(ms>>8,fpMark);putc(Auto_ByHand,fpMark);
+							TextOut(135,26," OK",2);OKisPrinted=2;
+						 	}					
+						 else if(i==3)
+							{
+							fseek(fpMark,40,0);putc(1,fpMark);fwrite(path,1,64,fpMark);putc(pathpoint,fpMark);
+							TextOut(135,39," OK",2);OKisPrinted=3;
+							}
+						 else if(i==4)
+							{
+							PassWord_is_OK=0;
+							fseek(fpMark,110,0);
+							if(getc(fpMark)==1)
+								{
+								fread(filedata,1,53,fpMark);filedata[aaa=52]=0;
+
+								do	{
+									if(!inputpass("请输入密码:",filedata+(aaa=100)))break;
+									if(strcmp(filedata,filedata+(aaa=100))){SetScreen(0);printf("\n  密码错误!");if(getchar()==KEY_ESC)break;}
+									else {PassWord_is_OK=1;break;}
+									}while(1)
+								}
+								else PassWord_is_OK=1;
+								
+								if(!PassWord_is_OK){Refresh();continue;}
+								
+								if(!inputpass("请输入新密码:",filedata)){Refresh();continue;}
+								else if(!inputpass("再输一遍:",filedata+(aaa=100))){Refresh();continue;}
+								if(strcmp(filedata,filedata+(aaa=100)))
+									{SetScreen(0);printf("  两次密码不一致!");Delay(1000);}
+								else 
+									{
+									if(filedata[aaa=0]==0){fseek(fpMark,110,0);putc(0,fpMark);SetScreen(0);printf("\n  密码已清除!");Delay(1000);}
+									else 
+										{
+										fseek(fpMark,110,0);putc(1,fpMark);fwrite(filedata,1,53,fpMark);
+										SetScreen(0);printf("\n  密码已设置!");Delay(1000);
+										}
+									}
+									
+							}
+						 else if(i==5)
+						 	{
+						 	set_fav();
+						 	fseek(fpMark,166,0);
+						 	fwrite(fav_setting,1,4,fpMark);
+						 	}
+						}
+					}
+			else continue;
+			}
+	else if(c==KEY_ESC)break;
+	else continue;
+	Block(1,13*j,158,13*j+12,2);
+	Block(1,13*i,158,13*i+12,2);
+	Refresh();
+	}while(1)
+	
+if(DatFileIsOK){fclose(fpMark);fpMark=0;fp=fopen(filestr,"r");}
+}
+
+char menu_F1()
+{
+char c;
+char menuNUM;
+char i;
+char j;
+char zhehang;
+
+zhehang=1;
+i=0;menuNUM=2;
+
+SetScreen(1);
+ClearScreen();
+
+if(font)TextOut(0,0,"  *小字体  |  大字体",1);else TextOut(0,0,"   小字体  | *大字体",1);
+if(zhehang)TextOut(0,13,"  *折行    |  不折行",1);else TextOut(0,13,"   折行    | *不折行",1);
+
+Block(1,0,158,12,2);
+Refresh();
+
+do	{
+	do c=getchar();while((c!=20)&&(c!=21)&&(c!=KEY_ESC)&&(c!=13))
+	j=i;
+	if((c==20)&&((i)))i--;
+	else if((c==21)&&(i<menuNUM-1))i++;
+	else if(c==13)
+			{
+			if(((i==0)&&font)||((i==1)&&zhehang))
+				{
+				if(i==0){font=0;linesize=20;}else if(i==1)zhehang=0;
+				TextOut(12,i*13," ",2);
+				TextOut(77,i*13,"*",2);
+				}
+			else if(((i==0)&&(!font))||((i==1)&&(!zhehang)))
+				{
+				if(i==0){font=1;linesize=26;}else if(i==1)zhehang=1;
+				TextOut(12,i*13,"*",2);
+				TextOut(77,i*13," ",2);
+				}
+			else continue;
+			}
+	else if(c==KEY_ESC)break;
+	else continue;
+	Block(1,13*j,158,13*j+12,2);
+	Block(1,13*i,158,13*i+12,2);
+	Refresh();
+	}while(1)
+return zhehang;
+}
+
+
+long treat_SHIFT()
+{
+char SHIFT_cmd;
+char time_cmd;
+
+time_cmd=60;
+do	{
+	SHIFT_cmd=Inkey();
+	Delay(50);
+	time_cmd--;
+	}while(time_cmd&&(!SHIFT_cmd)&&(SHIFT_cmd!=KEY_SHIFT))
+
+
+if(SHIFT_cmd==20){thispage_begin=dataBegin;cmd=255;return 1;}
+else if(SHIFT_cmd==21){thispage_begin=dataEnd;cmd=255;return 2;}
+else if(SHIFT_cmd=='l'){SetMark(3);return 2;}
+
+else if(SHIFT_cmd==KEY_ESC){if(FileType==2){KEY=SHIFT_cmd;return 27;}else{cmd=27;return 0;}}
+else if((SHIFT_cmd==19)&&(FileType==2)){KEY=19;return 19;}
+else if((SHIFT_cmd==14)&&(FileType==2)){KEY=14;return 14;}
+
+else {cmd=255;KEY=0;return 0;}
+}
+
+void viewTEXT()
+{
+char tempchar;
+long oldtime;
+long newtime;
+char i,testt;
+
+thispage_end=dataBegin-1;
+thispage_begin=dataBegin;
+testt=1;
+SHIFTaBYTE=0;
+if(Auto_ByHand!='a'&&Auto_ByHand!='l')Auto_ByHand='h';
+if(cmd!=255)cmd=0;
+if(FileType==255){SetMark(3);if(FileType==255)return;}
+if(fav_setting[aaa=3])
+	{
+	GetTime(time);	
+	oldtime=time.second+60*(time.minute+60*(time.hour+(24*time.day+(31*time.month+(12*(time.year-2000))))));
+	}
+while(1)
+	{
+	if(fav_setting[aaa=3])
+		{
+		GetTime(time);
+		newtime=time.second+60*(time.minute+60*(time.hour+(24*time.day+(31*time.month+(12*(time.year-2000))))));
+		if(newtime-oldtime>=fav_setting[aaa=3]*60){i=10;do {if(!(i--))exit(0);inputpass("请输入密码:",filedata+(aaa=48));}while(strcmp(filedata+(aaa=48),password))}
+		oldtime=newtime;
+		}
+	if(cmd==21){if((thispage_begin==dataEnd)&&(FileType==2)&&(VTorId_i<VTorId_maxID)){KEY=14;return;}else set_nextline();}
+	else if(cmd==14||cmd==22){if((thispage_begin==dataEnd)&&(FileType==2)&&(VTorId_i<VTorId_maxID)){KEY=14;return;}else set_nextpage();}
+	else if(cmd==19||cmd==23){if((thispage_begin==dataBegin)&&(FileType==2)&&(VTorId_i>VTorId_minID)){KEY=19;return;}else set_lastpage();}
+	else if(cmd==20){if((thispage_begin==dataBegin)&&(FileType==2)&&(VTorId_i>VTorId_minID)){KEY=19;return;}else set_lastline();}
+	else if(cmd==32){menu_SPACE();cmd=255;continue;}
+	else if(cmd==27){if(FileType==1){if(fav_setting[aaa=1]){if(MsgBox("确认退出?",1))return;else{cmd=255;continue;}}else return;}else{KEY=27;return;}}
+else if(cmd=='s'){SetMark(1);cmd=255;continue;}
+else if(cmd=='l'){SetMark(2);cmd=255;continue;}
+else if(cmd=='p'||cmd==15){pause();cmd=255;continue;}
+else if(cmd=='.'){if(SHIFTaBYTE)SHIFTaBYTE=0;else SHIFTaBYTE=1;thispage_end=thispage_begin-1;set_nextpage();}//调整乱码
+	else if(cmd==KEY_HELP){printHELP();thispage_end=thispage_begin-1;set_nextpage();}
+	else if(cmd==29){if(DELETEorNOT())return;cmd=255;continue;}
+	else if(cmd==30){if(FileType==1)thispage_begin=find(thispage_begin,thispage_end,1);else if(FileType==2)thispage_begin=findInEBK(thispage_begin,1);cmd=255;continue;}//查找
+	else if(cmd==48){if(tofindstrs[aaa=0]){if(FileType==1)thispage_begin=find(thispage_begin,thispage_end,0);else if(FileType==2)thispage_begin=findInEBK(thispage_begin,0);}cmd=255;continue;}//继续查找
+	else if(cmd==255){thispage_end=thispage_begin-1;set_nextpage();}//重复刚才的一页
+	else if(cmd==254){if(fav_setting[aaa=0]){if(DELETEorNOT())return;else printf("");}cmd=getchar();if((cmd==14)&&(FileType==2)&&(VTorId_i<VTorId_maxID)){KEY=14;return;}continue;}
+	else if(cmd==KEY_SHIFT){tempchar=treat_SHIFT();if(tempchar<10)continue;else return;}
+	else if(cmd==28){if(!menu_F1())print_6or5_ph(thispage_begin);cmd=255;continue;}
+	else if(cmd!=0)set_nextpage();
+	else if(Auto_ByHand=='l'&&testt!=1)set_nextline();
+    else set_nextpage();
+
+if(Auto_ByHand=='a'||Auto_ByHand=='l'){cmd=0;testt=0;Delay_or_Inkey();}
+
+}
+}
+
+char print_short(long from,char maxsize,char x,char y,int focus,int clear)
+{
+char size;
+fseek(fp,from,0);
+for(size=0;size<maxsize;size++)
+	{
+	filedata[size]=getc(fp);
+	if ((filedata[size]>127)&&(filedata[size]!=255))filedata[++size]=getc(fp);
+	else if((filedata[size]==255)||(size>=maxsize-1)||size>=196){size++;break;}
+	
+	}
+if(focus)CurSubDirNp=from+size;
+if(filedata[size-1]==255)
+	{
+	{if(focus)CurSubDirNp=SubDir_name[CurrentSubDir-fromSubDir];}
+	filedata[size-1]=0;
+	}
+else {filedata[size]='.';filedata[size+1]='.';filedata[size+2]=0;}
+
+
+
+    if(clear) ClearScreen();
+    if(focus)focus=8;else focus=0;
+    TextOut(x,y,filedata,1+focus);
+    
+return size;
+}
+
+void dir_list()
+{
+char dir_list_i;
+char dir_list_j;
+char dir_list_SubDir;
+dir_list_SubDir=fromSubDir;
+
+fseek(fp,dir_add+3+dir_list_SubDir*2,0);
+dir_list_i=0;
+while((dir_list_SubDir<Num_of_SubDir)&&(dir_list_i<5))
+	{
+	SubDir_add[dir_list_i++]=getc(fp)+getc(fp)*256;
+	dir_list_SubDir++;
+	}
+	
+fseek(fp,dir_add+3+Num_of_SubDir*2,0);
+dir_list_SubDir=fromSubDir;
+while(dir_list_SubDir--)while (getc(fp)!=0xff);
+dir_list_SubDir=fromSubDir;dir_list_i=0;
+while((dir_list_SubDir<Num_of_SubDir)&&(dir_list_i<5))
+	{
+	SubDir_name[dir_list_i++]=ftell(fp);
+	if(dir_list_SubDir<Num_of_SubDir)while(getc(fp)!=0xff);
+	dir_list_SubDir++;
+	}
+dir_list_SubDir=fromSubDir;
+
+ClearScreen();
+while ((dir_list_SubDir-fromSubDir)!=dir_list_i)
+	{
+	print_short(SubDir_name[dir_list_SubDir-fromSubDir],22,12,(dir_list_SubDir-fromSubDir+1)*13+2,dir_list_SubDir==CurrentSubDir,dir_list_SubDir++==fromSubDir);
+	}
+
+if(dir_p>3)dir_list_j=dir_p-3;else dir_list_j=0;
+for (dir_list_i=dir_list_j;dir_list_i<dir_p;dir_list_i++)
+	{
+	print_short(dir[dir_list_i],6,(dir_list_i-dir_list_j)*53+1,1,0,0);
+	TextOut((dir_list_i-dir_list_j)*53+37,1,"..>",1);
+	}
+Refresh();
+}
+
+void printimage(long imageDataFrom,long READto,int width,int height,int x,int y,char imagetype,char fanxian)//imagetype(扫描线) 1>EBK;2 BMP
+{
+char i;
+char c;
+char read_x;
+char read_y;
+long Seek;
+	if (width>=20)read_x=20;else read_x=width;
+	if (height>=80)read_y=80;else read_y=height;
+	ClearScreen();
+	for(i=0;i<read_y;i++)
+		{
+		if(!imagetype)
+			{
+			fseek(fp,imageDataFrom,0);fread(READto,1,1600,fp);WriteBlock(0,0,160,80,1+fanxian,READto);break;
+			}
+		else if(imagetype==1)Seek=imageDataFrom+x+y*width;
+		else if(imagetype==2)Seek=imageDataFrom+width*(height-(y+1))+x;
+		
+		fseek(fp,Seek,0);
+		fread(READto,1,read_x,fp);
+		if(imagetype==1)WriteBlock(0,i,read_x*8,1,1+fanxian,READto);
+		else if(imagetype==2)WriteBlock(0,i,read_x*8,1,1+fanxian,READto);
+		y++;//////////
+		}Refresh();
+
+}
+
+long viewBlock()
+{
+char viewBlock_width;
+char viewBlock_height;
+char viewBlock_x;
+char viewBlock_y;
+
+if(FileType!=2)
+	{
+	viewTEXT();
+	return -1;
+	}
+
+//Inkey();
+
+fseek(fp,BlockOffset+BlockID*9,0);
+KEY=getc(fp);
+dataBegin=getc(fp)+getc(fp)*256+getc(fp)*256*256;
+dataEnd=getc(fp)+getc(fp)*256+getc(fp)*256*256;
+
+if (KEY==0)
+	{
+	viewTEXT();
+	if(FileType==1)return -1;
+	return 0;
+	}
+else 
+	{
+	fseek(fp,dataBegin,0);
+	viewBlock_width=getc(fp);
+	viewBlock_height=getc(fp);
+	viewBlock_x=0;
+	viewBlock_y=0;
+	do	{
+		printimage(dataBegin+2,filedata,viewBlock_width,viewBlock_height,viewBlock_x,viewBlock_y,1,0);
+		do KEY=getchar(); while((KEY!=23)&&(KEY!=22)&&(KEY!=21)&&(KEY!=20)&&(KEY!=27)&&(KEY!=14)&&(KEY!=19));
+			if(KEY==27)break;
+			else if((KEY==23)&&(viewBlock_x>0))viewBlock_x--;
+			else if((KEY==22)&&(viewBlock_x+20<viewBlock_width))viewBlock_x++;
+			else if((KEY==20)&&(viewBlock_y>0)){if(viewBlock_y>=8)viewBlock_y=viewBlock_y-8;else viewBlock_y=0;}
+			else if((KEY==21)&&(viewBlock_y+80<viewBlock_height)){if(viewBlock_y+88<=viewBlock_height)viewBlock_y=viewBlock_y+8;else viewBlock_y=viewBlock_height-80;}
+		ReleaseKey(23);ReleaseKey(22);ReleaseKey(20);ReleaseKey(21);
+		}while((KEY!=27)&&(KEY!=14)&&((KEY!=19)))
+	1;
+	return 1;
+	}
+
+}
+
+void vitextorimdir()
+{
+char FileType_info;
+
+FileType_info=FileType;
+
+if(FileType==2)
+	{
+	fseek(fp,VTorId_add+7,0);
+	VTorId_minID=getc(fp)+getc(fp)*256;
+	getc(fp);getc(fp);getc(fp);
+	VTorId_maxID=getc(fp)+getc(fp)*256;
+	VTorId_i=VTorId_minID;	
+	}
+
+else{
+	viewBlock();
+	if(FileType!=2)return;
+	}
+
+
+while(1)
+	{
+	if(!fp)return;
+	if(FileType_info==2){KEY=0;BlockID=VTorId_i;viewBlock();if(FileType==1)return;}
+	
+	if(VTorId_maxID==VTorId_minID)
+		{
+		break;
+		}
+	else 
+		
+		{
+		if(KEY==27){KEY=0;break;}
+		else if((KEY==14)&&(VTorId_i<VTorId_maxID))VTorId_i++;
+		else if((KEY==19)&&(VTorId_i>VTorId_minID))VTorId_i--;
+		//else if(VTorId_i==VTorId_maxID)break;
+		}
+	
+	}
+
+}
+
+
+void viewEBK()
+{
+char c;
+dir_p=0;
+
+ebk_v_BEGIN=mark_begin;
+ebk_v_END=mark_end;
+if(FileType==2)
+	{
+	c=0;
+	dir_add=15;
+	CurSubDir_p[dir_p]=0;
+	fromSubDir=0;
+	fseek(fp,3,0);
+	BlockOffset=getc(fp)+getc(fp)*256+15;	
+	}
+
+else{vitextorimdir();if(FileType!=2)return;}
+
+while(1)
+	{
+	if(!fp)return;
+	CurrentSubDir=CurSubDir_p[dir_p];
+	fromSubDir=CurrentSubDir-(CurrentSubDir%5);
+	
+	fseek(fp,dir_add,0);
+	Num_of_SubDir=getc(fp);
+	parentdir=getc(fp)+getc(fp)*256;
+	
+	
+	dir_list();
+	CurSubDirNp=SubDir_name[CurrentSubDir-fromSubDir];
+	while(1)
+		{
+		if(c!=29)
+			{if(((c=getchar())==13)||(c==27))break;}
+		else {dir_list();c=getchar();}
+		if((c==20)&&(CurrentSubDir>0))
+			{
+			CurrentSubDir--;
+			if(CurrentSubDir<fromSubDir){fromSubDir=fromSubDir-5;dir_list();}
+			else {
+				TextOut(12,(CurrentSubDir-fromSubDir+2)*13+2,"                         ",1);
+				print_short(SubDir_name[CurrentSubDir+1-fromSubDir],22,12,(CurrentSubDir-fromSubDir+2)*13+2,0,0);
+				print_short(SubDir_name[CurrentSubDir-fromSubDir],22,12,(CurrentSubDir-fromSubDir+1)*13+2,1,0);
+				Refresh();
+				}
+			}
+		else if((c==21)&&(CurrentSubDir+1<Num_of_SubDir))
+			{
+			CurrentSubDir++;
+			if(CurrentSubDir>=fromSubDir+5){fromSubDir=fromSubDir+5;dir_list();}
+			else {
+				TextOut(12,(CurrentSubDir-fromSubDir)*13+2,"                         ",1);
+				print_short(SubDir_name[CurrentSubDir-1-fromSubDir],22,12,(CurrentSubDir-fromSubDir)*13+2,0,0);
+				print_short(SubDir_name[CurrentSubDir-fromSubDir],22,12,(CurrentSubDir-fromSubDir+1)*13+2,1,0);
+				Refresh();
+				}
+			}
+		else if ((c==14)&&(fromSubDir+5<Num_of_SubDir))
+			{
+			
+			if(CurrentSubDir+5<Num_of_SubDir)
+				{CurrentSubDir=CurrentSubDir+5;fromSubDir=fromSubDir+5;}
+			else{CurrentSubDir=Num_of_SubDir-1;fromSubDir=fromSubDir+5;}
+			dir_list();
+			}			
+		else if ((c==19)&&(CurrentSubDir>4))
+			{
+			CurrentSubDir=CurrentSubDir-5;
+			fromSubDir=fromSubDir-5;
+			dir_list();
+			}
+		else if(c==22)	
+			{
+			TextOut(12,(CurrentSubDir-fromSubDir+1)*13+2,"                          ",1);
+			print_short(CurSubDirNp,22,12,(CurrentSubDir-fromSubDir+1)*13+2,1,0);
+			Refresh();
+			}
+		else if(c==29){if(DELETEorNOT())return;}
+
+		CurSubDir_p[dir_p]=CurrentSubDir;
+		}
+	
+
+	if (c==27)
+		{
+		fseek(fp,dir_add+1,0);
+		parentdir=getc(fp)+getc(fp)*256;
+		if(parentdir==0) {if(fav_setting[aaa=1]){if(MsgBox("确认退出?",1))return;}else return;}
+else {dir_add=parentdir;CurSubDir_p[dir_p]=0;dir_p--;fromSubDir=CurSubDir_p[dir_p]/5*5;}
+		}
+	else if (c==13)
+		{
+		dir[dir_p]=SubDir_name[CurrentSubDir-fromSubDir];
+		fseek(fp,SubDir_add[CurrentSubDir-fromSubDir],0);
+		if(getc(fp)==0){VTorId_add=SubDir_add[CurrentSubDir-fromSubDir];vitextorimdir();if(FileType==1)return;}
+		else {dir_add=SubDir_add[CurrentSubDir-fromSubDir];CurSubDir_p[dir_p]=CurrentSubDir;dir[dir_p++]=SubDir_name[CurrentSubDir-fromSubDir];CurrentSubDir=0;fromSubDir=0;}
+		
+		}
+	}
+}
+
+void view_B16()
+{
+int n;
+int i;
+int j;
+int size_photo;
+char B16DataOffset;
+char B16data[1600];
+char WriteBlock_type;
+char c;
+char B_n;
+char fp_add;
+char file_add[16];
+long file_add_size;
+long file_add_p;
+
+j=0;
+i=0;
+c=0;
+WriteBlock_type=65;
+dataEnd=fsize(fp);
+rewind(fp);
+if(dataEnd==11200){B16DataOffset=0;size_photo=11200;B_n=7;n=1;}
+else if((getc(fp)=='B')&&(getc(fp)=='1')&&(getc(fp)=='6'))
+		{
+		B16DataOffset=getc(fp);
+		n=getc(fp);
+		size_photo=24000;
+		B_n=15;
+		}
+else {SetScreen(1);printf("\n\n文件不符，正在退出.....");Delay(500);return;}
+
+if(n*size_photo+B16DataOffset!=dataEnd)
+	{
+	SetScreen(1);printf("\n 文件可能损坏，是否尝试浏览？\n\n   <Y> 是      <N> 否");
+	while((c=getchar())!='y'&&(c!='n')&&(c!=27));
+	if((c==27)||(c=='n')){SetScreen(1);printf("正在退出.....");Delay(500);return;}
+	}
+
+while(c!=27)
+	{
+	for(j=0;j<=B_n;j++)
+		{
+		if (j==B_n){j=-1;continue;}
+		else 
+			{
+			fseek(fp,B16DataOffset+i*size_photo+j*1600,0);
+			fread(B16data,1,1600,fp);
+			WriteBlock(0,0,160,80,WriteBlock_type,B16data);
+			}
+		if(c=CheckKey(128))
+			{
+				if((c==14)&&(i<n-1)&&(dataEnd-B16DataOffset-i*size_photo>=1600*B_n)){i++;j=-1;ReleaseKey(128);Delay(200);}
+				else if((c==19)&&(i>0)){i--;j=-1;ReleaseKey(128);ClearScreen();Refresh();Delay(200);}
+				else if(c==26){ReleaseKey(26);ClearScreen();Refresh();Delay(200);if(WriteBlock_type==65)WriteBlock_type=66;else WriteBlock_type=65;}
+				else if(c==27)break;
+				else if(c==29){getchar();if(DELETEorNOT())return;}
+				else if((c==28)&&(B_n==15))//追加B16图片
+						{
+						if (!FileList(file_add)) {SetScreen(1);printf("\n\n     放弃追加B16图片");Delay(500);continue;}
+						else {
+							SetScreen(1);
+							fclose(fp);fp=fopen(filestr,"r+");
+							if(!(fp_add=fopen(file_add,"r")))printf("\n\n     打开文件失败!");file_add_size=fsize(fp_add);file_add_p=file_add_size-20;
+							if(file_add_size-file_add_size/24000*24000!=20){printf("\n\n  所选择文件与文件不匹配");Delay(1500);continue;}
+							fseek(fp_add,20,0);fseek(fp,0,SEEK_END);
+							while(file_add_p>0){fread(B16data,1,1600,fp_add);fwrite(B16data,1,1600,fp);file_add_p=file_add_p-1600;}
+							fclose(fp_add);fp_add=0;fseek(fp,4,0);n=n+file_add_size/24000;putc(n,fp);dataEnd=dataEnd+file_add_size-20;printf("\n\n   已追加 %d 图片",file_add_size/24000);Delay(1000);
+							}
+						}
+			
+			}	
+		
+		}
+	}
+	
+}
+
+
+/*
+void Creat_BMP16()
+{
+char data[3000];
+char BMP16_data[800];
+int BMP16_data_every4[8];
+char i;
+char j;
+char k;
+char m;
+char c;
+char fp1;
+int width;
+int height;
+
+SetScreen(1);printf("\n\n 正在生成B16图片");
+
+	dataBegin=getnum(fp,0x0a,4);
+	width=getnum(fp,0x12,4);
+	height=getnum(fp,0x16,4);
+fseek(fp,dataBegin,0);
+fp1=fopen("/LavaData/ReaderTmp.b16","w+");
+putc('B',fp1);putc('1',fp1);putc('6',fp1);
+putc(20,fp1);putc(1,fp1);
+putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);putc(0,fp1);
+
+
+for(i=0;i<8;i++)fwrite(data,1,3000,fp1);
+Box(10,45,150,55,0,1);
+
+for(i=79;i<80;i=i-10)
+	{
+	for(j=0;j<10;j++){fseek(fp,dataBegin+(i-j)*80,0);fread(BMP16_data+80*j,1,80,fp);}
+		for(j=0;j<200;j++)
+			{
+			BMP16_data_every4[aaa=0]=((BMP16_data[aaa=4*j]&0xf0)<<1)+(rand()>>12);BMP16_data_every4[aaa=1]=((BMP16_data[aaa=4*j]&0x0f)<<5)+(rand()>>12);
+			BMP16_data_every4[aaa=2]=((BMP16_data[aaa=4*j+1]&0xf0)<<1)+(rand()>>12);BMP16_data_every4[aaa=3]=((BMP16_data[aaa=4*j+1]&0x0f)<<5)+(rand()>>12);
+			BMP16_data_every4[aaa=4]=((BMP16_data[aaa=4*j+2]&0xf0)<<1)+(rand()>>12);BMP16_data_every4[aaa=5]=((BMP16_data[aaa=4*j+2]&0x0f)<<5)+(rand()>>12);
+			BMP16_data_every4[aaa=6]=((BMP16_data[aaa=4*j+3]&0xf0)<<1)+(rand()>>12);BMP16_data_every4[aaa=7]=((BMP16_data[aaa=4*j+3]&0x0f)<<5)+(rand()>>12);
+		
+			for(m=0;m<15;m++)
+				{
+				data[aaa=200*m+j]//B16_order[*]
+					=(B16_order[BMP16_data_every4[aaa=0]++]<<7)
+					+(B16_order[BMP16_data_every4[aaa=1]++]<<6)
+					+(B16_order[BMP16_data_every4[aaa=2]++]<<5)
+					+(B16_order[BMP16_data_every4[aaa=3]++]<<4)
+					+(B16_order[BMP16_data_every4[aaa=4]++]<<3)
+					+(B16_order[BMP16_data_every4[aaa=5]++]<<2)
+					+(B16_order[BMP16_data_every4[aaa=6]++]<<1)
+					+B16_order[BMP16_data_every4[aaa=7]++];
+				}
+			Box(10,45,10+140*j/1600+140*(79-i)/80,55,1,1);
+			}
+
+	Box(10,45,10+140*(80-i)/80,55,1,1);
+	for(m=0;m<15;m++)
+		{
+		fseek(fp1,20+1600*m+20*(79-i),0);
+		fwrite(data+200*m,1,200,fp1);
+		}
+	if(CheckKey(27)) return;
+	}	
+
+
+
+fclose(fp1);fp1=0;
+
+fclose(fp);fp=0;
+if ((fp=fopen("/LavaData/ReaderTmp.b16","r+"))==0) {SetScreen(1);printf("打开文件 %s 失败!",filestr);getchar();return;}
+dataEnd=fsize(fp);
+view_B16();
+}
+*/
+
+void view_BMP()
+{
+char TypeIsRight;
+int width;
+int height;
+int x;
+int y;
+char c;
+char i;
+char fanxian;
+
+TypeIsRight=0;
+fanxian=0;
+
+if((getc(fp)=='B')&&(getc(fp)=='M'))
+	{
+	fseek(fp,28,0);
+	if((c=getc(fp))==1){getc(fp);if(getc(fp)==0)TypeIsRight=1;}
+	//else if(c==4){getc(fp);if(getc(fp)==0)TypeIsRight=2;}//16灰度BMP图片
+	}
+if(TypeIsRight==0) {SetScreen(1);printf("\n\n 不支持该格式BMP图片");Delay(1000);return;}
+//if(TypeIsRight==2) {if(fsize(fp)!=6518){SetScreen(1);printf("\n\n  只支持\n  160*80 16灰度BMP图片\n\n        按任意键退出");Delay(1500);}else Creat_BMP16();return;}
+
+else
+	{
+	dataBegin=getnum(fp,0x0a,4);
+	width=getnum(fp,0x12,4);
+	height=getnum(fp,0x16,4);
+	width=((width-1)/32+1)*4;
+	x=0;
+	y=0;
+	c=128;
+	while(1)
+		{
+		printimage(dataBegin,filedata,width,height,x,y,2,fanxian);
+		ReleaseKey(c);
+		do	{
+			if(CheckKey('q'))i=0;else i=3;
+			c=getchar();
+			}while(c=='q')
+			
+		if(c==27)break;
+		else if(c==KEY_SHIFT){if(fanxian)fanxian=0;else fanxian=1;Delay(100);continue;}
+		
+		while(i<4)
+			{
+			if((c==23)&&(x>0))x--;
+			else if((c==22)&&(x+20<width))x++;
+			else if(c==20){if(y>=8)y=y-8;else y=0;}
+			else if(c==21){if(y+88<=height)y=y+8;else y=height-80;}
+			i++;
+			}
+		
+		
+		
+		}
+		
+	}
+}
+
+void play_flm()
+{
+int n;
+int i;
+int j;
+int k;
+char m;
+char c;
+char FLM_type;
+char FLMdata[1800];
+char FLMdata_j;
+char imagedata[1600];
+char unused[70];
+int imageDataType;
+char WriteBlock_type;
+int FLM2size;
+char FLM2dataType;
+char copysize;
+long FLM20_databegin;
+char timestr_1[10];
+char timestr_2[10];
+int DELAYtimeMS;
+
+rewind(fp);
+
+
+
+if((getc(fp)=='F')&&(getc(fp)=='L')&&(getc(fp)=='M')&&(getc(fp)==16))
+	{
+	
+	GetTime(time);//////////////////////////开始播放时间//////////////////////////////
+	sprintf(timestr_1,"%d:%d:%d",time.hour,time.minute,time.second);///////////////
+	
+	if((FLM_type=getc(fp))==0)
+		{
+		n=getc(fp)+getc(fp)*256+1;
+		DELAYtimeMS=getc(fp)+getc(fp)*256;
+		DELAYtimeMS=DELAYtimeMS*36/10;if(DELAYtimeMS<10)DELAYtimeMS=10;
+		if(n!=fsize(fp)/1600)
+			{
+			SetScreen(1);printf("\n 文件可能损坏，是否尝试浏览？\n\n   <Y> 是      <N> 否");
+			while((c=getchar())!='y'&&(c!='n')&&(c!=27));
+			if((c==27)||(c=='n')){SetScreen(1);printf("正在退出.....");Delay(500);return;}
+			}	
+		for(i=0;i<n;i++)
+			{
+			printimage(16+i*1600,imagedata,20,80,0,0,0,0);
+			if((c=Inkey())==27)break;
+			else if(c=='p')while(getchar()!='p');
+			Delay(DELAYtimeMS);
+			}
+		}
+	else if(FLM_type==1)
+		{
+		n=getc(fp)+getc(fp)*256+1;
+		FLM2size=0;
+		FLM20_databegin=16;
+		
+		for(i=0;i<n;i++)
+			{
+			fseek(fp,FLM20_databegin,0);
+			
+			FLM2size=getc(fp);
+			FLM2dataType=getc(fp);
+			FLM2size=FLM2size+(FLM2dataType&0x0f)*256;
+			FLM20_databegin=FLM20_databegin+FLM2size;
+			FLM2dataType=FLM2dataType/16;
+			if(FLM2dataType==1)
+				{
+				memset(imagedata,0,1600);
+				}
+			else FLM2dataType=5;
+				
+			fread(FLMdata,1,FLM2size-2,fp);		
+			FLM2size=FLM2size-3;
+			k=0;
+			j=0;
+			
+			do	{
+				FLMdata_j=FLMdata[j];
+				if(FLMdata_j>0xc0)
+					{c=FLMdata[++j];copysize=FLMdata_j-0xc0;while(copysize--)imagedata[k]=imagedata[k++]+c;}
+		
+				else if(FLMdata_j==0x80) 
+					{copysize=0x40;while(copysize--)imagedata[k]=imagedata[k++]+FLMdata[++j];}
+		
+				else if(FLMdata_j>0x80)
+					{copysize=FLMdata_j-0x80;while(copysize--)imagedata[k]=imagedata[k++]+FLMdata[++j];}
+		
+				else if(FLMdata_j>0x40)
+					{copysize=FLMdata_j-0x40;while(copysize--)imagedata[k++]--;}
+		
+				else if(FLMdata_j>0x00)	
+					k=k+FLMdata_j;//copysize=FLMdata_j;//即imagedata[k]=imagedata[k++]+0x00
+
+
+				else if(FLMdata_j==0x00)
+					{do{k=k+64;}while(((FLMdata[++j])==0)&&((j<FLM2size+1)));j--;}
+			
+				j++;
+	
+				}while((j<FLM2size)&&(k<1600))
+
+			ClearScreen();
+			WriteBlock(0,0,160,80,FLM2dataType,imagedata);
+			
+			Refresh();
+			if((c=Inkey())==27)break;
+			else if(c=='p')while(getchar()!='p');
+			}
+			
+		}
+
+	}
+	
+	GetTime(time);//////////////////////////停止播放时间//////////////////////////////
+	sprintf(timestr_2,"%d:%d:%d",time.hour,time.minute,time.second);///////////////
+	ClearScreen();
+	SetScreen(1);
+	printf("播放帧数%d(共%d)\n\n开始时间%s\n停止时间%s",i,n,timestr_1,timestr_2);
+	getchar();
+}
+
+
+char readAfile()
+{
+int Mem_add1;
+int Mem_add2;
+char i;
+
+if(FileType==255){/*viewTEXT();*/viewEBK();FileType=0;fclose(fp);fp=0;return 1;}
+else 
+	{
+	if((filestr[aaa=0])&&(FileType==1)&&(fav_setting[aaa=2]))
+		{
+		if(nextfile(filedata))
+			{
+			if(fp=fopen(filedata,"r"))
+				{
+				Inkey();
+				SetScreen(1);
+				printf("   是否打开文件:\n\n     %s",filedata);
+				if(getchar()!='y')
+					{
+					fclose(fp);
+					fp=0;
+					if(!fopen_fp())return 0;
+					}
+				else strcpy(filestr,filedata);
+				}
+			else if(!fopen_fp())return 0;
+			}
+		else if(!fopen_fp())return 0;
+		}
+	else if(!fopen_fp())return 0;
+	}
+
+FileType=TYPEofFILE();
+//nextfile(filedata);
+if(FileType==1)
+	{
+	if(getc(fp)==0)dataBegin=24;else dataBegin=0;
+	dataEnd=fsize(fp);
+	//viewTEXT();
+	viewEBK();
+	}
+else if(FileType==2)
+	{
+	viewEBK();
+	}
+else if(FileType==3)
+	{
+	view_B16();
+	Inkey();
+	}
+else if(FileType==4)
+	{
+	view_BMP();
+	Inkey();
+	}
+else if(FileType==5)
+	{
+	play_flm();
+	}
+if(fp){fclose(fp);fp=0;}
+return 1;
+}
+
+void main()
+{
+char i;
+long temp_var;
+char c;
+
+SetScreen(1);
+Box(1,0,159,79,1,0);
+TextOut(1,1,"正在读取设置...",97);
+c=0;pathpoint=0;
+DatFileIsOK=0;
+font=1;linesize=26;
+filestr[aaa=0]=0;
+
+if(fpMark=CheckExistDATfile())
+	{
+	DatFileIsOK=1;
+	fseek(fpMark,40,0);
+	fread(filedata,1,136,fpMark);
+	if(filedata[aaa=70]==1){SetScreen(1);Box(1,0,159,79,1,0);inputpass("请输入密码:",filedata+(aaa=140));if(strcmp(filedata+(aaa=71),filedata+(aaa=140))){SetScreen(0);printf("密码错误!");getchar();exit(0);}else strcpy(password,filedata+(aaa=140));}else password[aaa=0]=0;
+	if(filedata[aaa=66]==1){temp_var=filedata[aaa=67]+filedata[aaa=68]*256;if((temp_var>=200)&&(temp_var<=20000))ms=temp_var;Auto_ByHand=filedata[aaa=69];}
+	if(filedata[aaa=0]==1){c=1;memcpy(path,filedata+(aaa=1),64);pathpoint=filedata[aaa=65];ChDir("/");for(i=0;i<pathpoint;i++)if(!ChDir(path[i]+1)){pathpoint=i;strcpy(path[i],"/");break;}}
+	memcpy(fav_setting,filedata+(aaa=126),4);
+	}//最后c是设置过默认目录的标志
+fclose(fpMark);fpMark=0;
+
+if((!DatFileIsOK)||(!c))
+	{
+	ChDir("/文本文件");
+	strcpy(path[aaa=0],"/文本文件");
+	strcpy(path[++pathpoint],"/");
+	}
+
+
+if((CheckKey(KEY_HELP))||(CheckKey(KEY_SHIFT)))FileType=255;
+else FileType=0;
+
+while(1)
+	{
+	readAfile();
+	}
+}
+
+
+
+/*
+dat文件结构:
+
+0-39		书签使用标志;
+40			默认目录设置标志;
+41-104	默认目录数据(path[][]);
+105			默认目录层数(pathpoint);
+106			翻页时间设置标志;
+107-108	翻页时间(ms);
+109			手动/自动;
+110			密码设置标志;
+111-164	密码数据;
+166-?
+256-(256+128*20)	书签;
+(256+128*20)-(256+128*20+128*20)	EBK书签目录信息;
+其余空闲.
+*/

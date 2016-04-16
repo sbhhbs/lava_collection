@@ -1,0 +1,2 @@
+原型:void close_key(void)
+功能:禁止键盘响应。在写文件的时候必须禁止关机的操作，那么这个时候可以通过close_key/open_key来操作。

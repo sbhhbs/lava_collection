@@ -1,0 +1,15 @@
+原型:void SetScreen(char mode);
+功能:清屏并设置字体大小
+说明:mode=0:大字体
+     mode=1:小字体
+举例:
+void main()
+{
+ SetScreen(1);
+ printf("现在是小字体\n");
+ printf("按任意键继续\n");
+ getchar();
+ SetScreen(0);
+ printf("现在是大字体\n"); 
+ getchar();
+}

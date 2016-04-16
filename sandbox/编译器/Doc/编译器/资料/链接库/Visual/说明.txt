@@ -1,0 +1,64 @@
+作 者:王松(网名MetalMax)
+机 型:TC800
+原型:void MyBox(int x0, int y0, int x1, int y1, int mode, int fill, int type);
+功能:画出各种矩形框
+说明:mode有10种,0-8为凸凹形边框,9为虚线框,10为阴影框
+     fill为1时以默认底色填充,为2时以白色填充(就是清除),为0时不填充
+     type为1时向缓冲区作图,为0x41时向屏幕作图
+原型:void DrawFrame(int x0, int y0, int x1, int y1, long Caption, char Focus, int Font, char fill, int type);
+功能:画出各种框架
+说明:Caption:标题字串,不限长短
+     Focus:为1时字串上有虚线框
+     Font:为合成参数,bit0-7的值为文字颜色值,bit8-15的值为1时文字为大字体,Font的使用形式为:Font=15|1<<8(颜色15,大字体)
+     fill:为1时控件以默认底色填充
+原型:void DrawCommand(int x0, int y0, int x1, int y1, long Caption, char BorderStyle, char Value, int F_F, int type);
+功能:画出各种按钮
+说明:Caption:按钮上的文字,居中对齐
+     BorderStyle:按钮样式共有4种,值1-4,效果各不同
+     Value:为1时画的按钮是被按下的样式
+     F_F:是Focus和Font的合成参数,其使用形式为:F_F=Focus|Font<<8.Focus:为1在字串上画虚线框.Font:也是合成的参数,bit0-bit7的值为文字颜色,bit8-bit15的值为1大字体
+原型:void Tool(int mode, int a, int b, int c, int d, int e);
+功能:画出各种窗体右上角的按钮
+说明:Caption:窗体的标题文字
+原型:void DrawForm(int x0, int y0, int x1, int y1, long Caption, long Print, int B_BD, long msg, int type);
+功能:画出各种窗体
+说明:Caption:窗体的标题文字
+     Print:窗体内显示的字串,自动换行,换行符也能换行
+     B_BD:由Button和ButtonDown两个参数合并而成,其使用形式:B_BD=Button|ButtonDown<<8.Button:是窗体右上角的按钮的组合类型,有6种:0:无按钮,1:×,2:？,×,3:最小化,最大化,×,4:？,最小化,最大化,×,5:最小化,还原,×,6:？,最小化,还原,×.ButtonDown:是按钮的被按下状态,有效值从1到4对应从右到左的四个按钮,为0时无被按下按钮,为2时第2个按钮在画出时是被按下的样子,以此类推
+     msg:由Font,Icon和Focus三个参数合并而成,其使用形式:msg=Font|Icon<<8|Focus<<16.Font:字体模式,为1时用大字体(16*16)显示.Icon:窗体引用图标号码,用于在左上角显示图标,在这里是无效的(未完成),为1时只空开显示图标的位置,你可在画完窗体后自己再画上图标.Focus:焦点,无效,打算在256色模式下使用,为1时标题栏是蓝色的(活动窗口),为0时是灰色的(非活动窗口)
+原型:void DrawLabel(int x0, int y0, int x1, int y1, long Caption, int F_F, int A_A, int B_W, int type);
+功能:画出各种标签
+说明:Caption:标签字串,长短不限
+     F_F:是Focus和Font的合成参数,其使用形式为:F_F=Focus|Font<<8.Focus:为1在字串上画虚线框,Font:也是合成的参数,bit0-bit7的值为文字颜色,bit8-bit15的值为1大字体
+     A_A:是Alignment和AutoSize的合成参数,其使用形式为:A_A=Alignment|AutoSize<<8.Alignment:为字串对齐方式,0左对齐,为1右对齐,为2居中对齐,AutoSize:为0字串超出部分截去(此功能未全部完成),为1跟据字串长度,标签自动调整大小
+     B_W:是BorderStyle和WordWrap的合成参数,其使用形式为:B_W=BorderStyle|WordWrap<<8.BorderStyle:为边框风格,为0无边框,为1单线边框,注意:我为了丰富函数的作用,特地改了让这个函数的边框有1-10号共十种边框,使这个Label()函数同时可以作为消息框显示,提示信息用!WordWrap:未完成,自动换行设置,为0不换行,为1自动换行
+原型:void DrawScrollBar(int x0, int y0, int x1, int y1, long Max_Min, int Value, int Size, int B_M, int type);
+功能:画出各种滚动条
+说明:Max_Min:Max和Min的合成参数,当滑块处于滚动条最大,最小位置时所代表的值.使用形式:Max_Min=Max|Min<<16
+     Value属性:表示滑块左端位置在滚动条中代表的值
+     Size属性:表示滑块的长度在滚动条中代表的值,Value和Size的值总在Max和Min之间
+     B_M:Button和mode的合成参数.使用形式:B_M=Button|mode<<8.Button为0两端无按钮,大于0两端按钮正常显示.Button为1两端都按钮凸起,为2左端按钮被按下,为3右端按钮被按下.mode为1水平滚动条,为2垂直滚动条
+举例:
+#include <Visual.y>
+void main()
+{
+ SetGraphMode(4);
+ SetBgColor(3);
+ ClearScreen();
+ DrawForm(1, 0, 159, 79, "VisualLavaX", "", 3, 0, 1);
+ DrawFrame(4, 17, 102, 76, "信息", 0, 15, 1, 1);
+ DrawCommand(110, 24, 150, 44, "确定", 2, 0, 1|15 << 8, 1);
+ DrawCommand(110, 52, 150, 72, "退出", 2, 0, 0|15 << 8, 1);
+ Refresh();
+ getchar();
+ SetBgColor(3);
+ ClearScreen();
+ DrawForm(1, 0, 159, 79, "编辑", "", 3, 0, 1);
+ MyBox(4, 18, 144, 76, 8, 2, 1);
+ DrawScrollBar(147, 18, 156, 76, 100, 0, 20, 1|2 << 8, 2);
+ Refresh();
+ getchar();
+ DrawLabel(48, 28, 112, 52, "编辑完成", 0|15 << 8, 2|1 << 8, 7, 1);
+ Refresh();
+ getchar();
+}

@@ -1,0 +1,21 @@
+原型:int SetPalette(int start,int num,long pal);
+功能:设置调色板
+说明:start指定开始颜色序号
+     num指定要设置的颜色数
+     pal指向颜色表,颜色表每4字节定义一种颜色:byte0-byte2依次为RGB值,byte3保留,应设为0
+     返回值为成功设置的颜色数
+举例:
+char palette[] = {255,0,0,0,0,0,255,0};
+
+void main()
+{
+ SetGraphMode(8);
+ SetFgColor(205);
+ TextOut(60, 30, "LavaX", 0x81);
+ SetFgColor(206);
+ TextOut(40, 50, "请按任意键", 0x81);
+ Refresh();
+ getchar();
+ SetPalette(205, 2, palette);
+ getchar();
+}

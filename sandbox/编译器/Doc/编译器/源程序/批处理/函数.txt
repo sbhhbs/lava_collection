@@ -1,0 +1,260 @@
+int copyFile(char &path[], char &name[])
+{
+	char fp;
+	char tp;
+	int len;
+
+	if (ChPath(out.path)) return(1);
+	if (!(fp = fopen(out.name, "r"))) return(1);
+	if (ChPath(path)) return(1);
+	if (!(tp = fopen(name, "w"))) return(1);
+	for (;;)
+	{
+		len = fread(0x2000, 1, 2048, fp);
+		if (!len) break;
+		fwrite(0x2000, 1, len, tp);
+	}
+	fclose(fp);
+	fclose(tp);
+}
+
+int getFileName(char &path[], char &name[])
+{
+	int h, e;
+	char i;
+	
+	e = path;
+	do {
+		e = strchr(h = e + 1, '/');
+	} while (e);
+	strcpy(name, h);
+	*(h - 1) = 0;
+	if (!path[0]) strcpy(path, "/");
+	return(!name[0]);
+}
+
+int getcmd(char fp, char &cmd[], char &n)
+{
+	int c;
+	char i;
+	char step;
+	char path[PATH_MAX];
+	char name[NAME_MAX];
+
+	funjmp = &fp - 5;
+START:
+	memset(out, 0, sizeof(struct OUTFILE));
+	memset(in, 0, sizeof(struct INFILE));//初始化
+	n++;
+	do {
+		c = getc(fp);
+		if (c < 0)
+		{
+			printf(">批处理结束！");
+			fclose(fp);
+			if (!cfset.dat[0].tem[2].value)//刷新，声音
+			{
+				Beep();
+				Delay(100);
+				Beep();
+			}
+			for (i = 0; i < 255 | !cfset.dat[1].tem[3].value; i++)//暂停
+			{
+				Delay(20);
+				if (Inkey()) return(1);
+			}
+			return(1);
+		}
+	} while (c != '#');
+	step = 0;
+	for (;;)
+	{
+		c = getc(fp);
+		if (c < 0)
+		{
+BatchErr:
+			printf(">%d: 格式错误！", n);
+BatchErr1:
+			fclose(fp);
+			for(;;)//暂停
+			{
+				Delay(20);
+				if (!cfset.dat[0].tem[2].value) Beep();
+				if (Inkey()) return(1);
+			}
+			return(1);
+		}
+		if (isalpha(c) && !step)
+		{
+			i = 0;
+			do {
+				if (i < 8) cmd[i++] = c;
+				c = getc(fp);
+				if (c < 0) goto BatchErr;
+			} while (isalpha(c));
+			cmd[i] = 0;
+			step++;
+		}
+		else if (!isspace(c) && step)
+		{
+			i = 0;
+			do {
+				if (i < PATH_MAX) out.path[i++] = c;
+				c = getc(fp);
+				if (c < 0) break;
+			} while (!isspace(c) && c != '#');
+			out.path[i] = 0;
+			if (getFileName(out.path, out.name))
+			{
+				printf(">%d: 路径错误！", n);
+				goto BatchErr1;
+			}
+			if (!strcmp(cmd, "copy"))
+			{
+				do {
+					c = getc(fp);
+					if (c < 0) goto BatchErr;
+				} while (isspace(c)); 
+				if (c == '#') goto BatchErr;
+				i = 0;
+				do {
+					if (i < PATH_MAX) path[i++] = c;
+					c = getc(fp);
+					if (c < 0) break;
+				} while (!isspace(c) && c != '#');
+				path[i] = 0;
+				if (getFileName(path, name))
+				{
+					printf(">%d: 路径错误！", n);
+					goto BatchErr1;
+				}
+				printf(">复制: %s ...\n", out.name);
+				if (copyFile(path, name))
+				{
+					printf(">任务失败！\n");
+				}
+				else
+				{
+					printf(">任务完成！\n");
+				}
+				goto START;
+			}
+			if (!strcmp(cmd, "delete"))
+			{
+				printf(">删除: %s ...\n", out.name);
+				ChPath(out.path);
+				if (!DeleteFile(out.name))
+				{
+					printf(">任务失败！\n");
+				}
+				else
+				{
+					printf(">任务完成！\n");
+				}
+				goto START;
+			}
+			return(0);
+		}
+	}
+}
+
+void BatchFile()
+{
+	char fp;
+	long offset;
+	char n;
+	char batchPath[PATH_MAX];
+	char batchName[NAME_MAX];
+	char cmd[9];
+
+	SetScreen(1);
+	printf(">批处理系统正在运行...\n");
+	if (datfp)//关闭资源文件(可能被打开)
+	{
+		fclose(datfp);
+		datfp = 0;
+	}
+	strcpy(batchPath, out.path);
+	strcpy(batchName, out.name);
+	offset = fp = n = 0;
+	for (;;)
+	{
+		out.fp = in.fp = cp.fp = 0;
+		if (!ChDir(batchPath)) Error(batchPath, E_CATA);
+		if (!(fp = fopen(batchName, "r"))) Error(batchName, E_OPEN);//打开文件
+		if (!offset)
+		{
+			if (!getc(fp))
+			{
+				offset = 24;
+			}
+			else
+			{
+				offset = 0;
+			}
+		}
+		fseek(fp, offset, 0);
+		if (getcmd(fp, cmd, &n)) return;
+		offset = ftell(fp);
+		fclose(fp);
+		fp = 0;
+		if (!strcmp(cmd, "lava"))
+		{
+			printf(">编译: %s ...\n", out.name);
+			memset(lib, 0, sizeof(struct LIBFILE));//初始化
+			MAC_Prt(FY_CUSH, DOCUM_LOAD, MACRO_LOAD);
+			if (funjmp)
+			{
+				Compile();
+			}
+		}
+		else if (!strcmp(cmd, "head"))
+		{
+			printf(">预处理: %s ...\n", out.name);
+			memset(lib, 0, sizeof(struct LIBFILE));//初始化
+			MAC_Prt(FY_CUSH, DOCUM_LOAD, MACRO_LOAD);
+			if (in.fp)
+			{
+				fclose(in.fp);
+				in.fp = 0;
+				if (lib.size)
+				{
+					Swin("警告！", "未解决库文件", SWIN_ONE);
+				}
+			}
+		}
+		else if (!strcmp(cmd, "link"))
+		{
+			printf(">链接: %s ...\n", out.name);
+			Lib_Op(LIB_LOAD);
+		}
+		else if (!strcmp(cmd, "optimize"))
+		{
+			printf(">优化: %s ...\n", out.name);
+			Optimize(FUN_TABLE, JMP_TABLE, STACK_TABLE);
+		}
+		else
+		{
+			printf(">%d: 无法识别: %s\n", n, cmd);
+			printf(">批处理结束！");
+			for(;;)//暂停
+			{
+				Delay(20);
+				if (!cfset.dat[0].tem[2].value) Beep();
+				if (Inkey()) return;
+			}
+			return;
+		}
+		if (!funjmp)
+		{
+			printf(">%d: 处理%s错误", n, out.name);
+			for (n = 0; n < 255 | !cfset.dat[1].tem[3].value; n++)//暂停
+			{
+				Delay(20);
+				if (Inkey()) return;
+			}
+			return;
+		}
+		printf(">任务完成！\n");
+	}
+}

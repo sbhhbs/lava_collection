@@ -1,0 +1,190 @@
+//若ch是字符(ASCII码中的0-127)返回非0值,否则返回0
+int isascii(char ch)
+{
+	return (!(ch&0x80));
+}
+
+//将字符串s中的大写字母全部转换成小写字母
+void strlwr(int s)
+{
+	while (*s) *s = tolower(*s++);
+}
+
+//将字符串s中的小写字母全部转换成大写字母
+void strupr(int s)
+{
+	while (*s) *s = toupper(*s++);
+}
+
+//将一个串中的所有字符都设为指定字符
+void strset(int s, char ch)
+{
+	memset(s, ch, strlen(s));
+}
+
+//设置字符串s中的前n个字符全为字符c。返回指针为s的值。
+void strnset(int s, char ch, int n)
+{
+	int len;
+	if (n > (len = strlen(s))) n = len;
+	memset(s, ch, n);
+}
+
+//从src所指向的对象复制n个字符到dest所指向的对象中。如果复制过程中遇到了字符c则停止复制
+void memccpy(int dest, int src, char c, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++)
+	{
+		if ((*(dest + i) = *(src + i)) == c) return;
+	}
+}
+
+//复制字符串src到dest中，最多复制maxlen个字符。返回指针为dest的值。
+void strncpy(int dest, int src, int maxlen)
+{
+	char ch;
+
+	ch = *(src + maxlen);
+	*(src + maxlen) = 0;
+	strcpy(dest, src);
+	*(src + maxlen) = ch;
+}
+
+//在s所指向的对象的前n个字符中搜索字符c。如果搜索到，返回指针指向字符c第一次出现的位置；否则返回NULL。
+int memchr(int s,char c,int n)
+{
+	int i;
+	for (i = 0; i < n; i++)
+	{
+		if (*(s + i) == c) return (s + i);
+	}
+}
+
+//在字符串s中搜索字符c。如果搜索到，返回指针指向字符c最后一次出现的位置；否则返回NULL。
+int strrchr(int s, char c)
+{
+	int p;
+
+	p = 0;
+	while (s = strchr(s, c)) p = s++;
+	return (p);
+}
+
+//比较s1所指向的对象和s2所指向的对象的前n个字符。返回值是s1与s2第一个不同的字符差值。
+int memcmp(int s1, int s2, int n)
+{
+	int i;
+	char a, b;
+
+	for (i = 0; i < n; i++)
+	{
+		if ((a = *(s1 + i)) != (b = *(s2 + i))) return(a - b);
+	}
+}
+
+//比较s1所指向的对象和s2所指向的对象的前n个字符，忽略大小写。返回值是s1与s2第一个不同的字符差值。
+int memicmp(int s1, int s2, int n)
+{
+	int i;
+	char a, b;
+
+	for (i = 0; i < n; i++)
+	{
+		if ((a = tolower(*(s1 + i))) != (b = tolower(*(s2 + i)))) return(a - b);
+	}
+}
+
+//比较字符串s1和字符串s2，忽略大小写。返回值是s1与s2第一个不同的字符差值。
+int stricmp(int s1, int s2)
+{
+	int i, n, t;
+	char a, b;
+
+	if ((n = strlen(s1)) < (t = strlen(s2))) n = t;
+	for (i = 0; i < n; i++)
+	{
+		if ((a = tolower(*(s1 + i))) != (b = tolower(*(s2 + i)))) return(a - b);
+	}
+}
+
+//比较字符串s1和字符串s2，最多比较maxlen个字符。返回值是s1与s2第一个不同的字符差值。
+int strncmp(int s1, int s2, int maxlen)
+{
+	int t;
+	char a, b;
+
+	a = *(s1 + maxlen);
+	*(s1 + maxlen) = 0;
+	b = *(s2 + maxlen);
+	*(s2 + maxlen) = 0;
+	t = strcmp(s1, s2);
+	*(s1 + maxlen) = a;
+	*(s2 + maxlen) = b;
+	return(t);
+}
+
+//比较字符串s1和字符串s2，忽略大小写，最多比较maxlen个字符。返回值是s1与s2第一个不同的字符差值。
+int strnicmp(int s1, int s2, int maxlen)
+{
+	int i, n, t;
+	char a, b;
+
+	if ((n = strlen(s1)) < (t = strlen(s2))) n = t;
+	if (n > maxlen) n = maxlen;
+	for (i = 0; i < n; i++)
+	{
+		if ((a = tolower(*(s1 + i))) != (b = tolower(*(s2 + i)))) return(a - b);
+	}
+}
+
+//将字符串src添加到dest尾部，最多添加maxlen个字符。返回指针为dest的值。
+void strncat(int dest, int src, int maxlen)
+{
+	char ch;
+	ch = *(src + maxlen);
+	*(src + maxlen) = 0;
+	strcat(dest, src);
+	*(src + maxlen) = ch;
+}
+
+void strrev(int s)//将字符串s中的字符全部颠倒顺序重新排列
+{
+	int i, j;
+	char ch;
+
+	i = 0;
+	j = strlen(s) - 1;
+	while (i < j)
+	{
+		ch = *(s + i);
+		*(s + (i++)) = *(s + j);
+		*(s + (j--)) = ch;
+	}
+}
+
+//在串中查找给定字符集中的字符  
+int strpbrk(int s1, int s2)
+{
+	int i, len;
+	int p, min;
+
+	len = strlen(s2);
+	for (min = i = 0; i < len; i++)
+	{
+		if (((p = strchr(s1, *(s2 + i))) < min || !min) && p) min = p;
+	}
+	return(min);
+}
+
+void main()
+{
+	char s[100];
+	char s2[10];
+
+	strcpy(s, "IO2R JFWEI afowef34i JFJOWfw443EIF");
+	strcpy(s2,"fJ2");
+	printf("%s",strpbrk(s, s2));
+	getchar();
+}

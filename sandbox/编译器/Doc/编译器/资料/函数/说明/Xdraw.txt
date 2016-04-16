@@ -1,0 +1,20 @@
+原型:void Xdraw(int mode);
+功能:全屏特效
+说明:mode=0:缓冲区的图形全体左移一个点
+     mode=1:缓冲区的图形全体右移一个点
+     mode=4:缓冲区的图形左右反转
+     mode=5:缓冲区的图形上下反转
+举例:
+void main()
+{
+ int i;
+
+ TextOut(144, 32, "←", 0x81);
+ for (i = 0; i < 144; i++)
+ {
+  XDraw(0);
+  Refresh();
+  Delay(10);
+ }
+ getchar();
+}

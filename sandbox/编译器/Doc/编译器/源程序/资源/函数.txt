@@ -1,0 +1,574 @@
+//*****************************************************资源管理系统*****************************************************//
+int SRC_Op(struct SRCTABLE &src, struct SRCUNIT &e, long id, int cmd)/*资源索引表操作*/
+{
+	int size, low, mid, high;
+	long value;
+
+	memcpy(&size, src.size, 2);
+	if (cmd == TABLE_INS || cmd == TABLE_SEK)
+	{
+		low = 0;
+		high = size - 1;
+		memcpy(&id, e.id, 4);
+		while (low <= high)
+		{
+			mid = (low + high) >> 1;
+			memcpy(&value, src.dat[mid].id, 4);
+			if (value == id)
+			{
+				if (cmd == TABLE_SEK)
+				{
+					memcpy(e.add, src.dat[mid].add, 4);
+					return(mid);
+				}
+				return(-1);
+			}
+			else if (value > id)
+			{
+				high = mid - 1;
+			}
+			else
+			{
+				low = mid + 1;
+			}
+		}   
+		if (cmd == TABLE_SEK) return(-1);
+		memmove(src.dat[low + 1], src.dat[low], (size - low) * sizeof(struct SRCUNIT));//插入
+		memcpy(src.dat[low], e, sizeof(struct SRCUNIT));
+		size++;
+	}
+	else if (cmd == TABLE_DEL)
+	{
+		size--;
+		memmove(src.dat[id], src.dat[id + 1], (size - id) * sizeof(struct SRCUNIT));
+		memset(src.dat[size], 0, sizeof(struct SRCUNIT));
+	}
+	else if (cmd == TABLE_CLR)
+	{
+		memset(src, size = 0, sizeof(struct SRCTABLE));
+	}
+	memcpy(src.size, &size, 2);
+}
+
+int LoadSrcFile(struct SRCTABLE &src)//载入资源文件
+{
+	char fp;
+	int size;
+	char buf[256];
+
+	if (!(fp = fopen(out.name, "r")))
+	{
+		Swin("错误！", "无法打开文件", SWIN_ONE);
+		return(1);
+	}
+	fread(buf, 1, 3, fp);
+	buf[3] = 0;
+	if (strcmp(buf, "yan"))
+	{
+		fclose(fp);
+		memset(out.name, 0, 16);
+		Swin("错误！", "文件类型错误", SWIN_ONE);
+		return(1);
+	}
+	if (!out.fp)
+	{
+		if (ChPath(cpldata))
+		{
+			Swin("错误！", "无法进入目录", SWIN_ONE);
+			return(1);
+		}
+		if (!(out.fp = fopen("mem.tmp", "w+")))
+		{
+			Swin("错误！", "无法创建文件", SWIN_ONE);
+			return(1);
+		}
+	}
+	Swin("信息", NULL, SWIN_COM);
+	//TextOut(43, 46, "载入中...", 128);
+	textout(43, 46, "载入中...", 128);
+	Refresh();
+	fread(&size, 1, 2, fp);
+	fseek(fp, 3, 0);
+	SRC_Op(src, 0, 0, TABLE_CLR);
+	fread(src, 1, size * sizeof(struct SRCUNIT) + 2, fp);
+	rewind(out.fp);
+	while (!feof(fp))
+	{
+		size = fread(buf, 1, 256, fp);
+		fwrite(buf, 1, size, out.fp);
+	}
+	fclose(fp);
+}
+
+int SaveSrcFile(struct SRCTABLE &src)//保存资源文件
+{
+	char fp;
+	int size, i, len, tsize;
+	long add;
+	char buf[256];
+
+	ChDir(out.path);
+	if (fp = fopen(out.name, "r"))
+	{
+		fclose(fp);
+		if (!Swin("存在同名文件", "是否覆盖？", SWIN_TWO)) return(1);
+	}
+	if (!(fp = fopen(out.name, "w")))//创建保存文件
+	{
+		Swin("错误！", "无法创建文件", SWIN_ONE);
+		return(1);
+	}
+ 
+	Swin("信息", NULL, SWIN_COM);
+	//TextOut(43, 46, "保存中...", 128);
+	textout(43, 46, "保存中...", 128);
+	Refresh();
+	fwrite("yan", 1, 3, fp);//文件头
+	memcpy(&size, src.size, 2);
+	len = size * sizeof(struct SRCUNIT) + 2;
+	fwrite(src, 1, len, fp);
+	for (i = 0; i < size; i++)
+	{
+		add = ftell(fp) - len - 3;
+		fseek(fp, i * sizeof(struct SRCUNIT) + 9, 0);
+		fwrite(&add, 1, 4, fp);
+		fseek(fp, 0, 2);
+		memcpy(&add, src.dat[i].add, 4);
+		fseek(out.fp, add, 0);
+		buf[0] = getc(out.fp);
+		fread(buf + 1, 1, buf[0], out.fp);
+		fwrite(buf, 1, buf[0]+1, fp);
+		fread(&add, 1, 4, out.fp);
+		fwrite(&add, 1, 4, fp);
+		while (add)
+		{
+			if (add > 256)
+			{
+				tsize = 256;
+			}
+			else
+			{
+				tsize = add;
+			}
+			add = add - tsize;
+			fread(buf, 1, tsize, out.fp);
+			fwrite(buf, 1, tsize, fp);
+		}
+	}
+	fclose(fp);
+}
+
+int WriteJiLu(char type, struct SRCTABLE &src, char &msg[])
+{
+	struct OUTFILE fn;
+	long len, add;
+	char buf[256];
+
+	Swin("信息", "请选择加载记录", SWIN_ONE);
+	if (!SelectSrc(fn, "/", 0xff)) return(-1);
+	if (!(fn.fp = fopen(fn.name, "r")))
+	{
+		Swin("错误！", "无法打开文件", SWIN_ONE);
+		return(-1);
+	}
+	if (!out.fp)
+	{
+		if (ChPath(cpldata))
+		{
+			Swin("错误！", "无法进入目录", SWIN_ONE);
+			return(-1);
+		}
+		if (!(out.fp = fopen("mem.tmp", "w+")))
+		{
+			Swin("错误！", "无法创建文件", SWIN_ONE);
+			return(-1);
+		}
+	}
+	Swin("信息", NULL, SWIN_COM);
+	//TextOut(43, 46, "加载中...", 128);
+	textout(43, 46, "加载中...", 128);
+	Refresh();
+	add = fseek(out.fp, 0, 2);
+	len = strlen(msg) + 1;
+	putc(len, out.fp);
+	fwrite(msg, 1, len, out.fp);
+	len = fseek(fn.fp, 0, 2);
+	rewind(fn.fp);
+	if (!type)
+	{
+		len++;
+		if (!getc(fn.fp))
+		{
+			len = len - 24;
+			fseek(fn.fp, 24, 0);
+		}
+		else
+		{
+			rewind(fn.fp);
+		}
+	}
+	fwrite(&len, 1, 4, out.fp);
+	while (!feof(fn.fp))
+	{
+		len=fread(buf, 1, 256, fn.fp);
+		fwrite(buf, 1, len, out.fp);
+	}
+	fclose(fn.fp);
+	if (!type) putc(0, out.fp);
+	return(add);
+}
+
+void SrcFace(int size, char change)
+{
+	char str[25];
+
+	strcpy(str, "资源");
+	if (out.name[0])
+	{
+		strcat(str, ":");
+		strcat(str, out.name);
+	}
+	if (change) strcat(str, "*");
+	Dwin(str);
+	if (!size)
+	{
+		TextOut(32, 28, "按F1插入记录", 0x81);
+		TextOut(14, 48, "按L键载入资源文件", 0x81);
+	}
+}
+
+int SrcGetType()//类型输入
+{
+	char key, value;
+
+	for (value = 1;;)
+	{
+		Swin("输入", NULL, SWIN_COM);
+		TextOut(17, 35, "请选择类型：", 1);
+#if WQX == 0
+		Boxw(32, 52, "字符串");
+		Boxw(86, 52, "无类型");
+		Block(value * 54 + 33, 53, value * 54 + 70, 64, 2);
+#else
+		Boxw(29, 52, "字符串");
+		Boxw(83, 52, "无类型");
+		Block(value * 54 + 30, 53, value * 54 + 71, 64, 2);
+#endif
+		Refresh();
+		key = getchar();
+		if (key == DOWN_KEY || key == RIGHT_KEY || key == UP_KEY || key == LEFT_KEY) value = value ^ 1;
+		else if (key == CR_KEY) return(value);
+	}
+}
+
+#if WQX == 0
+void PrintSrc(int first, int value, struct SRCTABLE &src)/*资源索引显示*/
+{
+	int size;
+	long add;
+	char i, j;
+	char str[SRC_D_LEN];
+	char tmp[17];
+
+	memcpy(&size, src.size, 2);
+	if (!size) return;
+	MyBox(49, 18, 149, 76, 4);
+	MyLine(49, 36, 147, 36, 64);
+	MyBox(152, 18, 157, 76, 1);
+	for (i = 0; i < 4 && i + first < size; i++)
+	{
+		memcpy(&add, src.dat[i + first].id, 4);
+		sprintf(str, "%d", add);
+		Rectangle(4, i * 15 + 18, 46, i * 15 + 31, 1);
+		TextOut(26 - strlen(str) * 3, i * 15 + 19, str, 1);
+	}
+	memcpy(&add, src.dat[value + first].id, 4);
+	sprintf(str, "%d", add);
+	TextOut(103 - strlen(str) * 5, 20, str, 128);
+	Block(5, value * 15 + 19, 45, value * 15 + 30, 2);
+	Block(154, (first * 54) / size + 20, 155, ((first + i) * 54) / size + 20, 1);//进度显示
+	memcpy(&add, src.dat[value + first].add, 4);
+	fseek(out.fp, add, 0);
+	size = getc(out.fp);
+	fread(str, 1, size, out.fp);
+	for (i = add = 0; i < 3 && add < size; i++)//说明
+	{
+		memcpy(tmp, str + add, 16);
+		j = 0;
+		while (j < 16)
+		{
+			if (tmp[j++] >= 160)
+			{
+				if (j >= 16)
+				{
+					j--;
+					break;
+				}
+				j++;
+			}
+		}
+		tmp[j] = 0;
+		TextOut(51, i * 13 + 37, tmp, 1);
+		add = add + j;
+	}
+}
+#else
+void PrintSrc(int first, int value, struct SRCTABLE &src)/*资源索引显示*/
+{
+	int size;
+	long add;
+	char i, j;
+	char str[SRC_D_LEN];
+	char tmp[17];
+ 
+	memcpy(&size, src.size, 2);
+	if (!size) return;
+	Block(2, 16, 158, 78, 0);
+	Rectangle(48, 17, 150, 77, 1);
+	Line(48, 34, 150, 34, 65);
+	Rectangle(152, 17, 157, 77, 1);
+	for (i = 0; i < 4 && i + first < size; i++)
+	{
+		memcpy(&add, src.dat[i + first].id, 4);
+		sprintf(str, "%d", add);
+		Rectangle(3, i * 15 + 18, 46, i * 15 + 31, 1);
+		TextOut(25 - strlen(str) * 3, i * 15 + 19, str, 1);
+	}
+	memcpy(&add, src.dat[value + first].id, 4);
+	sprintf(str, "%d", add);
+	TextOut(103 - strlen(str) * 5, 18, str, 128);
+	Block(4, value * 15 + 19, 45, value * 15 + 30, 2);
+	Block(154, (first * 56) / size + 19, 155, ((first + i) * 56) / size + 19, 1);//进度显示
+	memcpy(&add, src.dat[value + first].add, 4);
+	fseek(out.fp, add, 0);
+	size = getc(out.fp);
+	fread(str, 1, size, out.fp);
+	for (i = add = 0;i < 3 && add < size;i++)//说明
+	{
+		memcpy(tmp, str + add, 16);
+		j = 0;
+		while(j < 16)
+		{
+			if (tmp[j++] >= 160)
+			{
+				if (j >= 16)
+				{
+					j--;
+					break;
+				}
+				j++;
+			}
+		}
+		tmp[j] = 0;
+		TextOut(51, i * 13 + 37, tmp, 1);
+		add = add + j;
+	}
+}
+#endif
+
+void SrcHelp()
+{
+	char key;
+	char s[5][30];
+
+_S1:
+	strcpy(s[0], "A、F1:添加一个记录");
+	strcpy(s[1], "D、F2:删除一个记录");
+	strcpy(s[2], "F3键 :查找记录");
+	strcpy(s[3], "F4键 :修改记录ID号");
+	strcpy(s[4], "L键  :载入资源文件");
+	PrintMsg(s, 0);
+	key = getchar();
+	if (key == UP_KEY || key == UU_KEY || key == LEFT_KEY) goto _S1;
+	if (key == ESC_KEY || key == 'q') return;
+	strcpy(s[0], "S键  :保存当前资源");
+	strcpy(s[1], "ESC键:退出资源管理系统");
+	s[2][0] = 0;
+	PrintMsg(s, 0);
+	key = getchar();
+	if (key == UP_KEY || key == UU_KEY || key == LEFT_KEY) goto _S1;
+}
+void LookDat(struct SRCTABLE &src)
+{
+	struct _SRCUNIT e;
+	char msg[SRC_D_LEN];
+	char key, change;
+	int first, cur, size;
+	long t;
+
+	SRC_Op(src, 0, 0, TABLE_CLR);
+	for (first = cur = change = 0;;)
+	{
+		memcpy(&size, src.size, 2);
+		SrcFace(size, change);
+		PrintSrc(first, cur - first, src);
+		Refresh();//界面
+		key = getchar();
+		if ((key == UP_KEY || key == LEFT_KEY) && cur)
+		{
+			cur--;
+			if (cur < first) first = cur;
+		}
+		else if ((key == DOWN_KEY || key == RIGHT_KEY) && cur + 1 < size)
+		{
+			cur++;
+			if (cur > first + 3) first = cur - 3;
+		}
+		else if (key == UU_KEY)
+		{
+			if (first < 4)
+			{
+				cur = cur - first;
+				first = 0;
+			}
+			else
+			{
+				first = first - 4;
+				cur = cur - 4;
+			}
+		}
+		else if (key == DD_KEY && first + 4 < size)
+		{
+			first = first + 4;
+			cur = cur + 4;
+			if (cur >= size) cur = size - 1;
+		}
+		else if (key == A_KEY || key == F1_KEY)//插入
+		{
+			if (size >= SRC_M_SIZE)
+			{
+				sprintf(msg, "记录已达%d个", SRC_M_SIZE);
+				Swin("提醒！", msg, SWIN_ONE);
+			}
+			else if (Inputw("请输入id号:", msg, 7, msg[0] = 0))
+			{
+				e.id = atoi(msg);
+				t = SRC_Op(src, e, 0, TABLE_SEK);
+				if (t >= 0)
+				{
+					Swin("警告！", "存在同名的id", SWIN_ONE);
+					continue;
+				}
+				msg[0] = 0;
+				Inputw("请输入描述:", msg, SRC_D_LEN, 14);
+				e.add = WriteJiLu(SrcGetType(), src, msg);
+				if (e.add >= 0)
+				{
+					SRC_Op(src, e, 0, TABLE_INS);
+					change = 1;
+				}
+			}
+		}
+		else if (key == D_KEY || key == F2_KEY)//删除
+		{
+			if (!size)
+			{
+				Swin("警告！", "没有记录可删除", SWIN_ONE);
+			}
+			else
+			{
+				if (cfset.dat[2].tem[1].value)
+				{
+					if (!Swin("删除？", "真的要删除么", SWIN_TWO)) continue;
+				}
+				SRC_Op(src, 0, cur, TABLE_DEL);
+				if (size&cur >= size)
+				{
+					cur = size - 1;
+					if (cur < first) first = cur;
+				}
+				change = 1;
+			}
+		}
+		else if (key == F3_KEY)//查找
+		{
+			if (!size)
+			{
+				Swin("警告！", "没有记录可查找", SWIN_ONE);
+			}
+			else if (Inputw("请输入id号:", msg, 7, msg[0] = 0))
+			{
+				e.id = atoi(msg);
+				t = SRC_Op(src, e, 0, TABLE_SEK);
+				if (t < 0) Swin("信息", "没有找到", SWIN_ONE);
+				else first = cur = t;
+			}
+		}
+		else if (key == F4_KEY)//修改
+		{
+			if (!size)
+			{
+				Swin("警告！", "没有记录可修改", SWIN_ONE);
+			}
+			else if (Inputw("请输入新的id号:", msg, 7, msg[0] = 0))
+			{
+				e.id=atoi(msg);
+				t = SRC_Op(src, e, 0, TABLE_SEK);
+				memcpy(&e.add, src.dat[cur].id, 4);
+				if (t >= 0)
+				{
+					if (e.add != e.id) Swin("警告！", "存在同名的id", SWIN_ONE);
+					continue;
+				}
+				memcpy(&e.add, src.dat[cur].add, 4);
+				SRC_Op(src, 0, cur, TABLE_DEL);
+				SRC_Op(src, e, 0, TABLE_INS);
+				change = 1;
+			}
+		}
+		else if (key == 'l')
+		{
+			Swin("信息", "请选择加载资源", SWIN_ONE);
+			if (SelectSrc(out, "/", 0xfc))
+			{
+				if (!LoadSrcFile(src)) first = cur = change = 0;
+			}
+		}
+		else if (key == S_KEY)
+		{
+			if (!size)
+			{
+				Swin("警告！", "没有记录可保存", SWIN_ONE);
+				continue;
+			}
+			if (cfset.dat[2].tem[2].value)
+			{
+				if (!Swin("保存？", "真的要保存么", SWIN_TWO)) continue;
+			}
+			if (!Inputw("请输入文件名:", out.name, 11, 29)) continue;
+			ChExt(out.name, "dat");
+			if (!out.path[0])
+			{
+				if (ChDir("/LavaData"))
+				{
+					strcpy(out.path, "/LavaData");
+				}
+				else if (ChDir("/GVMdata"))
+				{
+					strcpy(out.path, "/GVMdata");
+				}
+			}
+			if (!SaveSrcFile(src)) change = 0;//保存数据
+		}
+		else if (key == HELP_KEY) SrcHelp();
+		else if (key == ESC_KEY || key == 'q')
+		{
+			if (change && !cfset.dat[2].tem[3].value)
+			{
+				if (!Swin("退出？", "警告:数据已更改", SWIN_TWO)) continue;
+			}
+			if (out.fp)//删除文件
+			{
+				fclose(out.fp);
+				out.fp = 0;
+				if (cfset.dat[0].tem[3].value)
+				{
+					ChDir(cpldata);
+					if (!DeleteFile("mem.tmp")) Swin("错误！", "无法删除*.tmp", SWIN_ONE);
+				}
+			}
+			return;
+		}
+		else if (!cfset.dat[0].tem[2].value) Beep();
+	}
+}

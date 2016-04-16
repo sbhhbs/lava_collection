@@ -1,0 +1,40 @@
+作者:yoYohenry
+原型:void digset(char &digbuf[], char heigh);
+功能:生成 8 x heigh 的电子数字字模数据，配合函数digout2使用。
+
+原型:void digout(int x, int y, int width, int heigh, int num, char type)
+功能:在(x,y)处画 width * heigh 的电子数字(0～9)。
+说明:此函数作矢量图，type=0 直接在屏幕作图，1在缓存区作图。优点:使用方便，可在程序中直接调用，且字模大小可任意；不足:由于是作矢量图，显图速度较digout2函数慢(1E-2s级)。
+
+原型:void digout2(int x, int y, int heigh, char &digbuf[], char num, int type)
+功能:在(x,y)处画 8 * heigh 的电子数字(0～9)。
+说明:此函数作向量图，使用前必须先用digset(digbuf[], heigh)生成大小10 * heigh的字模数据，优点是显图快(1E-3s级)，type含义见WriteBlock。
+
+举例:
+#include <digit.y>
+
+void main() 
+{
+ int i;
+ char buf[10][20];
+
+ ClearScreen();
+ Refresh();
+ digset(buf, 20);//生成数字字模数据
+ for (i = 0; i< 10; i++)
+ {
+  digout(15, 5, 7, 20, i, 0);//屏幕 矢量作图
+  digout2(25, 5, 20, buf, i, 0x41);//屏幕 向量作图
+  Delay(500);
+ }
+ getchar();
+ ClearScreen();
+ for (i = 0; i < 10; i++)
+ {
+  digout(15, 5, 7, 20, i, 1);//缓存区 矢量作图
+  digout2(25, 5, 20, buf, i, 0x01);//缓存区 向量作图
+  Refresh();
+  Delay(500);
+ }
+ getchar();
+}

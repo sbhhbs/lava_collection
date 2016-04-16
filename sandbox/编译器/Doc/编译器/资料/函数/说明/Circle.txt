@@ -1,0 +1,16 @@
+原型:void Circle(int x, int y, int r, int fill, int type);
+功能:在屏幕上画一圆
+说明:(x,y)指定圆心,r指定半径。
+     type决定画图方式,其值含义如下:
+     0:清除方式
+     1:正常方式
+     2:反相方式
+     fill=0:不填充
+     fill=1:填充
+举例:
+void main()
+{
+ Circle(80, 40, 36, 0, 1); 
+ Circle(80, 40, 20, 1, 1);
+ getchar();
+}

@@ -1,0 +1,70 @@
+#define UP_KEY      0x14
+#define	DOWN_KEY    0x15
+#define UU_KEY      0x13
+#define DD_KEY      0x0e
+#define ESC_KEY     0x1b
+//------------------------------------gbk,hgp²¥·ÅÆ÷---------------------------------------//
+char play_hgp(char cycle,long delay,int lcur,char lnum,char fp)
+{int num,cur,i;
+ char key;
+ long tick;
+ char head[10],pic[1600];
+ rewind(fp);fread(head,1,10,fp);num=head[8]|(head[9]<<8);
+ for(tick=cur=0;;tick++)
+  {for(i=0;i<16;i++)
+    {fseek(fp,cur+i*1600+cur*25600+10,0);fread(pic,1,1600,fp);
+     WriteBlock(0,0,160,80,1,pic);Refresh();
+    }
+   key=Inkey();
+   if((key==UU_KEY&&lcur)||(key==DD_KEY&&lcur+1<lnum))return(key);
+   if(key==ESC_KEY||key=='q')return(ESC_KEY);
+   if(key==UP_KEY){if(cur>0)cur--;else if(cycle)cur=num-1;else return(0);}
+   else if(key==DOWN_KEY||tick==delay){tick=0;if(cur<num-1)cur++;else if(cycle)cur=0;else return(0);}
+  }
+}
+//---------------------------------------ski²¥·ÅÆ÷-----------------------------------------//
+void print_ski(char &pic[],int height,int width,int xx,int yy,int flag)
+{int x0,y0,x1,y1;
+ if(xx<=-160||xx<=-height||yy<=-80||yy<=-width||xx>=160||yy>=80)return;
+ if(flag){WriteBlock(xx,yy,height,width,1,pic);Refresh();Delay(20);return;}
+ if((x0=xx)<0)x0=0;if((x1=xx+height-1)>=160)x1=159;
+ if((y0=yy)<0)y0=0;if((y1=yy+width-1)>=80)y1=79;
+ Block(x0,y0,x1,y1,0);
+}
+char play_ski(int lcur,char lnum,char fp)
+{char cmd,type,len,flag,key;
+ int i,n,height,width,xx,yy;
+ long offset;
+ char c[2],code[200],pic[1600];
+ flag=0;rewind(fp);fread(offset=code,1,200,fp);
+START:
+ key=Inkey();
+ if((key==UU_KEY&&lcur)||(key==DD_KEY&&lcur+1<lnum))return(key);
+ if(key==ESC_KEY||key=='q')return(ESC_KEY);
+ if(flag)goto FLAG;
+ if((cmd=*(offset++))==0xfa)
+  {ClearScreen();n=(*offset++)|((*offset++)<<8);
+   type=*(offset++);xx=*(offset++);if(!type)xx=-xx;
+   type=*(offset++);yy=*(offset++);if(!type)yy=-yy;
+   fseek(fp,n,0);fread(c,1,2,fp);fread(pic,1,((height=c[0])>>3)*(width=c[1]),fp);
+   Delay(250);print_ski(pic,height,width,xx,yy,1);
+  }
+ if(cmd==0xfb)
+  {n=(*(offset++)*5)/2;
+   for(i=0;i<n;i++){if(CheckKey(128))goto START;Delay(100);}
+  }
+ if(cmd==0xfc){if(*(offset++))offset=code;}
+ if(cmd==0xfd)
+  {i=*(offset++);type=*(offset++);len=*(offset++);c[0]=*(offset++);n=0;
+   do{flag=1;goto START;
+FLAG:
+      flag=0;print_ski(pic,height,width,xx,yy,c[0]);//[½èÓÃ]
+      if(!type)xx=xx-i;if(type==1)yy=yy-i;if(type==2)xx=xx+i;if(type==3)yy=yy+i;
+     }while((n=n+i)<len)
+  }
+ if(cmd==0xff)return(0);
+ goto START;
+}
+void main()
+{
+}

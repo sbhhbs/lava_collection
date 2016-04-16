@@ -1,0 +1,24 @@
+原型:int isxdigit(char c);
+功能:判断字符c是否为十六进制数字
+说明:当c为A-F,a-f或0-9之间的十六进制数字时,返回非零值,否则返回零
+举例:
+void xdigit(char c)
+{
+ if (isxdigit(c))
+ {
+  printf("%c:是十六进制数字\n", c);
+ }
+ else
+ {
+  printf("%c:不是十六进制数字\n", c);
+ }
+}
+
+void main()
+{
+ SetScreen(0);
+ xdigit('a');
+ xdigit('9');
+ xdigit('*');
+ getchar();
+}

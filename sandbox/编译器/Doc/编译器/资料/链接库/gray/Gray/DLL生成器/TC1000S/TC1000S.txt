@@ -1,0 +1,58 @@
+void LoadTC1000S()
+{gray[TC1000S].exe=0x8B50;
+ gray[TC1000S].check=(chk_add[TC1000S]&0xffff)+1;
+ aadd.len=0;
+ gray[TC1000S].src[0]=ftell(fp);
+ U_line_add		[_2_MODE].mem=0xb46d;memcpy(aadd.eadd[aadd.len++],U_line_add		[_2_MODE],sizeof(struct _EADD));
+ U_mask1		[_2_MODE].mem=0xaf11;memcpy(aadd.eadd[aadd.len++],U_mask1			[_2_MODE],sizeof(struct _EADD));
+ U_mask2		[_2_MODE].mem=0xadb2;memcpy(aadd.eadd[aadd.len++],U_mask2			[_2_MODE],sizeof(struct _EADD));
+ U_xdraw		[_2_MODE].mem=0x7600;memcpy(aadd.eadd[aadd.len++],U_xdraw			[_2_MODE],sizeof(struct _EADD));
+ U_XDraw_7600	[_2_MODE].mem=0xb27d;memcpy(aadd.eadd[aadd.len++],U_XDraw_7600		[_2_MODE],sizeof(struct _EADD));
+ U_Point1		[_2_MODE].mem=0xb45c;memcpy(aadd.eadd[aadd.len++],U_Point1			[_2_MODE],sizeof(struct _EADD));
+ U_Point2		[_2_MODE].mem=0xb46a;memcpy(aadd.eadd[aadd.len++],U_Point2			[_2_MODE],sizeof(struct _EADD));
+ U_Block1		[_2_MODE].mem=0xaf37;memcpy(aadd.eadd[aadd.len++],U_Block1			[_2_MODE],sizeof(struct _EADD));
+ U_Block2		[_2_MODE].mem=0xaf3c;memcpy(aadd.eadd[aadd.len++],U_Block2			[_2_MODE],sizeof(struct _EADD));
+ U_ClearScreen	[_2_MODE].mem=0xa89c;memcpy(aadd.eadd[aadd.len++],U_ClearScreen		[_2_MODE],sizeof(struct _EADD));
+ U_GetPoint		[_2_MODE].mem=0xa886;memcpy(aadd.eadd[aadd.len++],U_GetPoint		[_2_MODE],sizeof(struct _EADD));
+ U_TextOut		[_2_MODE].mem=0xab2e;memcpy(aadd.eadd[aadd.len++],U_TextOut			[_2_MODE],sizeof(struct _EADD));
+ U_FileList		[_2_MODE].mem=0x9684;memcpy(aadd.eadd[aadd.len++],U_FileList		[_2_MODE],sizeof(struct _EADD));
+ U_WriteBlock1	[_2_MODE].mem=0xac9e;memcpy(aadd.eadd[aadd.len++],U_WriteBlock1		[_2_MODE],sizeof(struct _EADD));
+ U_WriteBlock1	[_2_MODE].mem=0xacb6;memcpy(aadd.eadd[aadd.len++],U_WriteBlock1		[_2_MODE],sizeof(struct _EADD));
+ U_WriteBlock2	[_2_MODE].mem=0xacd4;memcpy(aadd.eadd[aadd.len++],U_WriteBlock2		[_2_MODE],sizeof(struct _EADD));
+ U_WriteBlock3	[_2_MODE].mem=0xad0b;memcpy(aadd.eadd[aadd.len++],U_WriteBlock3		[_2_MODE],sizeof(struct _EADD));
+ U_B_WriteBlock0[TC1000S].mem=0xac4d;memcpy(aadd.eadd[aadd.len++],U_B_WriteBlock0	[TC1000S],sizeof(struct _EADD));
+ U_B_printf		[	0	].mem=0xb50d;memcpy(aadd.eadd[aadd.len++],U_B_printf		[	0	],sizeof(struct _EADD));
+ U_B_getchar	[TC1000S].mem=0x9ba4;memcpy(aadd.eadd[aadd.len++],U_B_getchar		[TC1000S],sizeof(struct _EADD));
+ 									 memcpy(aadd.eadd[aadd.len++],U_chg4			[_2_MODE],sizeof(struct _EADD));
+ 									 memcpy(aadd.eadd[aadd.len++],U_B_gray_0				 ,sizeof(struct _EADD));
+ //添加在这连接其他2色资源
+ putc(aadd.len,fp);fwrite(aadd.eadd,1,aadd.len*sizeof(struct _EADD),fp);
+//======================================================================
+ aadd.len=0;
+ gray[TC1000S].src[1]=ftell(fp);
+ U_line_add		[_4_MODE].mem=0xb46d;memcpy(aadd.eadd[aadd.len++],U_line_add		[_4_MODE],sizeof(struct _EADD));
+ U_mask1		[_4_MODE].mem=0xaf11;memcpy(aadd.eadd[aadd.len++],U_mask1			[_4_MODE],sizeof(struct _EADD));
+ U_mask2		[_4_MODE].mem=0xadb2;memcpy(aadd.eadd[aadd.len++],U_mask2			[_4_MODE],sizeof(struct _EADD));
+ U_xdraw		[_4_MODE].mem=0x7600;memcpy(aadd.eadd[aadd.len++],U_xdraw			[_4_MODE],sizeof(struct _EADD));
+ U_XDraw_7600	[_4_MODE].mem=0xb27d;memcpy(aadd.eadd[aadd.len++],U_XDraw_7600		[_4_MODE],sizeof(struct _EADD));
+ U_Point1		[_4_MODE].mem=0xb45c;memcpy(aadd.eadd[aadd.len++],U_Point1			[_4_MODE],sizeof(struct _EADD));
+ U_Point2		[_4_MODE].mem=0xb46a;memcpy(aadd.eadd[aadd.len++],U_Point2			[_4_MODE],sizeof(struct _EADD));
+ U_Block1		[_4_MODE].mem=0xaf37;memcpy(aadd.eadd[aadd.len++],U_Block1			[_4_MODE],sizeof(struct _EADD));
+ U_Block2		[_4_MODE].mem=0xaf3c;memcpy(aadd.eadd[aadd.len++],U_Block2			[_4_MODE],sizeof(struct _EADD));
+ U_ClearScreen	[_4_MODE].mem=0xa89c;memcpy(aadd.eadd[aadd.len++],U_ClearScreen		[_4_MODE],sizeof(struct _EADD));
+ U_GetPoint		[_4_MODE].mem=0xa886;memcpy(aadd.eadd[aadd.len++],U_GetPoint		[_4_MODE],sizeof(struct _EADD));
+ U_TextOut		[_4_MODE].mem=0xab2e;memcpy(aadd.eadd[aadd.len++],U_TextOut			[_4_MODE],sizeof(struct _EADD));
+ U_FileList		[_4_MODE].mem=0x9684;memcpy(aadd.eadd[aadd.len++],U_FileList		[_4_MODE],sizeof(struct _EADD));
+ U_WriteBlock1	[_4_MODE].mem=0xac9e;memcpy(aadd.eadd[aadd.len++],U_WriteBlock1		[_4_MODE],sizeof(struct _EADD));
+ U_WriteBlock1	[_4_MODE].mem=0xacb6;memcpy(aadd.eadd[aadd.len++],U_WriteBlock1		[_4_MODE],sizeof(struct _EADD));
+ U_WriteBlock2	[_4_MODE].mem=0xacd4;memcpy(aadd.eadd[aadd.len++],U_WriteBlock2		[_4_MODE],sizeof(struct _EADD));
+ U_WriteBlock3	[_4_MODE].mem=0xad0b;memcpy(aadd.eadd[aadd.len++],U_WriteBlock3		[_4_MODE],sizeof(struct _EADD));
+ U_D_WriteBlock0		 .mem=0xac4d;memcpy(aadd.eadd[aadd.len++],U_D_WriteBlock0		 	 ,sizeof(struct _EADD));
+ U_D_printf				 .mem=0xb50d;memcpy(aadd.eadd[aadd.len++],U_D_printf			 	 ,sizeof(struct _EADD));
+ U_D_getchar			 .mem=0x9ba4;memcpy(aadd.eadd[aadd.len++],U_D_getchar			 	 ,sizeof(struct _EADD));
+ 									 memcpy(aadd.eadd[aadd.len++],U_chg4			[_4_MODE],sizeof(struct _EADD));
+ 									 memcpy(aadd.eadd[aadd.len++],U_D_gray_0			 	 ,sizeof(struct _EADD));
+ 									 memcpy(aadd.eadd[aadd.len++],U_code4				 	 ,sizeof(struct _EADD));
+ //添加在这连接其他4色资源
+ putc(aadd.len,fp);fwrite(aadd.eadd,1,aadd.len*sizeof(struct _EADD),fp);
+}

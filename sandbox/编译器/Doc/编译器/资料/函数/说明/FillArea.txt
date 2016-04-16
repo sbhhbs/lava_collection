@@ -1,0 +1,13 @@
+原型:void FillArea(int x, int y, int type);
+功能:对一块闭合的凸区域进行填充
+说明:从x,y坐标开始填充
+     type=0:填充图形缓冲区,type=0x40:填充屏幕
+举例:
+void main()
+{
+ Line(10, 10, 10, 70, 1);
+ Line(10, 70, 150, 70, 1);
+ Line(10, 10, 150, 70, 1);
+ FillArea(20, 60, 0x40);
+ getchar();
+}

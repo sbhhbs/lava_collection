@@ -1,0 +1,8 @@
+原型:void SetVolume(char vol)
+功能:调节发音音量。
+输入:音量（0～11），不能超过12，否则可能使机器重启。
+例子:
+void main()
+{
+ SetVolume(7);
+}

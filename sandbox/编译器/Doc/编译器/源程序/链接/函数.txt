@@ -1,0 +1,401 @@
+//*******************************************************链接系统*******************************************************//
+long GetFileLen(char fp)
+{
+	long len;
+
+	fseek(fp, 0, 2);
+	len = ftell(fp);
+	rewind(fp);
+	if (!getc(fp))
+	{
+		fseek(fp, 24, 0);
+	}
+	else
+	{
+		rewind(fp);
+	}
+	return(len);
+}
+
+/* 获取说明 */
+void ReadShow()
+{
+	int len;
+	long filelen, jmp;
+	long size;//文本大小
+	char dir[PATH_MAX];
+	char buf[256];
+
+	Progress("载入中...", "链接生成系统正在运行", 1);//消息框
+	if (!(in.fp = fopen("/文本文件/说明.txt", "r"))) Error("说明.txt", E_OPEN);
+	filelen = GetFileLen(in.fp);//获取文件长度
+	size = filelen - ftell(in.fp);
+	strcpy(dir, out.path);
+	strcpy(out.path, libdata);
+	if (ChPath(out.path)) Error(out.path, E_CATA);
+	ChExt(out.name, "y");
+	if (!(out.fp = fopen(out.name, "w"))) Error(out.name, E_CREAT);
+	jmp = size + 7;
+	if (fwrite(&jmp, 1, 4, out.fp) != 4) Error(out.name, E_WRITE);//写入跳转 1+2+4
+	fwrite(&size, 1, 2, out.fp);//写入文本大小
+	while (!feof(in.fp))//写入文本
+	{
+		len = fread(buf, 1, 256, in.fp);
+		if (fwrite(buf, 1, len, out.fp) != len) Error(out.name, E_WRITE);
+		Progress(ftell(in.fp), filelen, 0);
+	}
+	putc(0, out.fp);
+	fclose(in.fp);
+	in.fp = 0;
+	strcpy(out.path, dir);
+	Progress(1, 1, 0);
+}
+
+/* 收集函数信息 */
+int getFunAdd(struct LIB &d)//返回:0:不需要偏移,1:需要偏移
+{
+	char flag;//标志
+	int i, m;//m:添加标志个数
+	char cmd;
+	int none, len;
+	long offset;
+
+	flag = 1;
+	fseek(in.fp, 0, 2);
+	in.size = ftell(in.fp);//获取文件长度
+	fseek(in.fp, 16, i = m = strMask = 0);
+	while (!feof(in.fp))
+	{
+		if((cmd = getc(in.fp)) == 1)//1 Byte
+		{
+			fseek(in.fp, 1, 1);
+		}
+		else if (cmd == 0x3 | cmd == 0x41)//4 Byte
+		{
+			fread(&none, 1, 4, in.fp);
+			if (cmd == 0x41) fseek(in.fp, len, 1);
+		}
+		else if (cmd == 0x0d)//n Byte
+		{
+			do {} while (getc(in.fp) ^ strMask);
+		}
+		else if (!cmd) continue;//0 Byte
+		else if (cmd <= 25 | cmd == 60 | (cmd >= 69 && cmd <= 81))//2 Byte
+		{
+			fseek(in.fp, 2, 1);
+		}
+		else if (cmd >= 0x39 && cmd <= 0x3d)//跳转
+		{
+			fseek(in.fp, 3, 1);
+		}
+		else if (cmd == 0x3e)
+		{
+			if (flag)
+			{
+				flag = 0;
+				fseek(in.fp, -2, 1);
+				if ((cmd = getc(in.fp)) == 0xad)//不需要收集信息
+				{
+					Progress(1, 1, 0);//进度
+					return(0);
+				}
+				getc(in.fp);//跳过0x3e
+			}
+			m++;
+			offset = ftell(in.fp) - 1;
+			memcpy(d.f[i].add, &offset, 4);//记录函数地址
+			memcpy(d.f[i++].oft, &m, 2);//偏移量
+			Progress(offset, in.size, 0);//进度
+			fseek(in.fp, 3, 1);
+		}
+		else if (cmd == 0x43)
+		{
+			strMask = getc(in.fp);
+		}
+		else if ((cmd > 0x6d && cmd < 0x80) | cmd > 0xd6)
+		{
+			Error(cmd, E_CODE);//错误
+		}
+	}
+	Progress(1, 1, 0);//进度
+	return(1);
+}
+
+/* 查找偏移量 */
+long seekFunAdd(struct LIB &d, long add)
+{
+	int low, high, mid;
+	long _add;
+
+	low = 0;
+	high = d.size - 1;
+	while (low <= high)
+	{
+		memcpy(&_add, d.f[mid = (low + high) >> 1].add, 4);
+		if (add > _add)
+		{
+			low = mid + 1;
+		}
+		else if (add < _add)
+		{
+			high = mid - 1;
+		}
+		else
+		{
+			memcpy(&mid, d.f[mid].oft, 2);
+			return mid;
+		}
+	}
+	Error(add, E_JUMP);//错误
+}
+
+/* 生成*.y */
+void MakeLib(struct LIB &d)
+{
+	long c, offset, fadd;//临时变量 偏移量(lav代码开始地址) y代码开始地址
+	int i, j, m;//m添加标志个数（函数指针用）
+	char cmd, flag;
+	char name[NAME_MAX];
+
+	Progress("收集信息中", "链接生成系统正在运行", 1);//消息框
+	ChDir(out.path);
+	strcpy(out.path, libdata);
+	strcpy(name, out.name);
+	ChExt(name, "lav");
+	if (!(in.fp = fopen(name, "r"))) Error(name, E_OPEN);
+	flag = getFunAdd(d);//收集函数信息
+	Progress("生成中...", "链接生成系统正在运行", 1);//消息框
+	memset(&c, 0, &cmd - &c);//初始化
+	fseek(in.fp, 16, 0);//调整
+	fadd = ftell(out.fp);
+	fwrite(&c, 1, 2, out.fp);//临时写入空的变量总空间
+	strMask = 0;
+	for (;;)//lav头处理
+	{
+		if ((cmd = getc(in.fp)) == 0x41)
+		{
+			putc(0x41, out.fp);//写入虚拟指令
+			fread(&c, 1, 4, in.fp);
+			fwrite(&c, 1, 4, out.fp);
+			c = c >> 16;
+			for (j = 0; j < c; j++) putc(getc(in.fp), out.fp);
+		}
+		else if (cmd == 0x3c)//变量总空间
+		{
+			c = 0;
+			fread(&c, 1, 2, in.fp);
+			cp.add[VGLOBOLE] = c;//记录总空间
+			fseek(out.fp, fadd, 0);
+			fwrite(&c, 1, 2, out.fp);
+			fseek(out.fp, 0, 2);
+		}
+		else if (cmd == 0x3b)//跳转
+		{
+			fread(&in.size, 1, 3, in.fp);
+			if (!offset) offset = ftell(in.fp);
+			fseek(in.fp, in.size, 0);
+		}
+		else if (cmd == 0x3e)
+		{
+			if (!offset) Error(name, E_OFFSET);//错误
+			if (!flag) in.size--;
+			fseek(in.fp, offset, 0);//lav代码开始地址
+			break;
+		}
+		else if (cmd == 0x43)
+		{
+			putc(0x43, out.fp);
+			putc(strMask = getc(in.fp), out.fp);
+		}
+		else if (cmd != 0xad)//忽略函数指针标志
+		{
+			Error(name, E_OFFSET);//错误
+		}
+	}
+	while (!feof(in.fp))
+	{
+		if((cmd = getc(in.fp)) == 1)
+		{
+			putc(1, out.fp);
+			putc(getc(in.fp), out.fp);//1 Byte
+			continue;
+		}
+		if (cmd == 3 | cmd == 0x41)//4 Byte
+		{
+			putc(cmd, out.fp);
+			fread(&c, 1, 4, in.fp);
+			fwrite(&c, 1, 4, out.fp);
+			if (cmd == 0x41)
+			{
+				c = c >> 16;
+				for (j = 0; j < c; j++) putc(getc(in.fp), out.fp);
+			}
+			continue;
+		}
+		if (cmd == 0x0d)//字符串
+		{
+			putc(0x0d, out.fp);
+			do {} while (putc(getc(in.fp), out.fp) ^ strMask);
+			continue;
+		}
+		if (!cmd)
+		{
+			putc(0, out.fp);
+			continue;
+		}
+		if (cmd <= 25 || cmd == 60 || (cmd >= 69 && cmd <= 81))//2 Byte
+		{
+			putc(cmd, out.fp);
+			fread(&c, 1, 2, in.fp);
+			fwrite(&c, 1, 2, out.fp);
+			continue;
+		}
+		if (cmd >= 0x39 && cmd <= 0x3c)//跳转
+		{
+			putc(cmd, out.fp);
+			c = 0;
+			fread(&c, 1, 3, in.fp);
+			c = c - offset + m;
+			fwrite(&c, 1, 3, out.fp);
+			continue;
+		}
+		if (cmd == 0xad)
+		{
+			if (ftell(in.fp) >= in.size) goto END;//结束
+			putc(0xad, out.fp);
+			continue;
+		}
+		if (cmd == 0x3d)
+		{
+			putc(0x3d, out.fp);
+			c = 0;
+			fread(&c, 1, 3, in.fp);
+			c = c - offset;
+			if (flag) c = c + seekFunAdd(d, c + offset);
+			fwrite(&c, 1, 3, out.fp);
+			continue;
+		}
+		if (cmd == 0x3e)
+		{
+			if (ftell(in.fp) >= in.size)//结束
+			{
+END:
+				fseek(out.fp, 0, 2);
+				in.size = ftell(out.fp);
+				fclose(out.fp);
+				fclose(in.fp);
+				out.fp = in.fp = 0;
+				Progress(1, 1, 0);
+				if (i != d.size) Error(0, E_JKDIFF);
+				return;
+			}
+			Progress(ftell(in.fp), in.size, 0);
+			if (flag)
+			{
+				putc(0xad, out.fp);
+				m++;
+			}
+			memset(cv, 0, sizeof(struct COM_VAR));
+			c = 0;//初始化
+			fread(&c, 1, 3, in.fp);
+			putc(0x3e, out.fp);
+			fwrite(&c, 1, 3, out.fp);//写入函数头
+			cv.d[1] = c >> 16;
+			cv.t = LVM_SUB;
+			strcpy(cv.n, d.f[i].n);
+			cv.b = d.f[i].b;
+			if (d.f[i++].b == 0xff)
+			{
+				putc(0xff, out.fp);
+				continue;
+			}
+			if (i > d.size) Error(0, E_INTER);//接口错误
+			putc(0xfe, out.fp);
+			fwrite(cv, 1, sizeof(struct COM_VAR), out.fp);
+			continue;
+		}
+		if (cmd == 0x43)
+		{
+			putc(0x43, out.fp);
+			putc(strMask = getc(in.fp), out.fp);
+			continue;
+		}
+		if ((cmd > 0x6d && cmd < 0x80) || cmd > 0xd6)
+		{
+			Error(name, E_OFFSET);//错误
+		}
+		putc(cmd, out.fp);//写入函数代码
+	}
+	Error(0, E_INTER);//接口错误
+}
+
+/* 获取接口 */
+void GetFunName(struct LIB &d)
+{
+	char c, j;
+	long filelen;
+	int i;
+
+	Progress("处理中...", "链接系统正在处理接口", 1);//消息框
+	if (!(in.fp = fopen("/文本文件/接口.txt", "r"))) Error("接口.txt", E_OPEN);
+	filelen = GetFileLen(in.fp);//获取文件长度
+	memset(d, 0, sizeof(struct LIB));
+	j = 0;//step
+	while (!feof(in.fp))
+	{
+		c = getc(in.fp);
+		if (isdigit(c))//数字
+		{
+			if (!j)
+			{
+				d.f[d.size].b = ~(c - '0');
+				j++;
+			}
+			else if (j == 2)
+			{
+				if (d.f[d.size].b != 0xff) d.f[d.size].b = c - '0';
+				j = 0;
+				d.size++;
+			}
+			else
+			{
+				Error(0, E_FORMAT);
+			}
+			Progress(ftell(in.fp), filelen, 0);
+		}
+		else if (isalnum(c) || c == '_')//字符串
+		{
+			if (j == 1)
+			{
+				for (i = 0; isalnum(c) || c == '_'; i++)
+				{
+					d.f[d.size].n[i] = c;
+					c = getc(in.fp);
+				}
+				j++;
+			}
+			else
+			{
+				Error(0, E_FORMAT);
+			}
+		}
+	}
+	fclose(in.fp);
+	in.fp = 0;
+	if (j) Error(0, E_FORMAT);
+	Progress(1, 1, 0);
+}
+
+/* [通用] */
+void Lib_Op(struct LIB &d)
+{
+	cp.fp = 0;//初始化
+	if (datfp)//关闭资源文件(可能被打开)
+	{
+		fclose(datfp);
+		datfp = 0;
+	}
+	GetFunName(d);//获取接口
+	ReadShow();//写入说明
+	MakeLib(d);//写入函数
+}

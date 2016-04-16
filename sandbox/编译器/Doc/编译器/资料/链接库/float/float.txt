@@ -1,0 +1,1179 @@
+#define EXCESS			126				//偏移量
+#define SIGNBIT			0x80000000		//符号位掩模1
+#define SIGNMASK		0x7fffffff		//符号位掩模2
+#define HIDDEN			0x800000		//隐藏位掩模
+#define MANTISSA		0x7fffff		//尾数掩模
+#define EXPSITE			23				//指数位
+
+//#define FLOAT_0p0		0x00000000		//0.0
+#define FLOAT_1p0		0x3f800000		//1.0
+#define FLOAT_m1p0		0xbf800000		//-1.0
+#define FLOAT_0p5		0x3f000000		//0.5
+#define FLOAT_m0p5		0xbf000000		//-0.5
+#define FLOAT_0p707		0x3f3504f3		//根号2 = 0.7071067812
+#define FLOAT_HALFPI	0x3fc90fdb		//pi/2
+#define FLOAT_mHALFPI	0xbfc90fdb		//-pi/2
+#define FLOAT_PI		0x40490fdb		//pi
+#define FLOAT_EPS		0x39800000
+
+//#define DEBUG
+
+/************************************************************************************************************************/
+long fminus(long f)
+{
+	return (f ^ SIGNBIT);
+}
+
+long fadd(long f1, long f2)
+{
+	int exp1, exp2;//指数
+	char sign1, sign2;//符号
+	long tmp;
+
+	if (!f1) return f2;
+	if (!f2) return f1;
+
+	exp1 = (f1 >> EXPSITE)&0xff;//取指数
+	exp2 = (f2 >> EXPSITE)&0xff;
+	if (exp1 < exp2)//交换 exp1始终为大
+	{
+		tmp = f1;f1 = f2;f2 = tmp;
+		tmp = exp1;exp1 = exp2;exp2 = tmp;
+	}
+	sign1 = f1 < 0;//取符号
+	sign2 = f2 < 0;
+	f1 = (f1&MANTISSA)|HIDDEN;//取尾数
+	f2 = (f2&MANTISSA)|HIDDEN;
+
+	while (f1 < FLOAT_1p0)//位移，使指数相等
+	{
+		if (exp1 == exp2) goto START;
+		f1 = f1 << 1;
+		exp1--;
+	}
+	f2 = f2 >> (exp1 - exp2);//这里损失精度
+START:
+
+	if (sign1) f1 = -f1;
+	if (sign2) f2 = -f2;
+	f1 = f1 + f2;//计算
+	if (f1 < 0)
+	{
+		tmp = SIGNBIT;
+		f1 = -f1;
+	}
+	else if (f1 > 0) 
+	{
+		tmp = 0;
+	}
+	else
+	{
+		return 0;
+	}
+
+	while (f1&0xff000000)
+	{
+		if (f1&1) f1 = f1 + 2;//精度补充
+		f1 = f1 >> 1;//这里损失精度
+		exp1++;
+	}
+	while (f1 < HIDDEN)
+	{
+		f1 = f1 << 1;
+		exp1--;
+	}
+	return (tmp | ((exp1&0xff) << EXPSITE) | (f1&MANTISSA));//打包
+}
+
+long fsub(long f1, long f2)
+{
+	return (fadd(f1, f2 ^ SIGNBIT));
+}
+
+long fmul(long f1, long f2)
+{
+	int exp,  exp1, exp2;//指数
+	long sign;
+	long f;
+
+	if (!(f1 && f2)) return 0;
+
+	sign = (f1 ^ f2)&SIGNBIT;//取符号
+
+	exp1 = (f1 >> EXPSITE)&0xff;//取指数
+	exp2 = (f2 >> EXPSITE)&0xff;
+	exp = exp1 + exp2 - EXCESS;
+
+	f1 = (f1&MANTISSA)|HIDDEN;//取尾数
+	f2 = (f2&MANTISSA)|HIDDEN;
+
+	f = (f1 >> 8)*(f2 >> 8) + ((f1&0xff)*(f2 >> 8) >> 8) + ((f2&0xff)*(f1 >> 8) >> 8);//16×16 8×16 8×16
+	if (f < 0)
+	{
+		f = (f + 0x80) >> 8;
+	}
+	else
+	{
+		f = (f + 0x40) >> 7;
+		exp--;
+	}
+	return (sign | ((exp&0xff) << EXPSITE) | (f&MANTISSA));//打包
+}
+
+long fdiv(long f1, long f2)
+{
+	long result;
+	int exp,exp1,exp2;
+	long sign;
+	long mask;
+
+	if (!f2) return -1;
+	if (!f1) return 0;
+
+	sign = (f1 ^ f2)&SIGNBIT;//取符号
+
+	exp1 = (f1 >> EXPSITE)&0xff;//取指数
+	exp2 = (f2 >> EXPSITE)&0xff;
+	exp = exp1 - exp2 + EXCESS;
+
+	f1 = (f1&MANTISSA)|HIDDEN;//取尾数
+	f2 = (f2&MANTISSA)|HIDDEN;
+
+	if (f1 < f2)
+	{
+		f1 = f1 << 1;
+		exp--;
+	}
+	mask = 0x1000000;
+	result = 0;
+	while (mask)
+	{
+		if (f1 >= f2)
+		{
+			result = result|mask;
+			f1 = f1 - f2;
+		}
+		f1 = f1 << 1;
+		mask = mask >> 1;
+	}
+	return (sign | (((exp+1)&0xff) << EXPSITE) | (((result+1) >> 1)&MANTISSA));//打包
+}
+
+long fcmp(long f1, long f2)
+{
+	if (f1 == f2) return 0;
+	else if (f1 < 0 && f2 < 0)
+	{
+		if (f2 > f1) return 1;
+		else return -1;
+	}
+	else if (f1 > f2) return 1;
+	else return -1;
+}
+//----------------------------------------------------------------------------------------------------------------------//
+long atof(int str)
+{
+	long f, sign;
+	int exp;
+	char status, flag, c, i, j;//不可改变量顺序
+	long num;
+
+	memset(&f, 0, 12);
+	for(;;)//有穷自动机
+	{
+		c = *str++;
+		if (isdigit(c))//数字
+		{
+			memset(&i, 0, 6);
+			if (status == 3) num = f;
+			do
+			{
+				if (num < 0xccccccc)
+				{
+					num = num * 10 + (c&0xf);
+					i++;
+				}
+				else
+				{
+					j++;
+				}
+				c = *str++;
+			}while (isdigit(c))
+			str--;
+			if (status < 2)
+			{
+				f = num;
+				if (j) exp = j;
+				status = 2;
+			}
+			else if (status == 3)
+			{
+				exp = exp - i;
+				f = num;
+				status = 4;
+			}
+			else if (status < 7)
+			{
+				if (flag) num = -num;
+				exp = exp + num;
+				break;
+			}
+			else break;
+		}
+		else if (c == '.')
+		{
+			if (status > 2) break;
+			status = 3;
+		}
+		else if (c == '+' || c == '-')
+		{
+			if (!status)
+			{
+				if (c == '-') sign = SIGNBIT;
+			}
+			else if (status == 5)
+			{
+				if (c == '-') flag = 1;
+			}
+			else break;
+			status++;
+		}
+		else if (tolower(c) == 'e')
+		{
+			if (status != 2 && status != 4) break;
+			status = 5;
+		}
+		else if (isspace(c) && !status)continue;
+		else break;
+	}
+	if (!f) return 0;
+	num = exp;
+	while (num > 0)
+	{
+		while (f&0xe0000000)
+		{
+			f = (f >> 1)&SIGNMASK;//损失精度
+			exp++;
+		}
+		f = f * 5;
+		num--;
+	}
+	while (num)
+	{
+		while (f<0x40000000)
+		{
+			f = f << 1;
+			exp--;
+		}
+		f = f / 5;
+		num++;
+	}
+	while (f&0xff000000)
+	{
+		if (f&1) f = f + 2;//精度补充
+		f = (f >> 1)&SIGNMASK;//损失精度
+		exp++;
+	}
+	while (f < HIDDEN)
+	{
+		f = f << 1;
+		exp--;
+	}
+	return (sign | (((exp+24+EXCESS)&0xff) << EXPSITE) | (f&MANTISSA));//打包
+}
+
+int ftoa(long f, int str)
+{
+	int exp, tmp;
+	char sign;
+	char flag;
+
+	if (!f)
+	{
+		strcpy(str, "0");
+		return str;
+	}
+	if (f == -1)
+	{
+		strcpy(str, "error");
+		return str;
+	}
+
+	exp = flag = *str = 0;
+	if (f < 0)//取符号
+	{
+		sign = 1;
+	}
+	else
+	{
+		sign = 0;
+	}
+	tmp = ((f >> EXPSITE)&0xff) - EXCESS - 24;//取指数
+	f = (f&MANTISSA)|HIDDEN;//取尾数
+
+	if (tmp > 0)
+	{
+		do{
+			while (f < 0x40000000)
+			{
+				f = f << 1;
+				tmp--;
+				if (!tmp) goto START;
+			}
+			f = f / 5;//精度损失
+			exp++;
+			tmp--;
+		}while (tmp)
+	}
+	else if (tmp)
+	{
+		do{
+			while (f&0xf0000000)
+			{
+				if (f&1) f++;//精度补充
+				f = f >> 1;
+				tmp++;
+				if (!tmp) goto START;
+			}
+			f = f * 5;
+			exp--;
+			tmp++;
+		}while (tmp)
+	}
+
+START:
+	while (f)
+	{
+		exp++;
+		tmp = f % 10;
+		f = f / 10;
+		if (!f)
+		{
+			if (flag)
+			{
+				memmove(str + 1, str, strlen(str) + 1);
+				*str = '.';
+			}
+		}
+		if (tmp) flag = 1;
+		if (flag)
+		{
+			memmove(str + 1, str, strlen(str) + 1);
+			*str = tmp|'0';
+		}
+	}
+	exp--;
+
+	if (sign)
+	{
+		memmove(str + 1, str, strlen(str) + 1);
+		*str = '-';
+	}
+	if (exp < 0)
+	{
+		sprintf(str + strlen(str), "e%d", exp);
+	}
+	else if (exp)
+	{
+		sprintf(str + strlen(str), "e+%d", exp);
+	}
+	return str;
+}
+
+long itof(long i)
+{
+	int exp;
+	long sign;
+
+	if (!i) return 0;
+
+	if (i < 0)//取符号
+	{
+		sign = SIGNBIT;
+		i = -i;
+	}
+	else
+	{
+		sign = 0;
+	}
+	exp = 24 + EXCESS;
+	while (i&0xff000000)
+	{
+		i = i >> 1;//精度损失
+		exp++;
+	}
+	while (i < HIDDEN)
+	{
+		i = i << 1;
+		exp--;
+	}
+  	if ((i&0x7fffff) == 0x7fffff)
+  	{
+  		i = 0;
+  		exp++;
+  	}
+	return (sign | ((exp&0xff) << EXPSITE) | (i&MANTISSA));//打包
+}
+
+long ftoi(long f)//取浮点数f的整数部分
+{
+	long exp, tmp;
+
+	if (!f) return 0;
+
+	exp = -((f >> EXPSITE)&0xff) + EXCESS + 24;//取指数
+	tmp = (f&MANTISSA)|HIDDEN;//取尾数
+	tmp = tmp >> exp;
+	if (f < 0)
+	{
+		return -tmp;
+	}
+	return tmp;
+}
+//----------------------------------------------------------------------------------------------------------------------//
+long fabsf(long f)
+{
+	return (f&SIGNMASK);
+}
+/* 计算并返回f*2^exp的值.
+ * float ldexpf(const float f, int exp);
+ */
+long ldexpf(long f, char exp)
+{
+	return (((f + (exp << EXPSITE))&SIGNMASK) | (f&SIGNBIT));
+}
+/* 把参量f分解成一个0.5~1范围内的尾数和一个整型指数, 即f=尾数*2^exp
+ * 其中尾数由函数返回, 指数存储在参量exp中.
+ * float frexpf(const float f, int *exp);
+ */
+long frexpf(long f, int exp)
+{
+	int tmp;
+
+	tmp = ((f >> EXPSITE)&0xff) - EXCESS;
+	memcpy(exp, &tmp, 2);
+    return ((f&0x807fffff)|FLOAT_0p5);
+}
+
+long modff(long f, long iptr)
+{
+	int exp;
+	long sign;
+	long tmp;
+
+	exp = ((f >> EXPSITE)&0xff) - EXCESS - 24;//取指数
+	if (exp <= -24)
+	{
+		memset(iptr, 0, 4);
+		return f;
+	}
+	else if (exp >= 0)
+	{
+		memcpy(iptr, &f, 4);
+		return 0;
+	}
+	tmp = f&((-1) << (-exp));
+	memcpy(iptr, &tmp, 4);
+	tmp = f ^ tmp;
+	if (!tmp) return 0;
+	while (tmp < HIDDEN)
+	{
+		tmp = tmp << 1;
+		exp--;
+	}
+	if (f < 0)//取符号
+	{
+		sign = SIGNBIT;
+	}
+	else
+	{
+		sign = 0;
+	}
+	return (sign | (((exp+24+EXCESS)&0xff) << EXPSITE) | (tmp&MANTISSA));//打包
+}
+
+long fmodf(long f1, long f2)
+{
+	if (!f2) return -1;
+
+	return (fmul(modff(fdiv(f1, f2), &f1), f2));
+}
+
+long ceilf(long f)
+{
+	long tmp;
+	int r;
+
+	tmp = ftoi(f);
+
+	if (tmp < 0)
+	{
+		return tmp;
+	}
+	else if (fcmp(itof(tmp), f) < 0)
+	{
+		return (tmp+1);
+	}
+	return tmp;
+}
+
+long floorf(long f)
+{
+	long tmp;
+	int r;
+
+	tmp = ftoi(f);
+	if (tmp <= 0)
+	{
+		if (fcmp(itof(tmp), f) > 0) return (tmp-1);
+	}
+	return tmp;
+}
+
+long sqrtf(long f)
+{
+	long x, y;
+	int exp;
+
+	if (f <= 0) return -1;
+	if (f == FLOAT_1p0) return f;
+
+	x = frexpf(f, &exp);
+	y = fadd(fmul(x, 0x3f1714ba), 0x3ed5a9a8);
+	y = fadd(fdiv(x, y), y);
+	y = fadd(ldexpf(y, -2), fdiv(x, y));
+	if (exp&1)
+	{
+		y = fmul(y, FLOAT_0p707);
+		exp++;
+	}
+	return (ldexpf(y, exp / 2));
+}
+
+long logf(long f)
+{
+	long mant, znum, z, w, zden, rz;
+	int exp;
+
+	if ( f<= 0) return -1;
+
+	mant = frexpf(f, &exp);
+	znum = fsub(mant, FLOAT_0p5);
+	if (fcmp(mant, FLOAT_0p707) > 0)
+	{
+		znum = fsub(znum, FLOAT_0p5);
+		zden = fadd(ldexpf(mant, -1), FLOAT_0p5);
+	}
+	else
+	{
+		exp--;
+		zden = fadd(ldexpf(znum, -1), FLOAT_0p5);
+	}
+	z = fdiv(znum, zden);
+	w = fmul(z, z);
+	rz = fadd(fmul(fdiv(fmul(w, 0xbf0d7e3d), fadd(w, 0xc0d43f3a)), z), z);
+	f = itof(exp);
+	return (fadd(fadd(fmul(f, 0xb95e8083), rz), fmul(f, 0x3f318000)));
+}
+
+long log10f(long f)
+{
+    return (fmul(logf(f), 0x3ede5bd9));
+}
+
+long expf(long f)
+{
+	long num, g, tmp;
+	char sign;
+
+	if (f < 0)
+	{
+		f = f ^ SIGNBIT;
+		sign = 1;
+	}
+	else
+	{
+		sign = 0;
+	}
+	if (fcmp(f, 0x33d6bf95) < 0)
+	{
+		return FLOAT_1p0;
+	}
+	else if (fcmp(f, 0x42b17218) > 0)
+	{
+		if (sign)
+		{
+			return -1;
+		}
+		return 0;
+	}
+	tmp = fmul(f, 0x3fb8aa3b);
+	num = ftoi(tmp);
+	if (num < 0) num--;
+	if (fcmp(fsub(tmp, itof(num)), FLOAT_0p5) >= 0) num++;
+	tmp = itof(num);
+	g = fsub(fsub(f, fmul(tmp, 0x3f318000)), fmul(tmp, 0xb95e8083));
+	tmp = fmul(g, g);
+	f = fmul(fadd(fmul(tmp, 0x3b885308), 0x3e800000), g);
+	f = fadd(fdiv(f, fsub(fadd(fmul(tmp, 0x3d4cbf5b), FLOAT_0p5), f)), FLOAT_0p5);
+	f = ldexpf(f, ++num);
+	if (sign)
+	{
+		return fdiv(FLOAT_1p0, f);
+	}
+	return f;
+}
+
+long powf(long f1, long f2)
+{
+	if (!f2) return FLOAT_1p0;
+	if (f2  ==  FLOAT_1p0) return f1;
+	if (f1 <= 0) return 0;
+	return expf(fmul(logf(f1), f2));
+}
+
+long sinhf(long f)
+{
+	f = expf(f);
+	return ldexpf(fsub(f, fdiv(FLOAT_1p0, f)), -1);
+}
+
+long coshf(long f)
+{
+	f = expf(f);
+	return ldexpf(fadd(f, fdiv(FLOAT_1p0, f)), -1);
+}
+
+long tanhf(long f)
+{
+	long tmp;
+
+	f = expf(f);
+	tmp = fdiv(FLOAT_1p0, f);
+	return fdiv(fsub(f, tmp), fadd(f, tmp));
+}
+
+long sincosf(long f, char iscos)
+{
+	long r, g, num, sign;
+
+	if (iscos)
+	{
+		f = fadd(f, FLOAT_HALFPI);
+		sign = 0;
+	}
+	else if (f < 0)
+	{
+		f = f&SIGNMASK;
+		sign = SIGNBIT;
+	}
+	else
+	{
+		sign = 0;
+	}
+	if (fcmp(f, 0x46490c00) > 0) return -1;
+	num = ftoi(fadd(fmul(f, 0x3ea2f983), FLOAT_0p5));
+	if (num&1) sign = sign^SIGNBIT;
+	g = itof(num);
+	if (iscos) g = fsub(g, FLOAT_0p5);
+	f = fsub(fadd(modff(f, &r), fsub(r, fmul(g, 0x40490000))), fmul(g, 0x3a7daa22));
+	g = fmul(f, f);
+	if (fcmp(g, 0x337ffff3) > 0)
+	{
+		r = fmul(fadd(fmul(fadd(fmul(fadd(fmul(g, 0x362e9c5b), 0xb94fb222), g), 0x3c08873e), g), 0xbe2aaaa4), g);
+		f = fadd(fmul(f, r), f);
+	}
+	return (f^sign);
+}
+
+long sinf(long f)
+{
+	if (!f) return 0;
+	return sincosf(f, 0);
+}
+
+long cosf(long f)
+{
+	if (!f) return FLOAT_1p0;
+	return sincosf(f, 1);
+}
+
+long tancotf(long f, char iscotan)
+{
+	long y, g, xn, xnum, xden;
+	long num;
+
+	if (fcmp(f&SIGNMASK, 0x45c90800) > 0) return -1;
+	if (f < 0)
+	{
+		num = FLOAT_m0p5;
+	}
+	else
+	{
+		num = FLOAT_0p5;
+	}
+	num = ftoi(fadd(fmul(f, 0x3f22f983), num));
+	xn = itof(num);
+	xden = modff(f, &xnum);
+	y = fsub(fadd(fsub(xnum, fmul(xn, 0x3fc90000)), xden), fmul(xn, 0x39fdaa22));
+	if (fcmp(y&SIGNMASK, FLOAT_EPS) < 0)
+	{
+		xnum = y;
+		xden = FLOAT_1p0;
+	}
+	else
+	{
+		g = fmul(y, y);
+		xnum = fadd(fmul(fmul(0x0bdc433b8, g), y), y);
+		xden = fadd(fmul(fadd(fmul(0x3c1f3375, g), 0xbedbb7af), g), FLOAT_1p0);
+	}
+	if (num&1)
+	{
+		if (iscotan)
+		{
+			return fdiv(xnum ^ SIGNBIT, xden);
+		}
+		return fdiv(xden ^ SIGNBIT, xnum);
+	}
+	else if (iscotan)
+	{
+		return fdiv(xden, xnum);
+	}
+	return fdiv(xnum, xden);
+}
+
+long tanf(long f)
+{
+	return tancotf(f, 0);
+}
+
+long cotf(long f)
+{
+	if (fcmp(f&SIGNMASK, 0x0da24260) < 0) return ((f&SIGNBIT)|0x7f7fffff);
+	return tancotf(f, 1);
+}
+
+long asincosf(long f, char isacos)
+{
+	long a[2], b[2], y, g, r;
+	char i;
+
+	a[0] = 0;
+	a[1] = b[1] = 0x3f490fdb;
+	b[0] = FLOAT_HALFPI;
+	i = isacos;
+	y = f&SIGNMASK;
+	if (fcmp(y, FLOAT_EPS) < 0)
+	{
+		r = y;
+	}
+	else
+	{
+		if (fcmp(y, FLOAT_0p5) > 0)
+		{
+			i = i ^ 1;
+			if (fcmp(y, FLOAT_1p0) > 0) return -1;
+			g = ldexpf(fsub(FLOAT_1p0, y), -1);
+			y = ldexpf(sqrtf(g), 1) ^ SIGNBIT;
+		}
+		else
+		{
+			g = fmul(y, y);
+		}
+		r = fadd(y, fmul(y, fdiv(fmul(fadd(fmul(0xbf012065, g), 0x3f6f166b), g), fadd(fmul(fadd(g, 0xc0b18d0b), g), 0x40b350f0))));
+	}
+	if (isacos)
+	{
+		if (f < 0)
+		{
+			return fadd(ldexpf(b[i], 1), r);
+		}
+		return fsub(ldexpf(a[i], 1), r);
+	}
+	else if (f < 0)
+	{
+		return (fadd(ldexpf(a[i], 1), r)^SIGNBIT);
+	}
+	return fadd(ldexpf(a[i], 1), r);
+}
+
+long asinf(long f)
+{
+	if (f  ==  FLOAT_1p0) return FLOAT_HALFPI;
+	if (f  ==  FLOAT_m1p0) return FLOAT_mHALFPI;
+	if (f) return asincosf(f, 0);
+}
+
+long acosf(long f)
+{
+	if (f  ==  FLOAT_1p0) return 0;
+	if (f  ==  FLOAT_m1p0) return FLOAT_PI;
+	if (f) return asincosf(f, 1);
+	return FLOAT_HALFPI;
+}
+
+long atanf(long f)
+{
+	long a[4], r, g;
+	char num;
+
+	a[0] = num = 0;
+	a[1] = 0x3F060A92;
+	a[2] = FLOAT_HALFPI;
+	a[3] = 0x3F860A92;
+
+	r = f&SIGNMASK;
+	if (fcmp(r, FLOAT_1p0) > 0)
+	{
+		r = fdiv(FLOAT_1p0, r);
+		num = 2;
+	}
+	if (fcmp(r, 0x3e8930a3) > 0)
+	{
+		r = fdiv(fsub(fmul(0x3fddb3d7, r), 1.0), fadd(0x3fddb3d7, r));
+		num++;
+	}
+	if (fcmp(r&SIGNMASK, FLOAT_EPS) >= 0)
+	{
+		g = fmul(r, r);
+		r = fadd(r, fdiv(fmul(fmul(fadd(fmul(0xbd508691, g), 0xbef110f6), g), r), fadd(g, 0x3fb4ccd3)));
+	}
+	if (num > 1) r = r ^ SIGNBIT;
+	r = r + a[num];
+	if (f < 0) r = r ^ SIGNBIT;
+	return r;
+}
+
+long atan2f(long f1, long f2)
+{
+	if (!f1 && !f2) return -1;
+
+	if (fcmp(f2&SIGNMASK, f1&SIGNMASK) >= 0)
+	{
+		if (f2 < 0)
+		{
+			return fadd(atanf(fdiv(f1, f2)), (f1&SIGNBIT)|FLOAT_PI);
+		}
+		return atanf(fdiv(f1, f2));
+
+	}
+	return fadd(atanf(fdiv(f2, f1)) ^ SIGNBIT, (f1&SIGNBIT)|FLOAT_HALFPI);
+}
+
+long hypotf(long f1, long f2)
+{
+	long s;
+
+	s = fadd(f1&SIGNMASK, f2&SIGNMASK);
+	f1 = fdiv(f1, s);
+	f2 = fdiv(f2, s);
+	return fmul(s, sqrtf(fadd(fmul(f1, f1), fmul(f2, f2))));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef DEBUG
+int ftox(long f)
+{
+	char c, i;
+	char s[12];
+
+	memset(s, 0, 12);
+	i = 8;
+	while (i--)
+	{
+		c = f&0xf;
+		f = f >> 4;
+		if (c <= 9)
+			c = c + '0';
+		else
+			c = c + 87;
+		memmove(s + 1, s, strlen(s) + 1);
+		*s = c;
+	}
+	memmove(s + 2, s, strlen(s) + 1);
+	*s = '0';
+	*(s + 1) = 'x';
+	return s;
+}
+
+long getN(char type, char rad)//0 (1, 3) 2
+{
+	long num;
+
+	srand(rand());
+	num = 0;
+	if (type&1)
+	{
+		if (rand()&1)
+			num = rand() % rad;
+		else
+			num = -rand() % rad;
+		return (num);
+	}
+	if (!(type&2))
+	{
+		if (rand()&1)
+		{
+			if (rand()&1)
+				num = -rand() * rand();
+			else
+				num = -rand() / (rand() + 1);
+			return (num);
+		}
+	}
+	if (rand()&1)
+		num = rand() * rand();
+	else
+		num = rand() / (rand() + 1);
+	return num;
+}
+
+long getf(int str)
+{
+	long num;
+	char flag;
+
+	num = getN(0, 0);
+	sprintf(str, "%d", num);
+	flag = 0;
+	if (num) flag = 1;
+	if (rand()&1)
+	{
+		num = getN(2, 0);
+		if (num)
+			sprintf(str+strlen(str), ".%d", num);
+		else if (!flag)
+		{
+			sprintf(str+strlen(str), ".%d", rand()+1);
+			flag = 1;
+		}
+	}
+	if (rand()&1)
+	{
+		num = getN(1, 39);
+		if (flag&&num)sprintf(str+strlen(str), "e%d", num);
+		
+	}
+	return (str);
+}
+
+long getFF(int str)
+{
+	long num;
+	char flag;
+
+	num = getN(0, 0)%1;
+	sprintf(str, "%d", num);
+	flag = 0;
+	if (num) flag = 1;
+	if (rand()&1)
+	{
+		num = getN(2, 0);
+		if (num)
+			sprintf(str + strlen(str), ".%d", num);
+		else if (!flag)
+		{
+			sprintf(str + strlen(str), ".%d", rand() + 1);
+			flag = 1;
+		}
+	}
+	return (str);
+}
+
+void getF(int str, int buf)
+{
+	long num1, num2;
+	char flag1, flag2;
+
+	num1 = getN(1, 10);
+	num2 = getN(1, 10);
+	sprintf(str, "%d", num1);
+	sprintf(buf, "%d", num2);
+	flag1 = flag2 = 0;
+	if (num1) flag1 = 1;
+	if (num2) flag2 = 1;
+	if (rand()&1)
+	{
+		num1 = getN(2, 0);
+		if (num1) sprintf(str + strlen(str), ".%d", num1);
+		else if (!flag1)
+		{
+			sprintf(str + strlen(str), ".%d", rand() + 1);
+			flag1 = 1;
+		}
+		num2 = getN(2, 0);
+		if (num2) sprintf(buf + strlen(buf), ".%d", num2);
+		else if (!flag2)
+		{
+			sprintf(buf + strlen(buf), ".%d", rand() + 1);
+			flag2 = 1;
+		}
+	}
+	if ((rand()&1)&&flag1&&flag2)
+	{
+		num1 = getN(1, 39);
+		if (num1)
+		{
+			sprintf(str + strlen(str), "e%d", num1);
+			sprintf(buf + strlen(buf), "e%d", num1);
+		}
+	}
+}
+
+void check1()
+{
+	long i;
+	char buf[100];
+
+	for(;;)
+	{
+		i = rand() * 1234;
+		if (rand() > 32767/2) i = -i;
+		printf("%d %s\n", i, ftoa(itof(i), buf));
+		if (getchar()  ==  ' ') break;
+	}
+}
+
+void check2()
+{
+	long f;
+	char buf[100];
+	char str[100];
+	char key;
+
+	for(;;)
+	{
+		SetScreen(1);
+		printf("%s\n", getf(buf));
+		printf("%s\n", ftoa(f = atof(buf), str));
+		//strcpy(buf, "2.2e-37");
+		printf("%s\n", ftoa(f, str));
+		printf("%s\n", ftox(f));
+		if ((key = getchar())  ==  ' ') break;
+		else if (key  ==  'q') ReleaseKey(128);
+	}
+}
+
+void check3()
+{
+	char str[100], buf[100];
+	int rt;
+
+	for(;;)
+	{
+		getf(str);
+		getf(buf);
+		rt = fcmp(atof(str), atof(buf));
+		if (!rt) rt = '=';
+		else if (rt > 0) rt = '>';
+		else rt = '<';
+		printf("\n%s\n%c\n%s\n", str, rt, buf);
+		if (getchar()  ==  ' ') break;
+	}
+}
+
+void check4()
+{
+	char str[100], buf[100], r[100];
+	long a, b;
+	char rt;
+
+	for(;;)
+	{
+		SetScreen(1);
+		a = atof(getf(str));
+		b = atof(getf(buf));
+		rt = rand()&3;
+		if (!rt)
+			printf("(%s)\n+(%s)\n = %s\n", ftoa(a, str), ftoa(b, buf), ftoa(fadd(a, b), r));
+		else if (rt  ==  1)
+			printf("(%s)\n-(%s)\n = %s\n", ftoa(a, str), ftoa(b, buf), ftoa(fsub(a, b), r));
+		else if (rt)
+			printf("(%s)\n*(%s)\n = %s\n", ftoa(a, str), ftoa(b, buf), ftoa(fmul(a, b), r));
+		else
+			printf("(%s)\n/(%s)\n = %s\n", ftoa(a, str), ftoa(b, buf), ftoa(fdiv(a, b), r));
+		if (getchar()  ==  ' ') break;
+	}
+}
+
+void check5()
+{
+	char str[100], buf[100];
+	long a;
+
+	for(;;)
+	{
+		a = atof(getFF(str));
+		//a = 30;
+		printf("atanf(%s)\n = %s\n", ftoa(a, buf), ftoa(atanf(a), str));
+		if (getchar()  ==  ' ')break;
+	}
+}
+
+void check6()
+{
+	char str[100], buf[100], s[100];
+	long a, b, c;
+	char key;
+
+	for(;;)
+	{
+		a = atof(getf(str));
+		c = modff(a, &b);
+		printf("modff(%s)\n = %s|%s\n", ftoa(a, str), ftoa(b, buf), ftoa(c, s));
+		if ((key = getchar())  ==  ' ') break;
+		else if (key  ==  'q') ReleaseKey(128);
+	}
+}
+
+void check()
+{
+	long i;
+	char buf[100];
+
+	SetScreen(1);
+	printf("ftoa : %s", ftoa(2.3, buf));
+	printf("\nitof: %s ftoi: %d\n", ftoa(itof(-1), buf), ftoi(-1.10));
+	getchar();
+	check1();
+	check2();
+	check3();
+	check4();
+	check5();
+}
+
+void main()
+{
+	int c;
+	long d;
+	long a;
+	char buf[50];
+
+	SetScreen(1);
+	check();
+
+	d = atof("0.693359375");
+	printf("%f|%s\n", d, ftox(d));getchar();
+	a = atof("1.3");
+	printf("logf(%f) = %f\n", a, logf(a));
+	printf("%f\n", expf(78));
+}
+#else
+
+void main()
+{
+}
+#endif

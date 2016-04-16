@@ -1,0 +1,28 @@
+#begin 0x8adb
+int in_add;
+#end
+
+void exeasm(int code)
+{
+ in_add = code;
+ #code{0};
+}
+void call(int add)
+{
+ char code;
+ int address;
+ char code1;
+
+ code = 0;
+ address = add;
+ code1 = 0x60;
+ exeasm(&code);
+}
+void DiskReclaim()
+{
+ call(0x051d);
+ call(0x051c);
+}
+void main()
+{
+}

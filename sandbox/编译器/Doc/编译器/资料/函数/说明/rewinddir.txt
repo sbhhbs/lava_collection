@@ -1,0 +1,3 @@
+原型:void rewinddir(char p)
+功能:用来重新初始化目录流path,如果调用readdir将会再次返回目录中第一项的有关内容
+说明:输入:目录句柄

@@ -1,0 +1,15 @@
+原型:unsigned int read_uart()
+功能:从uart读入一个Byte数据
+说明:该函数没有超时设置，只是读取Uart的数据缓冲并返回
+举例:
+void main()
+{
+ int recv_data;
+ char byte;
+
+ open_uart(BaudRate9600);
+ write_uart(0xaa);
+ recv_data = read_uart();
+ if (recv_data > 0xff) byte = recv_data&0xFF;
+ close_uart();
+}

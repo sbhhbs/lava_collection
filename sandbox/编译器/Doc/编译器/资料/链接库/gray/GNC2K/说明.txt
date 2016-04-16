@@ -1,0 +1,132 @@
+机 型:NC2000A(C),NC2600
+
+原型:void SetBrightness(char n);
+功能:设置屏幕亮度。
+说明:0<= n <= 15
+
+原型:char GetBrightness();
+功能:获取屏幕亮度。
+
+原型:void SetGraphMode(int mode);
+功能:设置系统图形模式。
+说明:mode=1，2色模式
+     mode=2，4色模式
+     mode=0，不改变图形模式，仅获取当前图形模式
+
+原型:void SetFgColor(int color);
+功能:设置前景颜色。
+说明:2色模式下无效，color只能取0~3。
+
+原型:void SetBgColor(int color);
+功能:设置背景颜色。
+说明:2色模式下无效，color只能取0~3。
+
+举例:
+#include <gray/GNC2K.y>
+void main()
+{
+ int i;
+
+ SetGraphMode(2);
+ SetScreen(0);
+ SetFgColor(1);
+ Line(10, 10, 150, 70, 1);
+ SetFgColor(2);
+ Line(30, 70, 113, 10, 1);
+ getchar();
+ ClearScreen();
+ Rectangle(10,10,150,70,1);
+ SetFgColor(1);
+ Block(20, 20, 80, 50, 1);
+ Refresh();
+ getchar();
+ for (i = 0; i < 320; i++)
+ {
+  XDraw(0);
+  Refresh();
+ }
+ getchar();
+ SetScreen(0);
+ Box(20, 20, 150, 60, 1, 1);
+ getchar();
+ SetGraphMode(1);
+ SetScreen(0);
+ printf("切换完毕！");
+ getchar();
+}
+注意:
+设置成4色模式后，画图函数发生变化，但使用方法和TC800的一样。即：在2色模式下这样函数和原来的一样，在4灰度模式下则和TC800的函数一样。以下函数将发生变化：
+
+原型:void Point(int x,int y,int type);
+功能:画点
+说明:(x,y)为点的坐标，type值含义如下：
+     type=0:2色模式下画白点，4色模式下用背景色画点
+          1:2色模式下画黑点，4色模式下用前景色画点
+          2:点的颜色取反
+     type的bit6=1时向图形缓冲区作图，否则直接在屏幕作图
+
+原型:int GetPoint(int x,int y);
+功能:取点的颜色
+说明:(x,y)为点的坐标
+     2色模式下如果是白点返回零，黑点返回非零值
+     4色模式下返回颜色索引值
+
+原型:void Line(int x0,int y0,int x1,int y1,int type);
+功能:画直线
+说明:(x0,y0)和(x1,y1)指定直线的两个端点坐标。
+     type决定画图方式，其值含义如下：
+     type=0:2色模式下画白线，4色模式下用背景色画线
+          1:2色模式下画黑线，4色模式下用前景色画线
+          2:线的所有点取反
+     type的bit6=1时向图形缓冲区作图，否则直接在屏幕作图
+
+原型:void Box(int x0,int y0,int x1,int y1,int fill,int type);
+功能:画矩形
+说明:(x0,y0)指定左上角坐标，(x1,y1)指定右下角坐标。
+     type决定画图方式，其值含义如下：
+     type=0:2色模式下画白矩形，4色模式下用背景色画矩形
+          1:2色模式下画黑矩形，4色模式下用前景色画矩形
+          2:矩形的所有点取反
+     fill=0:不填充矩形
+          1:填充矩形
+
+原型:void GetBlock(int x,int y,int width,int height,int type,addr data);
+功能:取屏幕图形
+说明:把屏幕或图形缓冲区的(x,y)坐标处的宽为width高height的矩形区域保存到内存地址data处。
+     type=0:从图形缓冲区取图形，type=0x40:从屏幕取图形。
+     注意：x和width忽略bit0-bit2。
+
+原型:void Block(int x0,int y0,int x1,int y1,int type);
+功能:在屏幕缓冲区画一实心矩形
+说明:(x0,y0)指定左上角坐标，(x1,y1)指定右下角坐标。
+     type决定画图方式，其值含义如下：
+     type=0:黑白模式下画白矩形，灰度模式下用背景色画矩形
+          1:黑白模式下画黑矩形，灰度模式下用前景色画矩形
+          2:矩形的所有点取反
+
+原型:void Rectangle(int x0,int y0,int x1,int y1,int type);
+功能:在屏幕缓冲区画一空心矩形
+说明:(x0,y0)指定左上角坐标，(x1,y1)指定右下角坐标。
+     type决定画图方式，其值含义如下：
+     type=0:黑白模式下画白矩形，灰度模式下用背景色画矩形
+          1:黑白模式下画黑矩形，灰度模式下用前景色画矩形
+          2:矩形的所有点取反
+
+原型:void TextOut(int x,int y,char &str[],int type);
+功能:把字符串绘制到屏幕缓冲区
+说明:在屏幕的(x,y)坐标处绘制字符串,str为字符串的地址
+     type的bit7=1:大字体，bit7=0:小字体。
+           bit6为1时直接在屏幕上绘图。
+           bit3为1时字形取反。
+           bit2-0:1:copy 2:not 3:or 4:and 5:xor 
+
+原型:void XDraw(int mode);
+功能:全屏特效
+说明:mode=0:缓冲区的图形全体左移半个点。
+     mode=1:缓冲区的图形全体右移半个点。
+     mode=4:缓冲区的图形左右反转。
+     mode=5:缓冲区的图形上下反转。
+
+原型:void ClearScreen();
+功能:把屏幕缓冲区内的图象清除
+说明:黑白模式下用白色清除，灰度模式下用背景色清除

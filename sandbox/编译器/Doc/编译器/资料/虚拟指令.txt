@@ -1,0 +1,233 @@
+堆栈的基本元素占用4字节
+///////////////////////////////////////////////////////////////
+虚拟码格式		参数占用字节	堆栈指针变化	说明
+-------------------------------------------------
+0x00 (null)		0B		+0		无
+0x01 char_number	1B		+1		将1字节的char_number压入堆栈
+0x02 int_number		2B		+1		将2字节的int_number 压入堆栈
+0x03 long_number	4B		+1		将4字节的long_number压入堆栈
+-------------------------------------------------
+0x04 var_address	2B		+1		将var_address所指的内存地址里取出1字节数据压入堆栈
+0x05 var_address	2B		+1		将var_address所指的内存地址里取出2字节数据压入堆栈
+0x06 var_address	4B		+1		将var_address所指的内存地址里取出4字节数据压入堆栈
+-------------------------------------------------
+0x07 var_address	2B		+1		将堆栈中弹出的数据与var_address相加所指的内存地址里取出1字节数据压入堆栈
+0x08 var_address	2B		+1		将堆栈中弹出的数据与var_address相加所指的内存地址里取出2字节数据压入堆栈
+0x09 var_address	4B		+1		将堆栈中弹出的数据与var_address相加所指的内存地址里取出4字节数据压入堆栈
+-------------------------------------------------
+0x0a var_address	2B		+1		将堆栈中弹出的数据与var_address相加所得的数据&0x0000ffff|0x00010000再压入堆栈
+0x0b var_address	2B		+1		将堆栈中弹出的数据与var_address相加所得的数据&0x0000ffff|0x00020000再压入堆栈
+0x0c var_address	4B		+1		将堆栈中弹出的数据与var_address相加所得的数据&0x0000ffff|0x00040000再压入堆栈
+-------------------------------------------------
+0x0d string		..		+1		将字符串数据填入循环缓冲区里并将该字符串所在的地址压入堆栈
+-------------------------------------------------
+0x0e var_address	2B		+1		将函数起始地址与var_address相加所指的内存地址里取出1字节数据压入堆栈
+0x0f var_address	2B		+1		将函数起始地址与var_address相加所指的内存地址里取出2字节数据压入堆栈
+0x10 var_address	2B		+1		将函数起始地址与var_address相加所指的内存地址里取出4字节数据压入堆栈
+-------------------------------------------------
+0x11 var_address	2B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所指的内存地址里取出1字节数据压入堆栈
+0x12 var_address	2B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所指的内存地址里取出2字节数据压入堆栈
+0x13 var_address	2B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所指的内存地址里取出4字节数据压入堆栈
+-------------------------------------------------
+0x14 var_address	2B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所得的数据&0x0000ffff|0x00010000再压入堆栈
+0x15 var_address	2B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所得的数据&0x0000ffff|0x00020000再压入堆栈
+0x16 var_address	2B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所得的数据&0x0000ffff|0x00040000再压入堆栈
+-------------------------------------------------
+0x17 var_address	4B		+1		将堆栈中弹出的数据与var_address相加所得的数据压入堆栈
+0x18 var_address	4B		+1		将堆栈中弹出的数据与函数起始地址相加再与var_address相加所得的数据压入堆栈
+0x19 var_address	4B		+1		将函数起始地址与var_address相加所得的数据压入堆栈
+-------------------------------------------------
+
+
+
+
+
+
+
+//=================================================================================
+69 XXYY=push4B #(pop4B+0x0000XXYY)
+70 XXYY=push4B #(pop4B-0x0000XXYY)
+71 XXYY=push4B #(pop4B*0x0000XXYY)
+72 XXYY=push4B #(pop4B\0x0000XXYY)
+73 XXYY=push4B #(pop4B%0x0000XXYY)
+74 XXYY=push4B #(pop4B<<0x0000XXYY)
+75 XXYY=push4B #(pop4B>>0x0000XXYY)
+76 XXYY=push4B #(pop4B==XXXX)
+77 XXYY=push4B #(pop4B!=XXXX)
+78 XXYY=push4B #(pop4B>XXXX)
+79 XXYY=push4B #(pop4B<XXXX)
+80 XXYY=push4B #(pop4B>=XXXX)
+81 XXYY=push4B #(pop4B<=XXXX)
+26=push4byte _TEXT
+27=push4byte _GRAPH
+66=push4byte _GBUF
+33="+" = push4B #(pop4B+pop4B)
+34="-" = push4B #(-pop4B+pop4B)
+35=&
+36=|
+37..  ~
+38=^
+39=&&逻辑与运算符
+40=||逻辑或运算符
+41= "!"逻辑非运算符
+42="*" = push4B #(pop4B*pop4B)
+43="/" = push4B #(1/(pop4B/pop4B))
+44= "%"求余运算符
+45=<<
+46=>>
+60 AB CD =START POINT @ 0xCDAB
+52= "<"
+51= ">"
+50= ">="
+49= "<="
+47= "=="
+48= "!="
+28= "-"负号运算符
+53 赋值(堆栈寻址) 00 20 04 00,public 00 20 84 00,private
+54=push1B $pop4B,push3B #$000000
+55=pop2B,push2B #0400  ??
+56 pop4b!!
+31 x++(堆栈寻址)=inc x;push x
+32 x--(堆栈寻址)
+29 ++x =push x;inc x
+30 --x
+61 AB CD EF =CALL EFCDAB(file offset)
+57 AB CD EF =IF FALSE GOTO EFCDAB(file offset)
+59 AB CD EF =GOTO EFCDAB(file offset)
+62 XX YY ZZ =函数头，YYXX:函数代码偏移，ZZ:函数参数个数
+63=RTS??
+64=END??
+68=#loadall
+128=putchar
+129=getchar
+130=printf
+131=strcpy
+132=strlen
+133=SetScreen
+134=UpdateLCD
+135=Delay
+136=WriteBlock
+137=Refresh
+138=TextOut
+139=Block
+140=Rectangle
+141=exit();
+142=ClearScreen
+143=abs();
+144=rand();
+145=srand();
+146=Locate
+147=Inkey();
+148=Point
+149=GetPoint
+150=Line
+151=Box
+152=Circle
+153=Ellipse
+154=Beep();
+155=isalnum
+156=isalpha
+157=iscntrl
+158=isdigit
+159=isgraph
+160=islower
+161=isprint
+162=ispunct
+163=isspace
+164=isupper
+165=isxdigit
+166=strcat
+167=strchr
+168=strcmp
+169=strstr
+170=tolower
+171=toupper
+172=memset();
+173=memcpy();
+174=fopen
+175=fclose
+176=fread
+177=fwrite
+178=fseek
+179=ftell
+180=feof
+181=rewind
+182=getc
+183=putc
+184=sprintf
+185=MakeDir
+186=DeleteFile
+187=Getms
+188=CheckKey
+189=memmove
+190=Crc16
+191=Secret
+192=ChDir
+193=FileList
+194=GetTime
+195=SetTime
+196=GetWord
+197=XDraw
+198=ReleaseKey
+199=GetBlock
+200=Sin
+201=Cos
+202=FillArea
+//----------------------------------------------------以下是LAVA3.0的--------------------------------------------------------
+203=SetGraphMode
+204=SetBgColor
+205=SetFgColor
+206=SetList
+207=Fade
+208=Exec (undocumented, parameters unknown, possible proto is : int Exec(int flag,addr LavaFile); )
+209=FindFile
+210=GetFileNum
+D3  =System.(push Sub-Routine Num.D3)
+    00  =GetPID
+    01  =void SetBrightness(int n);
+    02  =int GetBrightness(void);
+    03  =void ComOpen(void);
+    04  =viod ComClose(void);
+    05  =void ComWaitReady(void);
+    06  =int ComSetTimer(int);//有误
+    07  =int ComGetc(void);
+    08  =int ComPutc(int Byte);
+    09  =int ComRead(int size,addr buffer);
+    0A  =int ComWrite(int size,addr buffer)
+    0B  =int ComXor(int size,addr buffer);
+    0C  =RamRead
+    0D  =DiskReclaim
+    0E  =DiskCheck
+    0F  =FlmDecode
+    10  =SndPlay
+    11  =SndOpen
+    12  =SndClose
+    13  =SndIfEnd
+    14  =long PY2GB(page,spell,word);
+    15  =SndPlayFile
+    16  =SndSetVolume
+    17  =SndGetVolume
+    18  =SndStop
+    19  =SndPause
+    1A  =SndResume
+    1B  =Idle
+    1C  =GetVersion
+D4  =Math.
+    00  =[return a float(0x100)] (undocumented)
+    01  =[float(intNum);] (undocumented)
+    02  =add (undocumented)
+    03  =sub (undocumented)
+    04  =mul (undocumented)
+    05  =div (undocumented) 
+    06  =[int(floatNum);] (undocumented)
+    07  =sin
+    08  =cos
+    09  =tan
+    0A  =asin
+    0B  =acos
+    0C  =atan
+    0D  =sqrt
+    0E  =exp
+    0F  =log
+    10  =[float(floatStr);] (undocumented)
+    11  =[toString(floatNum);] (undocumented)

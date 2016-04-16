@@ -1,0 +1,78 @@
+#define CODEBUF		0x1000	////////////
+#define VARBUF		0xf0	////////////
+
+#define COM_PUTC	0x1034	////////////
+#define COM_WRITE	0x104a	////////////
+#define COM_GETC	0x1093	////////////
+#define COM_READ	0x109f	////////////
+#define COM_PUTDATA	0x10d2	////////////
+#define COM_GETDATA	0x1102	////////////
+
+#begin VARBUF
+int ptr;
+int rdata;
+#end
+
+#begin 0x8adb			////////////
+int _add;
+#end
+
+void CodeLoad()
+{
+	#loaddata CODEBUF = load("/文本文件/uartTC808.obj");
+}
+
+int ComPutc(char data)
+{
+	rdata = data;
+	_add = COM_PUTC;
+	#code{0};
+	return rdata;
+}
+
+int ComWrite(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_WRITE;
+	#code{0};
+	return rdata;
+}
+
+int ComGetc()
+{
+	_add = COM_GETC;
+	#code{0};
+	return rdata;
+}
+
+int ComRead(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_READ;
+	#code{0};
+	return rdata;
+}
+
+int ComPutData(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_PUTDATA;
+	#code{0};
+	return rdata;
+}
+
+int ComGetData(int data, int size)
+{
+	ptr = data;
+	rdata = size;
+	_add = COM_GETDATA;
+	#code{0};
+	return rdata;
+}
+
+void main()
+{
+}

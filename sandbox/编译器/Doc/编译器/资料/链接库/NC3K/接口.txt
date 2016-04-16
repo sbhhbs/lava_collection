@@ -1,0 +1,10 @@
+1	exeasm		0
+1	call		0
+1	DiskReclaim	0
+1	DiskCheck	1
+1	SetFlmMode	0
+1	FlmDecode	0
+1	findfile	1
+1	getcurdir	1
+1	bell		0
+1	ChkBattery	1

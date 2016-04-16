@@ -1,0 +1,2319 @@
+//*********************************************************时间*********************************************************//
+void ChgN2S(char &s[], char n)
+{
+	if (n < 10)
+	{
+		sprintf(s + strlen(s), "0%d", n);
+		return;
+	}
+	sprintf(s + strlen(s), "%d", n);
+}
+
+void ShowTime()
+{
+	struct TIME time;
+	char s[20];
+
+	Refresh();
+#if WQX == 0
+	Box(30, 20, 131, 61, 1, 0);
+	MyBox(30, 20, 131, 61, 0x12);
+	SetBgColor(3);
+#else
+	Box(30, 20, 130, 60, 1, 0);
+	Box(30, 20, 130, 60, 0, 1);
+	Line(131, 21, 131, 61, 1);
+	Line(31, 61, 131, 61, 1);
+#endif
+	for (;;)
+	{
+		GetTime(time);
+		sprintf(s, "%d年", time.year);
+		ChgN2S(s, time.month);
+		strcat(s, "月");
+		ChgN2S(s, time.day);
+		strcat(s, "日");
+		TextOut(38, 22, s, 0x41);
+
+		strcpy(s, "星期");
+		if (time.week == 1)			strcat(s, "一");
+		else if (time.week == 2)	strcat(s, "二");
+		else if (time.week == 3)	strcat(s, "三");
+		else if (time.week == 4)	strcat(s, "四");
+		else if (time.week == 5)	strcat(s, "五");
+		else if (time.week == 6)	strcat(s, "六");
+		else if (time.week == 7)	strcat(s, "日");
+		TextOut(62, 34, s, 0x41);
+
+		s[0] = 0;
+		ChgN2S(s, time.hour);
+		strcat(s, ":");
+		ChgN2S(s, time.minute);
+		strcat(s, ":");
+		ChgN2S(s, time.second);
+		TextOut(56, 46, s, 0x41);
+		if (Inkey()) break;
+	}
+}
+//*******************************************************链表操作*******************************************************//
+int BlkCmp(int p, struct TXT_BLOCK &tb, char cmd)//块比较 不同返回非0,相同返回0
+{
+	char s[TXT_C_SIZE], ch;//临时缓冲区
+	int len;//临时缓冲区实际大小
+	long start;//块的文件起始地址
+	int size;//块大小
+	char fp;//块的文件句柄
+
+	start = 0;
+	if (cmd == TXT_SAV_H)
+	{
+		memcpy(&start, tb.p[tb.h].start, 3);
+		memcpy(&size, tb.p[tb.h].size, 2);
+		fp = tb.p[tb.h].fp;
+	}
+	else
+	{
+		memcpy(&start, tb.p[tb.n].start, 3);
+		memcpy(&size, tb.p[tb.n].size, 2);
+		fp = tb.p[tb.n].fp;
+		p = p + strlen(p) - size;
+	}
+	if (!fp) return(1);
+	fseek(fp, start, 0);
+	while (size)//比较
+	{
+		if (size < TXT_C_SIZE - 1)
+		{
+			len = size;
+		}
+		else
+		{
+			len = TXT_C_SIZE - 1;
+		}
+		fread(s, 1, len, fp);
+		s[len] = 0;
+		ch = *(p + len);
+		*(p + len) = 0;
+		if (strcmp(s, p))
+		{
+			*(p + len) = ch;
+			break;
+		}
+		*(p = p + len) = ch;
+		size = size - len;
+	}
+	return(size);
+}
+
+/* 链表操作 返回保存,载入长度 -1:文件错误,-2:表溢出,-3:行太长,-4:读写错误 */
+int TextLink(char &buf[], struct TXT_BLOCK &tb, char cmd)
+{
+	long start;//块的文件起始地址
+	int size, rt, len;//块大小,返回值,缓冲区实际大小
+	char i;//临时变量
+
+	memset(&start, 0, &i - &start);
+	len = strlen(buf);
+	if (cmd >= TXT_LOD_N)//载入
+	{
+		while (len > TXT_B_SIZE)//缓冲区太小,先保存数据
+		{
+			rt = TextLink(buf, tb, cmd - TXT_LOD_N);
+			if (rt < 0) return(rt);
+			len = len - rt;
+		}
+		if (cmd == TXT_LOD_H)//链表定位
+		{
+			i = tb.h = tb.p[tb.h].head;
+		}
+		else
+		{
+			i = tb.n = tb.p[tb.n].next;
+		}
+		memcpy(&start, tb.p[i].start, 3);//读取块信息
+		memcpy(&size, tb.p[i].size, 2);
+		fseek(tb.p[i].fp, start, 0);
+		if (cmd == TXT_LOD_H)//读取上一块
+		{
+			memmove(buf + size, buf, len);
+			fread(buf, 1, size, tb.p[i].fp);
+		}
+		else//读取下一块
+		{
+			fread(buf + len, 1, size, tb.p[i].fp);
+			size = rt;
+		}
+		return(size);
+	}
+	if (BlkCmp(buf, tb, cmd))
+	{
+		if (tb.size >= TXT_T_SIZE) return(-2);//溢出判断
+		if (!tb.fp)//创建临时文件
+		{
+			if (ChPath(cpldata)) return(-1);
+			if (!(tb.fp = fopen("mem.tmp", "w+"))) return(-1);
+		}
+		fseek(tb.fp, 0, 2);
+		start = ftell(tb.fp);
+		for (size = buf; rt = strchr(size, 13);)//分割,中点为size
+		{
+			if (cmd == TXT_SAV_H)
+			{
+				if (rt + 2 > buf + TXT_B_SIZE) break;
+			}
+			else if (buf + len - size < TXT_B_SIZE)
+			{
+				break;
+			}
+			size = rt + 2;
+		}
+		if (cmd == TXT_SAV_H)
+		{
+			if (fwrite(buf, 1, size = size - buf, tb.fp) != size) return(-4);
+			if (!size) return(-3);//写入文件
+			memcpy(tb.p[tb.h].start, &start, 3);
+			memcpy(tb.p[tb.h].size, &size, 2);
+			tb.p[tb.h].fp = tb.fp;//写入信息
+			if (tb.n == tb.h)
+			{
+				if ((rt = tb.p[tb.h].next) != 255) tb.p[rt].head = tb.size;//链接
+				tb.p[tb.h].next = tb.size;
+				tb.p[tb.size].head = tb.h;
+				tb.p[tb.size].next = rt;
+				tb.n=tb.size++;
+			}
+			memmove(buf, buf+size, len = len - size);//擦除
+			memset(buf + len, 0, TXT_SIZE - len);
+			tb.h = tb.p[tb.h].next;
+		}
+		else
+		{
+			if (fwrite(size, 1, size = len + buf - size, tb.fp) != size) return(-4);
+			if (!size) return(-3);//写入文件
+			memcpy(tb.p[tb.n].start, &start, 3);
+			memcpy(tb.p[tb.n].size, &size, 2);
+			tb.p[tb.n].fp = tb.fp;//写入信息
+			if (tb.h == tb.n)
+			{
+				if ((rt = tb.p[tb.n].head) != 254)//链接
+				{
+					tb.p[rt].next = tb.size;
+				}
+				else
+				{
+					tb.head = tb.size;
+				}
+				tb.p[tb.n].head = tb.size;
+				tb.p[tb.size].next = tb.n;
+				tb.p[tb.size].head = rt;
+				tb.h=tb.size++;
+			}
+			memset(buf + len - size, 0, TXT_SIZE - len + size);
+			tb.n = tb.p[tb.n].head;
+		}
+		return(size);
+	}
+	if (cmd == TXT_SAV_H)/* 擦除 */
+	{
+		memcpy(&size, tb.p[tb.h].size, 2);
+		memmove(buf, buf+size, len = len - size);
+		memset(buf + len, 0, TXT_SIZE - len);
+		tb.h = tb.p[tb.h].next;
+	}
+	else
+	{
+		memcpy(&size, tb.p[tb.n].size, 2);
+		memset(buf + len - size, 0, TXT_SIZE - len + size);
+		tb.n = tb.p[tb.n].head;
+	}
+	return(size);
+}
+
+long TextLoad(char &buf[], struct TXT_BLOCK &tb)//载入文本,初始化链表 返回文件长度
+{
+	long start, size, len;
+	int a, b;
+
+	memset(tb, 0, sizeof(struct TXT_BLOCK));
+	tb.p[0].head = 254;
+	tb.p[0].next = 255;
+	tb.size = 1;//初始化
+	if (out.name[0])
+	{
+		if (!ChDir(out.path))
+		{
+			Swin("错误！", "无法进入目录", SWIN_ONE);
+			return(-1);
+		}
+		if (!(in.fp = fopen(out.name, "r")))
+		{
+			Swin("错误！", "无法打开文件", SWIN_ONE);
+			return(-1);
+		}
+		if (!getc(in.fp))//头定位
+		{
+			fseek(in.fp, 24, 0);
+		}
+		else
+		{
+			rewind(in.fp);
+		}
+		start = ftell(in.fp);
+		fseek(in.fp, 0, 2);
+		len = size = ftell(in.fp) - start;//起始地址,获取长度
+		for (tb.size = 0; size; tb.size++)//文件分割
+		{
+			fseek(in.fp, start, 0);
+			a = fread(buf, 1, TXT_B_SIZE, in.fp);
+			buf[a] = 0;//读取数据到缓冲区
+			if (size < TXT_B_SIZE)
+			{
+				b = size;//确定块大小
+			}
+			else
+			{
+				for (a = buf;;)
+				{
+					if (b = strchr(a, 13))
+						a = b + 2;
+					else
+						break;
+				}
+				if (!(b = a - buf))
+				{
+					fclose(in.fp);
+					in.fp = 0;
+					Swin("警告！", "行字数太多", SWIN_ONE);
+					return(-1);
+				}
+			}
+			if (tb.size >= TXT_T_SIZE)//是否溢出
+			{
+				fclose(in.fp);
+				in.fp = 0;
+				Swin("警告！", "文本已到上限", SWIN_ONE);
+				return(-1);
+			}
+			if (tb.size)//链接
+			{
+				tb.p[tb.size - 1].next = tb.size;
+				tb.p[tb.size].head = tb.size - 1;
+				tb.p[tb.size].next = 255;
+			}
+			memcpy(tb.p[tb.size].start, &start, 3);
+			memcpy(tb.p[tb.size].size, &b, 2);
+			tb.p[tb.size].fp = in.fp;//写入链表
+			size = size - b;
+			start = start + b;
+		}
+		memcpy(&start, tb.p[0].start, 3);
+		memcpy(&size, tb.p[0].size, 2);
+		fseek(in.fp, start, 0);//读取表头
+		memset(buf, 0, TXT_B_SIZE);
+		fread(buf, 1, size, in.fp);
+		if (ChkExt(out.name, "h"))//载入
+		{
+			ChExt(out.name, "txt");
+			strcpy(out.path, cfset.src);
+		}
+		return(len);
+	}
+}
+
+int BlkSave(char tp, char fp, int size)//保存块
+{
+	char s[TXT_C_SIZE];//临时缓冲区
+	int len;//临时缓冲区实际大小
+
+	while(size)
+	{
+		if (size < TXT_C_SIZE)
+		{
+			len = size;
+		}
+		else
+		{
+			len = TXT_C_SIZE;
+		}
+		fread(s, 1, len, fp);
+		if (fwrite(s, 1, len, tp) != len) return(1);
+		size = size - len;
+	}
+}
+
+int TextSave(char &buf[], struct TXT_BLOCK &tb, long filelen)//保存文件
+{
+	long start;//块的文件起始地址
+	int size;//块大小
+	char i;//临时变量
+
+	start = 0;
+	if (in.fp)
+	{
+		if (!tb.fp)//创建临时文件
+		{
+			if (ChPath(cpldata))
+			{
+				Swin("错误！", "无法进入目录", SWIN_ONE);
+				return(1);
+			}
+			if (!(tb.fp = fopen("mem.tmp", "w+")))
+			{
+				Swin("错误！", "无法创建文件", SWIN_ONE);
+				return(1);
+			}
+		}
+		for (i = tb.head; i != 255; i = tb.p[i].next)//整理链表
+		{
+			if (tb.p[i].fp != tb.fp)
+			{
+				memcpy(&start, tb.p[i].start, 3);
+				fseek(in.fp, start, 0);
+				fseek(tb.fp, 0, 2);
+				start = ftell(tb.fp);
+				memcpy(&size, tb.p[i].size, 2);
+				if (BlkSave(tb.fp, in.fp, size))
+				{
+					Swin("错误！", "文件读写出错", SWIN_ONE);
+					return(1);
+				}
+				memcpy(tb.p[i].start, &start, 3);
+				tb.p[i].fp = tb.fp;
+			}
+		}
+		fclose(in.fp);
+		in.fp = 0;
+	}
+	if (ChPath(out.path))
+	{
+		Swin("错误！", "无法进入目录", SWIN_ONE);
+		return(1);
+	}
+	if (out.fp = fopen(out.name, "r"))
+	{
+		fclose(out.fp);
+		out.fp = 0;
+		if (!cfset.dat[0].tem[4].value)
+		{
+			if (!Swin("存在同名文件", "是否覆盖？", SWIN_TWO)) return(1);
+		}
+	}
+	if (!(out.fp = fopen(out.name, "w"))) return(1);//创建保存文件
+#if WQX != 0
+	memset(&start, 0, 5);
+	fwrite(&start, 1, 5, out.fp);
+	putc(1, out.fp);
+	putc(0, out.fp);
+	putc(24, out.fp);
+	fwrite(&start, 1, 2, out.fp);
+	fwrite(&filelen, 1, 4, out.fp);
+	fwrite(&start, 1, 2, out.fp);
+	putc(24, out.fp);
+	putc(0, out.fp);
+	putc(0, out.fp);
+	fwrite(&filelen, 1, 4, out.fp);
+	putc(0, out.fp);
+#endif
+	for (i = tb.head; i != 255; i = tb.p[i].next)
+	{
+		if (i == tb.h)
+		{
+			if (fwrite(buf, 1, size = strlen(buf), out.fp) != size)
+			{
+				fclose(out.fp);
+				out.fp = 0;
+				Swin("错误！", "文件读写出错", SWIN_ONE);
+				return(1);
+			}
+			i = tb.n;
+		}
+		else
+		{
+			memcpy(&start, tb.p[i].start, 3);
+			fseek(tb.p[i].fp, start, 0);
+			memcpy(&size, tb.p[i].size, 2);
+			if (BlkSave(out.fp, tb.p[i].fp, size))
+			{
+				fclose(out.fp);
+				out.fp = 0;
+				Swin("错误！", "文件读写出错", SWIN_ONE);
+				return(1);
+			}
+		}
+	}
+	fclose(out.fp);
+	out.fp = tb.chg = 0;//清除修改标志
+}
+
+void Deltmp(struct TXT_BLOCK &tb)
+{
+	if (tb.fp)
+	{
+		fclose(tb.fp);
+		tb.fp = 0;
+		if (cfset.dat[0].tem[3].value)
+		{
+			if (!ChDir(cpldata))
+			{
+				Swin("错误！", "无法进入目录", SWIN_ONE);
+				return;
+			}
+			if (!DeleteFile("mem.tmp")) Swin("错误！", "无法删除*.tmp", SWIN_ONE);
+		}
+	}
+}
+//*******************************************************函数检索*******************************************************//
+int LoadFun(struct SKFUNTABLE &f)//函数载入
+{
+	char fp;
+	long addrs;
+
+	if (!ChDir(cpldata))
+	{
+		Swin("错误！", "无法进入目录", SWIN_ONE);
+		return(1);
+	}
+	if (!(fp = fopen(cfset.fun, "r")))
+	{
+		Swin("错误！", "找不到函数文件", SWIN_ONE);
+		return(1);
+	}
+	fseek(fp, 2, addrs = 0);
+	fread(&addrs, 1, 2, fp);
+	fseek(fp, addrs, 0);
+	fread(&f.size, 1, 1, fp);//读取长度
+	if (f.size > SKFUN_L_LEN)
+	{
+		Swin("错误！", "函数个数太多", SWIN_ONE);
+		fclose(fp);
+		return(1);
+	}
+	fread(f.dat, 1, f.size * sizeof(struct SKFUNUNIT), fp);
+	fclose(fp);
+}
+
+int SeekFun(struct SKFUNTABLE &f, char &name[])//函数检索
+{
+	char str[SKFUN_N_LEN];
+	int low, mid, high, value;
+
+	low = 0;
+	high = f.size - 1;
+	while (low <= high)
+	{
+		mid = (low + high) >> 1;
+		value = strcmp(f.dat[mid].name, name);
+		if (value > 0)
+		{
+			high = mid - 1;
+		}
+		else if (value < 0)
+		{
+			low = mid + 1;
+		}
+		else
+		{
+			return(mid);
+		}
+	}
+	strcpy(str, f.dat[low].name);
+	str[strlen(name)] = 0;
+	if (!strcmp(str, name)) return(low);
+	return(-1);
+}
+
+void ShowFun(struct SKFUNTABLE &f, int first, int value, int x, int y)
+{
+	char i;
+
+	if ((x = x - 37) > 82)
+	{
+		x = 82;
+	}
+	else if (x < 9)
+	{
+		x = 9;
+	}
+	if (y < 3)
+	{
+		y = y * 13 + 15;
+	}
+	else
+	{
+		y = y * 13 - 31;
+	}
+	Box(x - 1, y - 1, x + 77, y + 32, 1, 0);
+#if WQX == 0
+	MyLine(x, y, x, y + 31, 0);
+	MyLine(x, y, x + 76, y, 0);
+	MyLine(x + 76, y, x + 76, y + 31, 0);
+	MyLine(x, y + 31, x + 76, y + 31, 0);
+	SetBgColor(3);
+#else
+	Box(x, y, x + 76, y + 31, 0, 1);
+#endif
+	for (i = 0; i + first < f.size && i < 2; i++)
+	{
+		TextOut(x + 5, y + i * 14 + 3, f.dat[i + first].name, 65);
+	}
+	if (value >= 0) Box(x + 2, y + value * 14 + 2, x + 74, y + value * 14 + 15, 1, 2);
+}
+//*******************************************************检索编辑*******************************************************//
+void ChkReFunType(char n, char &s[])
+{
+	if ((n = n >> 4) == SK_FUN)
+	{
+		strcpy(s, " 函数 ");
+	}
+	else if (n == SK_BLANK || n == SK_SYMBO)
+	{
+		strcpy(s, "关键字");
+	}
+	else if (n == SK_CR || n == SK_BAO)
+	{
+		strcpy(s, " 命令 ");
+	}
+	else if (n == SK_SEMI)
+	{
+		strcpy(s, " 语句 ");
+	}
+	else if (n == SK_POINT)
+	{
+		strcpy(s, "构造体");
+	}
+	else
+	{
+		strcpy(s, "无类型");
+	}
+}
+
+#if WQX == 0
+void _PrintFun(struct SKFUNTABLE &f, int first, int value)/*检索显示*/
+{
+	struct SKFUNUNIT e;
+	char i;
+	char s[7];
+
+	Block(6, 28, 108, 75, 0);
+	for (i = 0; i < 4 && i + first < f.size; i++)
+	{
+		memcpy(e, f.dat[first + i], sizeof(struct SKFUNUNIT));
+		TextOut(6, i * 12 + 28, e.name, 1);
+		ChkReFunType(e.n, s);
+		TextOut(73, i * 12 + 28, s, 1);
+	}
+	Block(6, value * 12 + 28, 108, value * 12 + 39, 2);
+}
+#else
+void _PrintFun(struct SKFUNTABLE &f, int first, int value)/*检索显示*/
+{
+	struct SKFUNUNIT e;
+	char i;
+	char s[7];
+ 
+	Block(4, 28, 109, 76, 0);
+	for (i = 0; i < 4 && i + first < f.size; i++)
+	{
+		memcpy(e, f.dat[first + i], sizeof(struct SKFUNUNIT));
+		TextOut(4, i * 12 + 28, e.name, 1);
+		ChkReFunType(e.n, s);
+		TextOut(73, i * 12 + 28, s, 1);
+	}
+	Block(4, value * 12 + 28, 109, value * 12 + 39, 2);
+}
+#endif
+
+int seekfun(struct SKFUNTABLE &f, char &name[])//查找检索
+{
+	char str[SKFUN_N_LEN];
+	int low, mid, high, value;
+
+	low = 0;
+	high = f.size - 1;
+
+	while(low <= high)
+	{
+		mid = (low + high) >> 1;
+		value = strcmp(f.dat[mid].name, name);
+		if (!value)
+		{
+			return(mid);
+		}
+		else if (value > 0)
+		{
+			high = mid - 1;
+		}
+		else
+		{
+			low = mid + 1;
+		}
+	}
+	return(low|0x8000);
+}
+
+int GetType(char &type)//类型输入
+{
+	char key, value;
+	char s[2];
+
+	for (value = 0;;)
+	{
+		Swin("输入", NULL, SWIN_COM);
+		TextOut(17, 35, "请选择类型：", 1);
+#if WQX == 0
+		Boxw(39, 52, "函 数");
+		Boxw(87, 52, "其 他");
+		Block(value * 48 + 40, 53, value * 48 + 71, 64, 2);
+#else
+		Boxw(36, 52, "函 数");
+		Boxw(84, 52, "其 他");
+		Block(value * 48 + 37, 53, value * 48 + 72, 64, 2);
+#endif
+		Refresh();
+		key = getchar();
+		if (key == DOWN_KEY || key == RIGHT_KEY || key == UP_KEY || key == LEFT_KEY) value = value ^ 1;
+		else if (key == CR_KEY)
+		{
+			if (!value)//函数
+			{
+				s[0] = 0;
+LOOP:
+				if (!Inputw("请输入参数个数:", s, 2, 24)) continue;
+				if (!isdigit(s[0])) goto LOOP;
+				type = (s[0] - '0')|(SK_FUN << 4);
+			}
+			else
+			{
+				type = SK_NULL << 4;//其他
+			}
+			return(1);
+		}
+		else if (key == ESC_KEY || key == 'q') return(0);
+	}
+}
+
+int ChkReFunName(int s)//检查名称是否合法
+{
+	while(isalnum(*s)) s++;
+	if (*s) return(1);
+}
+
+void LoadReFun(struct SKFUNTABLE &f)//加载检索数据
+{
+	struct OUTFILE file;
+
+	if (!SelectSrc(file, cpldata, 0xfe)) return;//ref文件
+	if (!(file.fp = fopen(file.name, "r")))
+	{
+		if (datfp)
+		{
+			fclose(datfp);
+			datfp = 0;
+		}
+		if (!(file.fp = fopen(file.name, "r")))
+		{
+			Swin("错误！", "无法打开文件", SWIN_ONE);
+			goto END;
+		}
+	}
+	fread(f, 1, sizeof(struct SKFUNTABLE), file.fp);
+	fclose(file.fp);
+END:
+	if (!datfp)
+	{
+		ChDir(cpldata);
+		datfp = fopen("compile.dat", "r");
+	}
+}
+
+void SaveReFun(struct SKFUNTABLE &f)//保存检索数据
+{
+	char fp;
+	char name[20];
+
+	memset(name, 0, 20);
+START:
+	if (!Inputw("请输入文件名:", name, 15, 6)) return;
+	ChExt(name, "ref");
+	if (strlen(name) > 14)
+	{
+		Swin("警告！", "文件名太长", SWIN_ONE);
+		goto START;
+	}
+	if (ChPath(cpldata))
+	{
+		Swin("错误！", "无法进入目录", SWIN_ONE);
+		goto END;
+	}
+	if (!(fp = fopen(name, "w")))
+	{
+		if (datfp)
+		{
+			fclose(datfp);
+			datfp = 0;
+		}
+		if (!(fp = fopen(name, "w")))
+		{
+			Swin("错误！", "无法创建文件", SWIN_ONE);
+			goto END;
+		}
+	}
+	fwrite(f, 1, sizeof(struct SKFUNTABLE), fp);
+	fclose(fp);
+END:
+	if (!datfp)
+	{
+		ChDir(cpldata);
+		datfp = fopen("compile.dat", "r");
+	}
+}
+
+int AddSeekFun(struct SKFUNTABLE &f, int sfun, struct SKFUNUNIT &a)
+{
+	struct SKFUNUNIT e;
+	char msg[20];
+	int t;
+
+	if (f.size >= SKFUN_L_LEN)
+	{
+		sprintf(msg, "检索个数已达%d个", SKFUN_L_LEN);
+		Swin("提醒！", msg, SWIN_ONE);
+	}
+	else
+	{
+		if (sfun)
+		{
+			e.n = SK_NULL << 4;
+			strcpy(e.name, sfun);
+		}
+		else
+		{
+			memcpy(e, a, sizeof(struct SKFUNUNIT));
+		}
+		t = seekfun(f, e.name);
+		if (t >= 0)
+		{
+			Swin("警告！", "存在同名的检索", SWIN_ONE);
+		}
+		else
+		{
+			memmove(f.dat[(t = t&0x7fff) + 1], f.dat[t], (f.size - t) * sizeof(struct SKFUNUNIT));
+			memcpy(f.dat[t], e, sizeof(struct SKFUNUNIT));
+			f.size++;
+			return(1);
+		}
+	}
+}
+
+/* 检索查看 */
+void LookReFun(struct SKFUNTABLE &f)
+{
+	struct SKFUNUNIT e;
+	char msg[20];
+	char key;
+	int first, cur, t;
+
+	memset(e, 0, sizeof(struct SKFUNUNIT));
+	for (first = cur = 0;;)
+	{
+		LookFace("检索");
+		_PrintFun(f, first, cur - first);
+		Refresh();//界面
+		key = getchar();
+		if ((key == UP_KEY || key == LEFT_KEY) && cur)
+		{
+			cur--;
+			if (cur < first) first = cur;
+		}
+		else if ((key == DOWN_KEY || key == RIGHT_KEY) && cur + 1 < f.size)
+		{
+			cur++;
+			if (cur > first + 3) first = cur - 3;
+		}
+		else if (key == UU_KEY)
+		{
+			if (first < 4)
+			{
+				if (!first)
+				{
+					goto BEEP;
+				}
+				cur = cur - first;
+				first = 0;
+			}
+			else
+			{
+				first = first - 4;
+				cur = cur - 4;
+			}
+		}
+		else if (key == DD_KEY && first + 4 < f.size)
+		{
+			first = first + 4;
+			cur = cur + 4;
+			if (cur >= f.size) cur = f.size - 1;
+		}
+		else if (key == A_KEY || key == F1_KEY)//插入
+		{
+			Button(112, 16, "添加[A]", BUTTON_DOWN);
+PUT_NAME1:
+			if (Inputw("请输入检索名:", e.name, SKFUN_N_LEN, 25))
+			{
+				if (ChkReFunName(e.name)) goto PUT_NAME1;
+				if (GetType(&e.n)) AddSeekFun(f, 0, e);
+			}
+		}
+		else if (key == D_KEY || key == F2_KEY)//删除
+		{
+			Button(112, 32, "删除[D]", BUTTON_DOWN);
+			if (!f.size)
+			{
+				Swin("警告！", "没有检索可删除", SWIN_ONE);
+			}
+			else
+			{
+				if (cfset.dat[2].tem[1].value)
+				{
+					if (!Swin("删除？", "真的要删除么", SWIN_TWO)) continue;
+				}
+				f.size--;
+				memmove(f.dat[cur], f.dat[cur + 1], (f.size - cur) * sizeof(struct SKFUNUNIT));
+				memset(f.dat[f.size], 0, sizeof(struct SKFUNUNIT));
+				if (f.size && cur >= f.size)
+				{
+					cur = f.size - 1;
+					if (cur < first) first = cur;
+				}
+			}
+		}
+		else if (key == F3_KEY)//查找
+		{
+			if (!f.size)
+			{
+				Swin("警告！", "没有检索可查找", SWIN_ONE);
+			}
+			else
+			{
+PUT_NAME2:
+				if (Inputw("请输入检索名:", e.name, SKFUN_N_LEN, 25))
+				{
+					if (ChkReFunName(e.name)) goto PUT_NAME2;
+					t = seekfun(f, e.name);
+					if (t < 0)
+					{
+						Swin("信息！", "没有找到", SWIN_ONE);
+						continue;
+					}
+					first = cur = t;
+				}
+			}
+		}
+		else if (key == 'l')//载入
+		{
+			Button(112, 48, "载入[L]", BUTTON_DOWN);
+			Swin("信息", "请选择加载文件", SWIN_ONE);
+			LoadReFun(f);
+		}
+		else if (key == S_KEY)//保存
+		{
+			Button(112, 64, "保存[S]", BUTTON_DOWN);
+			if (cfset.dat[2].tem[2].value)
+			{
+				if (!Swin("保存？", "真的要保存么", SWIN_TWO)) continue;
+			}
+			LookFace("检索");
+			textout(30, 45, "保存中...", 1);
+			Refresh();
+			SaveReFun(f);
+		}
+		else if (key == ESC_KEY || key == 'q') return;
+		else
+		{
+BEEP:
+			if (!cfset.dat[0].tem[2].value) Beep();
+		}
+	}
+}
+//*******************************************************中文输入*******************************************************//
+/* 获取全角符号 */
+long Getmark()
+{
+	char key, j;
+	int i;
+	char numkey[10], mk[16][18];
+
+	TextOut(1, 64, "符", 0xc2);
+	strcpy(numkey, "bnmghjtyu");
+	strcpy(mk, "§№☆★○●◎◇◆□■△▲※→←↑↓〓〔〕〈〉《》「」『』．〖〗【】（）［］｛｝＃＆＠＼＾");
+	strcpy(mk + 90, "＿￣。，、；：？！…—·ˉˇ¨‘’“”々～‖∶＂＇｀｜〃°′″＄￡￥‰％℃¤￠≈≡≠＝≤≥");
+	strcpy(mk + 180, "＜＞≮≯∷±＋－×÷／∫∮∝∞∧∨∑∏∪∩∈∵∴⊥∥∠⌒⊙≌∽√㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩①②③");
+	strcpy(mk + 270, "④⑤⑥⑦⑧⑨⑩    ");
+	for (i = 0;;)
+	{
+		TextOut(17, 64, mk[i], 0xc1);
+		key = getchar();
+		if ((key == UP_KEY | key == LEFT_KEY | key == UU_KEY) && i)
+		{
+			i--;
+		}
+		else if ((key == DOWN_KEY | key == RIGHT_KEY | key == '0' | key == DD_KEY) && i < 15)
+		{
+			i++;
+		}
+		else if (isalnum(key))
+		{
+			if (strchr(numkey, key))
+			{
+				j = strchr(numkey, key) - numkey;
+			}
+			else
+			{
+				j = key - '1';
+			}
+			if (mk[i][j << 1] > ' ') return(&mk[i][j << 1]);
+		}
+		else if (key == ESC_KEY) return(0);
+		else if (!cfset.dat[0].tem[2].value) Beep();
+	}
+}
+
+/* 查找字库 */
+long PY2GB(char &str[])
+{
+	struct PY_UNIT dat;
+	int low, mid, high, value;
+
+	if (!str[0]) return(0);
+	low = 0;
+	high = PY_MAX - 1;
+	while(low <= high)
+	{
+		fseek(datfp, (mid = (low + high) >> 1) * sizeof(struct PY_UNIT) + PY_ADD, 0);
+		fread(dat, 1, sizeof(struct PY_UNIT), datfp);
+		if (!(value = strcmp(dat.str, str)))
+		{
+			return(dat.size|(dat.add << 16));
+		}
+		else if (value > 0)
+		{
+			high = mid - 1;
+		}
+		else
+		{
+			low = mid + 1;
+		}
+	}
+}
+
+/* 输入中文 */
+long Input(char x, char y, int skey, int con)
+{
+	char str[7], i, buf[19], key, tkey;
+	int size, f, c, t;
+	long n, a, b;
+
+START:
+	TextOut(2, 67, "拼", 65);
+	Box(2, 66, 14, 79, 1, 2);
+	for (i = size = 0;;)
+	{
+		for (a = b = 0;;)//光标闪动
+		{
+			if (!(a  |  (i  &&  y == 5))) Box(x, y * 13 + 2, x + 1, y * 13 + 13, 1, 2);
+			if ((a++) == (cfset.dat[3].tem[1].value << 5)) a = 0;
+			tkey = key;
+			key = CheckKey(128);
+			Inkey();
+			if (*skey == key  |  !key)
+			{
+				*skey = key;
+				continue;
+			}
+			if (key == tkey)
+			{
+				if (++b  >=  cfset.dat[3].tem[0].value | *con)
+				{
+					*con=1;
+					break;
+				}
+				Delay(10);
+				a = 1;
+			}
+			else
+			{
+				*con = 0;
+				break;
+			}
+		}
+		if (key == '0')//全角符号
+		{
+			Box(x, y * 13 + 2, x + 1, y * 13 + 13, 1, 1);
+			if (a = Getmark()) return(a);
+			*skey = CheckKey(128);
+		}
+		else if (!(i | isalpha(key))) return(key);//命令
+		else if (key == F2_KEY | key == UP_KEY)
+		{
+			if (i) i--;
+			size = 0;
+		}
+		else if (key == LEFT_KEY)
+		{
+			if (c)
+			{
+				if ((--c) < f) f = c;
+			}
+			else
+			{
+				if (i) i--;
+				size = 0;
+			}
+		}
+		else if (key == DOWN_KEY | key == RIGHT_KEY)
+		{
+			if (c + 1 < size)
+			{
+				if ((++c) > f + 8) f = c - 8;
+			}
+			else
+			{
+				goto BEEP;
+			}
+		}
+		else if (key == UU_KEY)
+		{
+			if (f < 9)
+			{
+				if (!f)
+				{
+					goto BEEP;
+				}
+				c = c - f;
+				f = 0;
+			}
+			else
+			{
+				f = f - 9;
+				c = c - 9;
+			}
+		}
+		else if (key == DD_KEY)
+		{
+			if (f + 9 < size)
+			{
+				f = f + 9;
+				c = c + 9;
+				if (c >= size) c = size - 1;
+			}
+			else
+			{
+				goto BEEP;
+			}
+		}
+		else if (key == F3_KEY) f = c = 0;
+		else if (key == F4_KEY) f = c = size - 1;
+		else if (key == CR_KEY)
+		{
+			if (size) return(buf + ((c - f) << 1));
+		}
+		else if (key == SHIFT_KEY)	return(SHIFT_KEY);
+		else if (key == ESC_KEY)	return(ESC_KEY);
+		else if (isalpha(key))
+		{
+			if (i < 6)
+			{
+				str[i++] = key;
+				size = 0;
+			}
+			else
+			{
+				goto BEEP;
+			}
+		}
+		else
+		{
+BEEP:
+			if (!cfset.dat[0].tem[2].value) Beep();
+		}
+		Box(15, 66, 159, 79, 1, 0);
+		str[i] = 0;
+		TextOut(15, 67, str, 65);
+		if (!size)
+		{
+			if ((n = PY2GB(str)) == -1) n = 0;
+			size = n;
+			t = n >> 16;
+			f = c = 0;
+		}
+		if (n)
+		{
+			if (size >= f + 9) tkey = 18;
+			else tkey = (size - f)<<1;
+			fseek(datfp, t + (f << 1) + PY_ADD - 14740, 0);
+			fread(buf, 1, tkey, datfp);
+			buf[tkey] = 0;
+			TextOut(52, 67, buf, 65);
+			Box((c - f) * 12 + 52, 66, (c - f) * 12 + 64, 79, 1, 2);
+		}
+		if (!i)
+		{
+			Refresh();
+			goto START;
+		}
+	}
+}
+//*******************************************************文本编辑*******************************************************//
+void EMsg()
+{
+	Refresh();
+#if WQX == 0
+	MyBox(44, 26, 115, 49, 0x12);
+#else
+	Box(43, 25, 116, 50, 1, 0);
+	Box(46, 28, 113, 47, 0, 1);
+	Box(44, 26, 115, 49, 0, 1);
+#endif
+	TextOut(48, 30, "操作完成", 193);
+	Delay(500);
+	Refresh();
+}
+
+long atoi(char &str[])
+{
+	long num;
+	char i;
+
+	for (i = num = 0;; i++)
+	{
+		if (isdigit(str[i]))
+		{
+			num = num * 10 + str[i] - '0';
+		}
+		else
+		{
+			break;
+		}
+	}
+	return(num);
+}
+
+/* 判断字节是否是右半字节 */
+int Ismid(int cursor, int end)
+{
+	int i;
+
+	for (i = cursor; *i >= 160 && i >= end; i--);
+	return(!((cursor - i)&1));
+}
+
+int BakSch(int b, char &buf[])
+{
+	int i, tmp;
+
+	if ((tmp = strchr(buf, 13)) > b | !tmp) return(buf);
+	for (i = b; *i != 13; i--);
+	return(i + 2);
+}
+
+/* 从cursor开始搜索str,找不到就从全文本头部buf开始搜,再搜不到返回0 */
+int StrSeek(char &buf[], int cursor, char &str[])
+{
+	int tmp, a;
+
+SEARCH1:
+	if (tmp = strstr(cursor, str))
+	{
+		if (*tmp >= 160)
+		{
+			if (Ismid(tmp, buf))
+			{
+				cursor = tmp + 1;
+				goto SEARCH1;
+			}
+		}
+		return(tmp);
+	}
+	else
+	{
+		cursor = buf;
+SEARCH2:
+		if (a = strstr(cursor, str))
+		{
+			if (*a >= 160)
+			{
+				if (Ismid(a, buf))
+				{
+					cursor = tmp + 1;
+					goto SEARCH2;
+				}
+			}
+			return(a);
+		}
+		else
+		{
+			return(0);
+		}
+	}
+}
+
+int GetSeekFunName(int cursor, int buf, int end, int a, int b, char &sfun[])
+{
+	int c, d;
+
+	if (isalpha(*(cursor - 1)))
+	{
+		for (d = cursor - 1; d >= buf && d + 16 > cursor; d--)
+		{
+			if (!isalpha(*d))
+			{
+				d++;
+				break;
+			}
+		}
+		if (d < buf)//定位函数或关键字的头
+		{
+			c = buf;
+		}
+		else
+		{
+			c = d;
+		}
+		for (d = cursor; d < end && d < cursor + 16; d++)//定位函数或关键字的尾
+		{
+			if (!isalpha(*d)) break;
+		}
+		if (d <= c + 11 && d != c)//查询
+		{
+			memcpy(sfun, c, d - c);
+			sfun[d - c] = 0;
+			memcpy(a, &c, 2);
+			memcpy(b, &d, 2);
+			return(1);
+		}
+	}
+}
+
+int Edit(char &buf[], struct TXT_BLOCK &tb, char &cl[], struct SKFUNTABLE &f)
+{
+	long filelen, filestart;//总长度 当前起始点
+//---------------------------------------------------------
+	char show[26], str[MAC_N_LEN], s[24];//显示缓冲 查找字符串缓冲 临时字符串缓冲
+	char sfun[SKFUN_N_LEN];//检索缓冲
+	int j, k, c, d;//检索指针 临时检索指针 函数起始 函数结尾
+	struct TEXT t[7];//行信息(head指针，指向屏幕上每行的行首地址;size:每行长度)
+	int start, cursor, end, size;//分别指向复制起点(值-1时为无设定)，光标处，文本尾和剪贴板大小
+	int sx;//屏幕右滚偏移量
+	char new;//屏幕指针移动标记(0:不移动,1:令屏幕指针t[0].head指向光标所在行的行首,2:t[0].head下移一行)
+	char move;//屏幕是否有滚动(0:无,1:有)
+	int x, y;//光标
+	char key, tkey, skey, con;//按键值 缓冲按键值 锁定键 锁定连续响应键
+	char min, eng, suc;//是否小写 是否输入英文 是否成功载入检索
+	char numkey[11], signkey[18], letkey[18], symkey[15], chakey[15];//按键对应表
+	char cur, i;
+	long a, b;//临时变量
+//--------------------------------------------------------初始化--------------------------------------------------------//
+
+	memset(&filelen, 0, &b - &filelen);
+	strcpy(numkey, "0bnmghjtyu");
+	strcpy(signkey, "+-*/;'\"=()[],<>{}");
+	strcpy(letkey, "qwerasdfzxcviopkl");
+	strcpy(symkey, "\\%:|~?!&#_`^$@");
+	strcpy(chakey, "bnmghjtyu.    ");
+	chakey[11] = F1_KEY;
+	chakey[12] = F2_KEY;
+	chakey[13] = F3_KEY;
+	min = eng = 1;
+	start = j = -1;
+//---------------------------------------------------------选择---------------------------------------------------------//
+	if (!out.name[0])
+	{
+		if (!(i = SubMenu("空的程序简单程序经典程序演示程序", 4, 50, 18))) return(1);
+	}
+	Swin("信息", NULL, SWIN_COM);//信息
+	//TextOut(43, 46, "载入中...", 128);
+	textout(43, 46, "载入中...", 128);
+	Refresh();
+//---------------------------------------------------------载入---------------------------------------------------------//
+	filelen = TextLoad(buf, tb);//载入文本
+	if (filelen < 0) return(1);
+	t[0].head = cursor = buf;
+	end = buf + strlen(buf);
+	if (!cfset.dat[3].tem[3].value) suc = LoadFun(f) ^ 1;//载入检索
+	if (!datfp)//打开字库
+	{
+		ChDir(cpldata);
+		if (!(datfp = fopen("compile.dat", "r"))) Swin("错误！", "无法打开字库", SWIN_ONE);
+	}
+	if (i > 4 && datfp)//载入事例程序
+	{
+		DataRead(&filelen, 2, i + DAT_SIMPLE - 5);
+		fread(buf, 1, filelen, datfp);
+		end = buf + filelen;
+	}
+//--------------------------------------------------------主程序--------------------------------------------------------//
+START://不连续响应
+	skey = CheckKey(128);//终止响应键
+START1://连续响应
+	if (cursor < t[0].head | new == 1)
+	{
+		t[0].head = BakSch(cursor - 1, buf);
+	}
+	else if (new == 2)
+	{
+		t[0].head = t[1].head;//确定首行地址
+	}
+	for (cur = 0; cur < 6; cur++)//确定行地址
+	{
+		if (cursor >= t[cur].head) y = cur;//确定光标所在行数
+		if (a = strchr(t[cur].head, 13))
+		{
+			t[cur + 1].head = a + 2;
+			t[cur].size = t[cur + 1].head - t[cur].head - 2;
+		}
+		else
+		{
+			t[cur].size = strlen(t[cur].head);
+			t[++cur].head = end;
+			break;
+		}
+	}
+	if (cursor - t[y].head > sx + 24)
+	{
+		sx = cursor - t[y].head - 24;
+	}
+	else if (cursor - t[y].head < sx)//滚动调整
+	{
+		sx = cursor - t[y].head;
+	}
+//---------------------------------------------------------显示---------------------------------------------------------//
+	if (move)
+	{
+		i = y;
+	}
+	else
+	{
+		i = 0;
+		ClearScreen();
+	}
+	while (i < cur)
+	{
+		if (sx > t[i].size)
+		{
+			show[0] = 0;
+		}
+		else
+		{
+			memcpy(show, t[i].head + sx, 25);
+			if (a = strchr(show, 13))
+			{
+				*a = 31;
+				*(a + 1) = 0;
+			}
+		}
+		if (show[0] >= 160)//汉语调整(头)
+		{
+			if (Ismid(t[i].head + sx, buf)) show[0] = '_';
+		}
+		if (strlen(show) == 25 && show[24] >= 160)//汉语调整(尾)
+		{
+			if (!Ismid(show + 24, show)) show[24] = '_';
+		}
+		TextOut(8, (i++) * 13 + 2, show, 1);
+		if (move) break;
+	}
+	if (eng&2)
+	{
+		TextOut(1, 1, "z", 2);
+	}
+	else if (eng)
+	{
+		TextOut(1, 1, "E", 2);
+	}
+	else
+	{
+		TextOut(1, 1, "n", 2);
+	}
+	if (min)
+	{
+		TextOut(1, 14, "a", 2);
+	}
+	else
+	{
+		TextOut(1, 14, "A", 2);
+	}
+	Block(1, 27, 6, 52, 0);
+	if (size) TextOut(1, 27, "c", 2);
+	if (start >= 0) TextOut(1, 40, ".", 2);
+	if (sx) TextOut(1, 68, "<", 2);
+	Line(7, 1, 7, 79, 65);
+	if (filelen)//进度
+	{
+		Line(7, a = (filestart + cursor - buf) * 79 / filelen, 7, a + 3, 64);
+	}
+	Refresh();
+	x = (cursor - t[y].head - sx) * 6 + 8;
+	if ((k = j) >= 0) ShowFun(f, j, j = -1, x, y);//函数检索
+	a = b = new = move = 0;
+//-------------------------------------------------------按键响应-------------------------------------------------------//
+	for (;;)
+	{
+		if (eng&2)//中文输入
+		{
+			a = Input(x, y, &skey, &con);
+			if (a < 0xff)
+			{
+				key = a;
+				break;
+			}
+			if (buf + TXT_SIZE < end + 2)//////////////////////////////////////////////////////error
+			{
+				Swin("警告！", "文本已到上限", SWIN_ONE);
+				goto START;
+			}
+			memmove(cursor + 2, cursor, end - cursor);
+			memcpy(cursor, a, 2);//写入汉字
+			cursor = cursor + 2;
+			end = end + 2;
+			filelen = filelen + 2;//增加
+			tb.chg = 1;//内容已改变
+			goto START;
+		}
+		if (!a) Box(x, y * 13 + 2, x + 1, y * 13 + 13, 1, 2);
+		if ((a++) == cfset.dat[3].tem[1].value << 4) a = 0;
+		tkey = key;
+		key = CheckKey(128);
+		Inkey();
+		if (skey == key | !key)
+		{
+			skey = key;
+			continue;
+		}
+		if (key == tkey)
+		{
+			if (++b >= cfset.dat[3].tem[0].value | con)
+			{
+				con = 1;
+				break;
+			}
+			Delay(10);
+			a = 1;
+		}
+		else
+		{
+			if (tkey == '0')
+			{
+				skey = key;
+				continue;
+			}
+			con = 0;
+			break;
+		}
+	}
+#if DEBUG == 1
+ //if (con<10)key=CR_KEY;else if (con<100)key=rand()%26+'A';else key=rand()%26+'a';con=con+rand()%10;tkey=0;
+ //key=DOWN_KEY;if (s[0])key=UP_KEY;
+	if (s[0] == 255)
+	{
+		s[0] = 0;
+		Box(x, y * 13 + 2, x + 1, y * 13 + 13, 1, 2);
+		Delay(1000);
+	}
+	if (key == '0')
+	{
+		fclose(tb.fp);
+		fclose(in.fp);
+		i = fopen("/tb.bin", "w");
+		fwrite(tb, 1, sizeof(struct TXT_BLOCK), i);
+		fclose(i);
+		exit(0);
+	}
+	if (key == ' ')
+	{
+		ShowTxtLink(tb);
+		goto START;
+	}
+#endif
+	if (key == UP_KEY)
+	{
+		if (t[0].head == buf && !y)
+		{
+			if (tb.p[tb.h].head == 254) goto BEEP;//已到文本头部
+			a = TextLink(buf, tb, TXT_LOD_H);
+			if (a < 0) goto ERRTXT;//载入文本(上)
+			cursor = cursor + a;
+			end = buf + strlen(buf);
+			filestart = filestart - a;
+			for (cur = 0; cur < 7; cur++)//调整
+			{
+				t[cur].head = t[cur].head + a;
+			}
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		if ((a = cursor - t[y].head) > t[y].head - (b = BakSch(t[y].head - 3, buf)) - 2)
+		{
+			cursor = t[y].head - 2;
+		}
+		else
+		{
+			cursor = a + b;
+		}
+		goto HAN_TZ;
+	}
+	if (key == DOWN_KEY)
+	{
+		if (t[++y].head >= end)
+		{
+			if (tb.p[tb.n].next == 255) goto BEEP;//已到文本尾部
+			a = TextLink(buf, tb, TXT_LOD_N);
+			if (a < 0) goto ERRTXT;//载入文本(下)
+			cursor = cursor - a;
+			end = buf + strlen(buf);
+			filestart = filestart + a;
+			for (cur = 0; cur < 7; cur++)
+			{
+				t[cur].head = t[cur].head - a;//调整
+			}
+			if (t[0].head < buf)//溢出调整
+			{
+				t[0].head = buf;
+				if (t[1].head < buf) t[1].head = buf;
+			}
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		if (y > 5) new = 2;
+		if (a = strchr(t[y].head, 13))
+		{
+			b = a - t[y].head;
+		}
+		else
+		{
+			b = strlen(t[y].head);
+		}
+		if (cursor - t[y - 1].head > b)
+		{
+			cursor = t[y].head + b;
+		}
+		else
+		{
+			cursor = t[y].head + cursor - t[y - 1].head;
+		}
+HAN_TZ:
+		if (*cursor >= 160)
+		{
+			if (Ismid(cursor, buf)) cursor--;//防止中文错位
+		}
+		goto START1;
+	}
+	if (key == LEFT_KEY)
+	{
+		if (cursor <= buf)
+		{
+			if (tb.p[tb.h].head == 254) goto BEEP;//已到文本头部
+			a = TextLink(buf, tb, TXT_LOD_H);
+			if (a < 0) goto ERRTXT;//载入文本(上)
+			cursor = cursor + a;
+			end = buf + strlen(buf);
+			filestart = filestart - a;
+			t[0].head = t[0].head + a;//调整
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		if (*--cursor >= 160 | *cursor == 10) cursor--;
+		goto START1;
+	}
+	if (key == RIGHT_KEY)
+	{
+		if (cursor + 1 >= end)
+		{
+			if (tb.p[tb.n].next == 255)
+			{
+				cursor = end;
+				goto BEEP;//已到文本尾部
+			}
+			a = TextLink(buf, tb, TXT_LOD_N);//载入文本(下)
+			if (a < 0) goto ERRTXT;
+			cursor = cursor - a;
+			end = buf + strlen(buf);
+			filestart = filestart + a;
+			for (cur = 0; cur < 7; cur++)
+			{
+				t[cur].head = t[cur].head - a;//调整
+			}
+			if (t[0].head < buf)//溢出调整
+			{
+				t[0].head = buf;
+				if (t[1].head < buf) t[1].head = buf;
+			}
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		if (*cursor < 160)
+		{
+			if (*++cursor == 10)
+			{
+				cursor++;
+				if (y == 5) new = 2;
+			}
+		}
+		else
+		{
+			cursor = cursor + 2;
+		}
+		goto START1;
+	}
+	if (key == CR_KEY)
+	{
+		a = cursor;
+		b = t[y].head;
+		while (--a >= b)
+		{
+			if (!isspace(*a))//当该行不空
+			{
+				for (b = t[y].head; isspace(*b) && b < cursor; b++);//计算该行起始有几个空白符
+				for (j = cursor; j < end; j++)//计算光标起始有几个空白符
+				{
+					if (!isspace(*j) | *j == 13)
+					{
+						if (*j == '}')
+						{
+							memmove(cursor, j, end - j);
+							memset(end = end - (j = j - cursor), 0, j);
+							filelen = filelen - j;//减少
+							goto SUB_END;
+						}
+						break;
+					}
+				}
+				if (*a == '{') b++;
+SUB_END:
+				j = -1;
+				goto CR_START;
+			}
+		}
+		b = cursor;//空格行
+CR_START:
+		if ((b = b - t[y].head + 2) + end > buf + TXT_SIZE)//溢出
+		{
+			if (cursor > buf + TXT_B_SIZE)
+			{
+				a = TextLink(buf, tb, TXT_SAV_H);
+				if (a < 0)//保存文本(上)
+				{
+ERRTXT://错误分析
+					if (a == -1)
+					{
+						Swin("错误！", "无法保存数据", SWIN_ONE);
+					}
+					else if (a == -2)
+					{
+						Swin("警告！", "文本已到上限", SWIN_ONE);
+					}
+					else if (a == -3)
+					{
+						Swin("错误！", "其中一行太长", SWIN_ONE);
+					}
+					else
+					{
+						Swin("错误！", "文件读写出错", SWIN_ONE);
+					}
+					goto START;
+				}
+				filestart = filestart + a;
+				cursor = cursor - a;
+				for (cur = 0; cur < 7; cur++)//调整
+				{
+					t[cur].head = t[cur].head - a;
+				}
+				if (t[0].head < buf)//溢出调整
+				{
+					t[0].head = buf;
+					if (t[1].head < buf) t[1].head = buf;
+				}
+			}
+			else//保存文本(下)
+			{
+				a = TextLink(buf, tb, TXT_SAV_N);
+				if (a < 0) goto ERRTXT;
+			}
+			end = buf + strlen(buf);
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		memmove(cursor + b, cursor, end - cursor);
+		memset(cursor, ' ', b);
+		*cursor = 13;
+		*(cursor + 1) = 10;//填充空格符(自动缩进)
+		cursor = cursor + b;
+		end = end + b;
+		filelen = filelen + b;
+		if (y == 5) new = 2;//光标在屏幕底时下移一行
+		tb.chg = 1;//内容已改变
+		goto START1;
+	}
+	if (key == F2_KEY)//退格
+	{
+		if (cursor <= buf)
+		{
+			if (tb.p[tb.h].head == 254) goto BEEP;
+			a = TextLink(buf, tb, TXT_LOD_H);//载入文本(上)
+			if (a < 0) goto ERRTXT;
+			cursor = cursor + a;
+			end = buf + strlen(buf);
+			filestart = filestart - a;
+			t[0].head = t[0].head + a;//调整
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		if (*(cursor - 1) == 10 | *(cursor - 1) >= 160)
+		{
+			b = 2;
+		}
+		else
+		{
+			b = 1;
+		}
+		memmove(cursor - b, cursor, end - cursor);//遇中文或换行符时退两格
+		cursor = cursor - b;
+		memset(end = end - b, 0, b);
+		filelen = filelen - b;//减少
+		tb.chg = 1;//内容已改变
+		goto SEEKFUN;
+	}
+	if (isprint(i = key))//插入字符
+	{
+		if (buf + TXT_SIZE < end + 60)//当前有保存操作(溢出)
+		{
+			if (cursor > buf + TXT_B_SIZE)
+			{
+				a = TextLink(buf, tb, TXT_SAV_H);
+				if (a < 0) goto ERRTXT;//保存文本(上)
+				filestart = filestart + a;
+				cursor = cursor - a;
+				for (cur = 0; cur < 7; cur++)//调整
+				{
+					t[cur].head = t[cur].head - a;
+				}
+				if (t[0].head < buf) t[0].head = buf;
+			}
+			else//保存文本(下)
+			{
+				a = TextLink(buf, tb, TXT_SAV_N);
+				if (a < 0) goto ERRTXT;
+			}
+			end = buf + strlen(buf);
+#if DEBUG == 1
+			Delay(1000);
+			s[0] = 255;
+#endif
+		}
+		else
+		{
+			a = 0;//当前没有保存操作
+		}
+		if (!eng)//数字状态
+		{
+			if (b = strchr(numkey, i))//数字
+			{
+				i = b - numkey + '0';
+			}
+			else if (b = strchr(letkey, i))//符号
+			{
+				goto SIGN_INSERT;
+			}
+		}
+		else//英文状态
+		{
+#if WQX != 0
+			if (i == '0')//符号表
+#else
+			if (i == '0' | i == '-')
+#endif
+			{
+				Box(5, 13, 155, 79, 1, 0);
+				Box(6, 14, 154, 78, 0, 1);
+				TextOut(7, 16, "请选择符号: F1-F3: ^ $ @", 65);
+				TextOut(7, 28, "字母键:↓空格:` 小数点:_", 65);
+				TextOut(7, 40, " + - * / !   & # , < >", 65);
+				TextOut(7, 54, " ; ' \" = |   ~ ? { }", 65);
+				TextOut(7, 66, " ( ) [ ] \\   % :", 65);
+				i = getchar();
+				if (b = strchr(letkey, i))
+				{
+SIGN_INSERT:
+					i = signkey[b - letkey];
+					if (i == '}')//遇到}自动缩进
+					{
+						j = 1;
+						b = cursor;
+						while(--b >= buf)//寻找配对的大括号
+						{
+							if (*b == '}')
+							{
+								j++;
+							}
+							else if (*b == '{')
+							{
+								if (!--j)
+								{
+									for (j = b; b > buf;)
+									{
+										if (*(--b) == 10)
+										{
+											b++;
+											break;
+										}
+										if (!isspace(*b)) j = b;
+									}
+									j = j - b;//计算有几列(j)
+									if (cursor - t[y].head > j)//减少空格
+									{
+										j = t[y].head + j;
+										for (b = cursor; isspace(*--cursor);)
+										{
+											if (cursor <= j)
+											{
+												cursor--;
+												break;
+											}
+										}
+										cursor++;//有几个空白符
+										memmove(cursor, b, end - b);
+										memset(end = end - b + cursor, 0, b - cursor);
+										filelen = filelen - b + cursor;//减少
+										Block(8, y * 13 + 2, 159, y * 13 + 13, 0);//清除该行屏幕
+									}
+									else if (cursor - t[y].head < j)//补充空格
+									{
+										memmove(cursor + j, cursor, end - cursor);
+										memset(cursor, ' ', j);//填充空格符(自动缩进)
+										cursor = cursor + j;
+										end = end + j;
+										filelen = filelen + j;//增加
+									}
+									break;
+								}
+							}
+						}
+						j = -1;//因为前面借用了j, 所以要初始化
+					}
+				}
+				else if (b = strchr(chakey, i))
+				{
+					i = symkey[b - chakey];
+				}
+				else if (!isprint(i))
+				{
+					goto BEEP;
+				}
+			}
+			else if (!min)
+			{
+				i = toupper(i);
+			}
+		}
+		memmove(cursor + 1, cursor, end - cursor);
+		*cursor++ = i;
+		end++;
+		filelen++;//写入
+		tb.chg = 1;//内容已改变
+		if (!a)//光标在屏幕最右端时屏幕右滚
+		{
+			if (cursor - t[y].head - sx == 25)
+			{
+				sx = cursor - t[y].head - 17;
+			}
+			else
+			{
+				move = 1;
+			}
+		}
+SEEKFUN:
+		if (suc && cursor > buf)//函数或关键字检索
+		{
+			if (GetSeekFunName(cursor, buf, end, &c, &d, sfun)) j = SeekFun(f, sfun);
+		}
+#if WQX != 0
+		if (key == '0' && eng) goto START;
+#else
+		if ((key == '0' || key == '-') && eng) goto START;
+#endif
+		goto START1;
+	}
+	if (key == UU_KEY)
+	{
+		if (sx)
+		{
+			sx--;
+			goto START1;
+		}
+		goto BEEP;
+	}
+	if (key == DD_KEY)
+	{
+		sx++;
+		goto START1;
+	}
+	if (i == HELP_KEY)
+	{
+		if (k >= 0)//检索
+		{
+			for (a = k;;)
+			{
+				ShowFun(f, k, a - k, x, y);
+				i = getchar();
+				if (i == UP_KEY || i == LEFT_KEY)
+				{
+					if (a)
+					{
+						a--;
+						if (a < k) k = a;
+					}
+				}
+				else if (i == DOWN_KEY || i == RIGHT_KEY)
+				{
+					if (a + 1 < f.size)
+					{
+						a++;
+						if (a > k + 1) k = a - 1;
+					}
+				}
+				else if (i == UU_KEY)
+				{
+					if (k < 2)
+					{
+						a = a - k;
+						k = 0;
+					}
+					else
+					{
+						k = k - 2;
+						a = a - 2;
+					}
+				}
+				else if (i == DD_KEY)
+				{
+					if (k + 2 < f.size)
+					{
+						k = k + 2;
+						a = a + 2;
+						if (a >= f.size) a = f.size - 1;
+					}
+				}
+				else if (i == CR_KEY || i == HELP_KEY)
+				{
+					k = f.dat[a].n&0xf;
+					b = f.dat[a].n >> 4;
+					s[0] = i = 0;//参数个数 类型
+					if (b == SK_FUN | b == SK_SYMBO)//函数 语句
+					{
+						for (j = cursor; j < end; j++)
+						{
+							if (!isspace(*j) | *j == 13)
+							{
+								if (*j != '(') break;
+								goto ADD_SKFUN;
+							}
+						}
+						b = b * 3 + 41;
+						for (s[i = 0] = '('; ++i < k; s[i] = b);//添加参数表
+						s[i] = 0;
+						strcat(s, ")");
+						if (b == ',')
+						{
+							if (*j != ')' && *j != ']' && *j != ';') strcat(s, ";");
+						}
+						i = 0;
+						if (k | b == ';') i = strlen(s) - 1;//移动光标
+					}
+					else if (b == SK_BLANK)//空格
+					{
+						if (*cursor != ' ' && *cursor != 9) strcpy(s, " ");
+					}
+					else if (b == SK_SEMI || b == SK_POINT)//分号 点号
+					{
+						for (j = cursor; j < end; j++)
+						{
+							if (!isspace(*j) | *j == 13)
+							{
+								if (*j != 98 - b * 13) break;
+								goto ADD_SKFUN;
+							}
+						}
+						s[0] = 98 - b * 13;
+						s[1] = 0;
+					}
+					else if (b == SK_CR)
+					{
+						s[0] = 13;
+						s[1] = 10;
+						s[2] = 0;
+					}
+					else if (b == SK_BAO)
+					{
+						for (j = cursor; j < end; j++)
+						{
+							if (!isspace(*j) | *j == 13)
+							{
+								if (*j != '<' && *j != '"') break;
+								goto ADD_SKFUN;
+							}
+						}
+						strcpy(s, "<>");
+						s[2] = 0;//插入
+						i = 1;//移动光标
+					}
+ADD_SKFUN:
+					memmove(c + (b = strlen(f.dat[a].name) + c - d + strlen(s)), c, end - c);//移动
+					memcpy(c, f.dat[a].name, strlen(f.dat[a].name));
+					memcpy(c + strlen(f.dat[a].name), s, strlen(s));//插入
+					cursor = d + b - i;
+					end = end + b;
+					filelen = filelen + b;//增加
+					j = -1;
+					tb.chg = 1;//内容已改变
+					break;
+				}
+				else if (i == ESC_KEY || i == 'q')break;
+			}
+			goto START;
+		}
+#if WQX == 0
+		Box(10, 5, 152, 76, 1, 0);
+		MyBox(10, 5, 152, 76, 0x10);
+		SetBgColor(9);
+		Line(11, 75, 151, 75, 0);
+		Line(151, 6, 151, 75, 0);
+		MyLine(12, 21, 149, 21, 0);
+		SetBgColor(3);
+#else
+		Box(10, 5, 151, 75, 1, 0);
+		Box(10, 5, 151, 75, 0, 1);
+		Line(152, 6, 152, 76, 1);
+		Line(11, 76, 152, 76, 1);
+		Line(12, 21, 149, 21, 1);
+#endif
+		//TextOut(56, 7, "功能选择", 65);
+		textout(54, 7, "功能选择", 65);
+		TextOut(12, 23, "F3:字串续查 F4:编辑检索", 65);
+		TextOut(18, 36, ".:设置起点 Z:清空缓存", 65);
+		TextOut(21, 49, "C:复制 X:剪切 V:粘贴", 65);
+		TextOut(18, 62, "D:删除 F1:插入 T:时间", 65);
+		i = getchar();
+		if (i == F3_KEY)
+		{
+			if (str[0]) goto SEARCH1;
+			goto SEARCH2;
+		}
+		else if (i == 'c' || i == 'x')
+		{
+			if (start < 0) goto NOSTART;
+			if ((size = abs(cursor - start)) > CLI_SIZE)
+			{
+				size = 0;
+				Swin("警告！", "复制内容太多", SWIN_ONE);
+				goto START;
+			}
+			if (cursor < start)
+			{
+				memcpy(cl, cursor, size);
+			}
+			else
+			{
+				memcpy(cl, start, size);
+			}
+			if (i == 'x') goto DELTXT;
+			EMsg();
+		}
+		else if (i == 'v')
+		{
+			if (!size) goto START;
+			if (size + end > buf + TXT_SIZE)
+			{
+				Swin("警告！", "文本已到上限", SWIN_ONE);
+				goto START;
+			}
+			memmove(cursor + size, cursor, end - cursor);
+			memcpy(cursor, cl, size);
+			cursor = cursor + size;
+			end = end + size;
+			filelen = filelen + size;//光标移动
+			tb.chg = 1;//内容已改变
+		}
+		else if (i == 'd')
+		{
+			if (start < 0)
+			{
+NOSTART:
+				Swin("警告！", "没有设置起点", SWIN_ONE);
+			}
+			else
+			{
+DELTXT:
+				if (cursor > start)
+				{
+					a = start;
+					start = cursor;
+					cursor = a;
+				}
+				memmove(cursor, start, end - start);
+				memset(end = end - (a = start - cursor), 0, a);
+				filelen = filelen - a;
+				start = -1;
+				tb.chg = 1;//内容已改变
+			}
+		}
+		else if (i == F1_KEY)
+		{
+			if (suc && cursor > buf)//函数或关键字检索
+			{
+				if (GetSeekFunName(cursor, buf, end, &c, &d, sfun))
+				{
+					if (AddSeekFun(f, sfun, 0)) EMsg();
+				}
+			}
+		}
+		else if (i == 'z')
+		{
+			size = 0;
+			EMsg();
+		}
+		else if (i == '.')
+		{
+			start = cursor;
+			EMsg();
+		}
+		else if (i == F4_KEY)
+		{
+			LookReFun(f);
+		}
+		else if (i == 't')
+		{
+			ShowTime();
+		}
+		else
+		{
+			goto BEEP;
+		}
+		goto START;
+	}
+	if (key == SHIFT_KEY)
+	{
+		if (eng&2)
+		{
+			eng = eng&1;
+		}
+		else
+		{
+			eng = eng ^ 1;
+		}
+		goto START;
+	}
+	if (key == CAPS_KEY)
+	{
+		j = k;
+		min = min ^ 1;
+		goto START;
+	}
+	if (key == F1_KEY)
+	{
+		j = k;
+		if (datfp) eng = eng ^ 2;
+		goto START;
+	}
+	if (key == F3_KEY)
+	{
+SEARCH2:
+		if (!Inputw("请输入字符串:", str, MAC_N_LEN, 0xd)) goto START;
+SEARCH1:
+		if (a = StrSeek(buf, cursor + 1, str))
+		{
+			cursor = a;
+			new = 1;
+		}
+		else
+		{
+			Swin("信息", "没有找到", SWIN_ONE);
+		}
+		goto START;
+	}
+	if (key == F4_KEY)
+	{
+		sprintf(s, "大小:%d 当前:%d", end - buf, cursor - buf);
+
+#if WQX == 0
+		Block(14, 0, 142, 16, 0);
+		MyBox((i = 77 - strlen(s) * 3) - 2, 0, strlen(s) * 3 + 80, 15, 0);
+		TextOut(i, 2, s, 1);
+#else
+		Block(14, 0, 142, 16, 0);
+		Rectangle((i = 77 - strlen(s) * 3) - 2, 1, strlen(s) * 3 + 80, 16, 1);
+		TextOut(i, 3, s, 1);
+#endif
+
+GETNUM:
+		if (!Inputw("跳转到(Dec):", s, 6, s[0] = 0)) goto START;
+		a = atoi(s) + buf;
+		if (a > end) goto GETNUM;
+		if (*a == 10) a--;
+		if (*a >= 160)
+		{
+			if (Ismid(a, buf)) a--;
+		}
+		cursor = a;
+		new = 1;
+		goto START;
+	}
+	if (key == ESC_KEY)
+	{
+		if (!(cur = SubMenu("编译代码保存文件另存为..结束编辑", 4, 50, 12))) goto START;
+		if (cur == 7)//结束编辑
+		{
+			if (tb.chg)
+			{
+				if (Swin("文字已改变", "是否保存？", SWIN_TWO)) goto SAVETXT;
+			}
+			if (in.fp)
+			{
+				fclose(in.fp);
+				in.fp = 0;
+			}
+			Deltmp(tb);
+			return(1);
+SAVETXT:
+		}
+		if (!out.name[0] | cur == 6)
+		{
+			RmExt(out.name);
+			if (!Inputw("请输入文件名:", out.name, 11, 14)) goto START;
+			ChExt(out.name, "txt");//添加后缀名
+			if (!out.path[0]) strcpy(out.path, cfset.src);
+		}
+		Swin("信息", NULL, SWIN_COM);
+		//TextOut(43, 46, "保存中...", 128);
+		textout(43, 46, "保存中...", 128);
+		Refresh();
+		if (TextSave(buf, tb, filelen + 24)) goto START;//保存数据
+		if (cur == 4 || cur == 7)//退出,编译代码
+		{
+			Deltmp(tb);
+			return(cur - 4);
+		}
+	}
+BEEP:
+	if (!cfset.dat[0].tem[2].value) Beep();
+	goto START;
+}

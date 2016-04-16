@@ -1,0 +1,12 @@
+原型:void memset(int buffer, char c, int count);
+功能:把buffer所指内存区域的前count个字节设置成字符c，可以用来初始化数组。
+举例:
+char s[] = "Golden Global View";
+
+void main()
+{
+ SetScreen(0); 
+ memset(s, 'G', 6);
+ printf("%s", s);
+ getchar();
+}

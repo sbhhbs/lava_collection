@@ -1,0 +1,9 @@
+1	SndOpen		1
+1	SndPlayFile	1
+1	SndIfEnd	1
+1	SndPause	0
+1	SndResume	1
+1	SndSwitch	1
+1	GetVolume	1
+1	SndSetSpeed	0
+1	SndGetSpeed	1

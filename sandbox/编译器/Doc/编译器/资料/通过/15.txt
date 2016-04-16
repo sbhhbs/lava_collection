@@ -1,0 +1,637 @@
+//----------------------------------------------通用定义---------------------------------------------------//
+#define F1 28
+#define F2 29
+#define F3 30
+#define F4 31
+#define AC 13
+#define ESC 27
+#define UP 20
+#define DOWN 21
+#define LEFT 23
+#define RIGHT 22
+#define PAGEU 19
+#define PAGED 14
+#define HELP 25
+//-----------------------------------------------存储区----------------------------------------------------//
+#define LEN_E 500                                                  //事件表长度
+#define LEN_F 4000                                                 //缓冲区长度
+#define LEN_N 31                                                   //名称长度
+#define LEN_V 100                                                  //变量表长度
+//---------------------------------------------预处理系统--------------------------------------------------//
+#define CUSH 1024                                                  //文件包含缓冲
+#define OUT 8192                                                   //输出地址
+#define BLO 4000                                                   //输出缓冲
+#define IN 12192                                                 //输入地址
+#define BLT 4000                                                   //输入缓冲
+#define TAB 16192                                                 //宏表地址
+#define BLF 40                                                     //宏表缓冲
+#define NN 100                                                     //宏表长度
+//------------------------------------------------宏表-----------------------------------------------------//
+#define DOCF 7                                                     //文件夹名长度+3
+#define DOCN 10                                                    //文件夹的个数
+//---------------------------------------------存储变量区--------------------------------------------------//
+long aaa;
+int i_move;                                                        //指针
+struct EVENT                                                       //事件表
+{int style;                                                        //类型
+ long frto[2];                                                     //地址转移
+};
+struct EVENT move[LEN_E];                                          //长度为10字节
+int i_list;                                                        //指针
+struct TABLE                                                       //变量表
+{char type;                                                        //类型
+ int byte;                                                         //占用字节
+ char name[LEN_N];                                                 //名称
+ long value;                                                       //值
+ int dim[3];                                                       //下标(数组)
+};
+struct TABLE list[LEN_V];                                          //长度为13+LEN_N字节
+//-----------------------------------------------缓冲区----------------------------------------------------//
+char filedata[LEN_F]=                                              //输入缓冲
+{0};
+//---------------------------------------------以上是共用区------------------------------------------------//
+long offset;                                                       //资源偏移量
+int prog;                                                          //地址
+char filename[16];                                                 //文件名
+char i_d,data[255];          //输出数据
+//----------------------------------------------文件句柄区-------------------------------------------------//
+char new,mid,out;                                                  //原程序,中间代码,目标程序//
+//-----------------------------------------------标志区----------------------------------------------------//
+char lamp;                                                         //程序是否有#loadall:有1 无0
+char bid;                                                          //当前子程序是否是main:有1 无0
+char par;                                                          //子程序是否有返回值:有1 无0
+//-----------------------------------------------统计区----------------------------------------------------//
+char comp;                                                         //子程序个数//
+char label;                                                        //标号个数//
+int ivar,ovar;                                                     //内外变量总字节//
+char spo;                                                          //堆栈指针//
+char op;                                                           //运算符//
+long top[8];                                                       //循环首地址//
+char brac,ip;                                                      //大括号个数，循环个数//
+//-----------------------------------------------设置区(设计中)--------------------------------------------//
+struct CONFIG
+{char a;
+};
+struct CONFIG config;
+//----------------------------------------------即时变量区-------------------------------------------------//
+char str[31];                                                      //字符串
+long num;                                                          //值
+int stype;                                                         //当前数据类型
+char cop;                                                          //函数参数个数
+//----------------------------------------------图库-------------------------------------------------------//
+char QMark[128]=
+{0x00,0x1F,0xE0,0x00,0x00,0xE0,0x1C,0x00,0x03,0x00,0x03,0x00,0x04,0x00,0x00,0x80,0x08,0x00,0x00,0x40,0x10,
+ 0x0F,0xC0,0x20,0x20,0x11,0xE0,0x10,0x40,0x30,0xF0,0x08,0x40,0x3C,0xF0,0x0C,0x80,0x3C,0xF0,0x06,0x80,0x19,
+ 0xE0,0x06,0x80,0x01,0xC0,0x07,0x80,0x03,0x80,0x07,0x80,0x03,0x00,0x07,0x80,0x03,0x00,0x07,0x80,0x00,0x00,
+ 0x07,0x40,0x03,0x00,0x0F,0x40,0x07,0x80,0x0F,0x20,0x07,0x80,0x1E,0x10,0x03,0x00,0x3E,0x08,0x00,0x00,0x7C,
+ 0x04,0x00,0x00,0xF8,0x03,0x00,0x03,0xF0,0x01,0xE0,0x1F,0xE0,0x00,0xFC,0x3F,0xC0,0x00,0x3E,0x3F,0x00,0x00,
+ 0x06,0x38,0x00,0x00,0x01,0x38,0x00,0x00,0x00,0xB8,0x00,0x00,0x00,0x78,0x00,0x00,0x00,0x38,0x00,0x00,0x00,
+ 0x18,0x00};
+char AMark[128]=
+{0x00,0x07,0x00,0x00,0x00,0x08,0x80,0x00,0x00,0x10,0x60,0x00,0x00,0x10,0x70,0x00,0x00,0x20,0x38,0x00,0x00,
+ 0x20,0x38,0x00,0x00,0x40,0x1C,0x00,0x00,0x40,0x1C,0x00,0x00,0x80,0x0E,0x00,0x00,0x87,0x0E,0x00,0x01,0x0F,
+ 0x87,0x00,0x01,0x0F,0x87,0x00,0x02,0x0F,0x83,0x80,0x02,0x0F,0x83,0x80,0x04,0x0F,0x81,0xC0,0x04,0x07,0x01,
+ 0xC0,0x08,0x07,0x00,0xE0,0x08,0x07,0x00,0xE0,0x10,0x02,0x00,0x70,0x10,0x02,0x00,0x70,0x20,0x02,0x00,0x38,
+ 0x20,0x00,0x00,0x38,0x40,0x03,0x00,0x1C,0x40,0x07,0x80,0x1C,0x80,0x07,0x80,0x0E,0x80,0x03,0x00,0x0E,0x80,
+ 0x00,0x00,0x0F,0x80,0x00,0x00,0x0F,0x40,0x00,0x00,0x1F,0x3F,0xFF,0xFF,0xFF,0x0F,0xFF,0xFF,0xFE,0x07,0xFF,
+ 0xFF,0xFC};
+char Busy[128]=
+{0x00,0x00,0x00,0x00,0x00,0x7F,0xFF,0x00,0x00,0x40,0x01,0x00,0x00,0x40,0x01,0x00,0x00,0x40,0x01,0x00,0x00,
+ 0x40,0x01,0x00,0x00,0x55,0x55,0x00,0x00,0x6A,0xAB,0x00,0x00,0x55,0x55,0x00,0x00,0x2A,0xAA,0x00,0x00,0x15,
+ 0x54,0x00,0x00,0x0A,0xA8,0x00,0x00,0x05,0x50,0x00,0x00,0x02,0xA0,0x00,0x00,0x01,0x40,0x00,0x00,0x00,0x80,
+ 0x00,0x00,0x01,0x40,0x00,0x00,0x02,0x20,0x00,0x00,0x04,0x10,0x00,0x00,0x08,0x08,0x00,0x00,0x10,0x04,0x00,
+ 0x00,0x20,0x02,0x00,0x00,0x40,0x01,0x00,0x00,0x41,0x41,0x00,0x00,0x42,0xA1,0x00,0x00,0x45,0x51,0x00,0x00,
+ 0x4A,0xA9,0x00,0x00,0x55,0x55,0x00,0x00,0x6A,0xAB,0x00,0x00,0x55,0x55,0x00,0x00,0x7F,0xFF,0x00,0x00,0x00,
+ 0x00,0x00};
+char Doc[128]=
+{0x00,0x00,0x00,0x00,0x07,0xe0,0x00,0x00,0x1f,0xf8,0x00,0x00,0x30,0x0e,0x03,0xf0,0x20,0x03,0xfe,0x18,0x60,
+ 0x03,0x00,0x1e,0x40,0x00,0x07,0xff,0x40,0x00,0x3c,0x07,0x40,0x01,0xe0,0x07,0x40,0x0f,0x00,0x07,0x40,0xf8,
+ 0x00,0x07,0x47,0x80,0x00,0x16,0x5c,0x00,0x00,0x16,0x50,0x00,0x00,0x16,0x50,0x00,0x00,0x16,0x50,0x00,0x00,
+ 0x16,0x50,0x00,0x00,0x16,0x70,0x00,0x00,0x16,0x70,0x00,0x00,0x16,0x70,0x00,0x00,0x16,0x30,0x00,0x00,0x1e,
+ 0x30,0x00,0x00,0x1e,0x30,0x00,0x00,0x1e,0x30,0x00,0x00,0x1c,0x30,0x00,0x00,0x7c,0x30,0x00,0x03,0xfc,0x30,
+ 0x00,0x1f,0xfc,0x30,0x01,0xff,0xc0,0x30,0x3f,0xfc,0x00,0x3b,0xff,0x80,0x00,0x1f,0xf0,0x00,0x00,0x1f,0x00,
+ 0x00,0x00};
+char Save[128]=
+{0x00,0x3f,0xfe,0x00,0x00,0x75,0x0f,0x00,0x00,0x70,0x07,0x80,0x00,0xf4,0x07,0x00,0x00,0x70,0x07,0x00,0x00,
+ 0xe0,0x0f,0x00,0x00,0x70,0x0f,0x00,0x00,0xf0,0x5f,0x00,0x00,0x7f,0xff,0x00,0x00,0xfc,0x17,0x00,0x00,0x70,
+ 0xf7,0x00,0x01,0xf3,0x77,0xc0,0x00,0x73,0x77,0xe0,0x00,0x73,0xf7,0x30,0x00,0x7f,0xff,0x98,0x00,0x3f,0xff,
+ 0x6c,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x02,0x9a,0xaa,0x80,0x03,0x15,0x50,0x00,0x03,0xab,0x55,0x00,0x03,
+ 0x17,0xff,0xff,0xc3,0x97,0xff,0xff,0xc3,0x00,0x00,0x00,0x03,0x80,0x00,0x00,0x03,0x00,0x00,0x00,0x13,0x80,
+ 0x00,0x00,0x33,0x00,0x00,0x00,0x33,0x80,0x00,0x00,0x03,0x7f,0xff,0xff,0xff,0x3f,0xff,0xff,0xfe,0x00,0x00,
+ 0x00,0x00};
+char Man[128]=
+{0x00,0x00,0x08,0x00,0x00,0x00,0x1c,0x00,0x00,0x00,0x18,0x00,0x6d,0x00,0x70,0x00,0xd0,0x00,0x60,0x00,0xa8,
+ 0x00,0xc0,0x00,0xa8,0x00,0xc0,0x00,0xa4,0x41,0x82,0x00,0xaa,0x61,0x86,0x00,0x54,0x63,0x02,0x00,0xea,0x63,
+ 0x06,0x00,0x55,0x47,0x00,0x00,0xea,0x92,0x00,0x00,0x55,0x46,0x00,0x00,0xf5,0x56,0x00,0x00,0x5a,0x8c,0x00,
+ 0x00,0xf6,0xf7,0xa0,0x00,0xdd,0x0f,0xf0,0x00,0xf6,0xf0,0x30,0x00,0xff,0x5f,0xf0,0x41,0xfb,0xf5,0x61,0xe0,
+ 0xff,0xff,0xff,0xc1,0xff,0xff,0xfe,0x00,0xff,0xff,0xe0,0x01,0xff,0xff,0xf0,0x0a,0xff,0xff,0xf0,0x11,0xff,
+ 0xff,0xf2,0xaa,0xff,0xff,0xb0,0x05,0x2a,0xaa,0xba,0xaa,0x00,0x00,0x18,0x00,0x00,0x00,0x18,0x00,0x00,0x00,
+ 0x08,0x00};
+char Pen[128]=
+{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x78,0x00,0x00,0x00,0x9c,0x00,0x00,0x00,0x8a,0x00,0x00,0x00,0x65,0x00,
+ 0x00,0x00,0x26,0x01,0x80,0x00,0x19,0x06,0x60,0x00,0x08,0x98,0x18,0x00,0x06,0x60,0x06,0x00,0x02,0x24,0x81,
+ 0x80,0x07,0x93,0x20,0xe0,0x18,0xf8,0xc8,0xd8,0x60,0x2c,0x12,0x96,0x81,0x9d,0x08,0xc7,0x64,0x46,0xc0,0x9e,
+ 0x18,0x00,0x20,0xf8,0x76,0x04,0x00,0xf6,0xaf,0x82,0x05,0xbb,0x75,0xe0,0x97,0xd6,0x1a,0xb8,0x5e,0xb8,0x07,
+ 0x76,0x75,0x60,0x01,0xaf,0xbb,0x80,0x00,0x75,0xd6,0x00,0x00,0x1a,0xb8,0x00,0x00,0x07,0x60,0x00,0x00,0x01,
+ 0x80,0x00};
+//----------------------------------------------通用函数---------------------------------------------------//
+void dwindow(int tag)
+{ClearScreen();TextOut(3,2,tag,1);Rectangle(1,0,159,79,1);
+ Rectangle(120,2,131,13,1);Rectangle(122,10,129,11,1);
+ Rectangle(133,2,144,13,1);Rectangle(135,4,142,11,1);Line(135,5,142,5,65);
+ Rectangle(146,2,157,13,1);Line(149,5,154,10,65);Line(149,10,154,5,65);
+ Line(1,15,159,15,65);
+}
+long swindow(int tag,int string,char mode)
+{char k;
+ Block(16,19,141,73,1);Block(15,18,140,72,0);Rectangle(15,18,140,72,1);TextOut(17,20,tag,1);
+ Rectangle(101,20,112,31,1);Rectangle(103,28,110,29,1);
+ Rectangle(114,20,125,31,1);Rectangle(116,22,123,29,1);Line(116,23,123,23,65);
+ Rectangle(127,20,138,31,1);Line(130,23,135,28,65);Line(130,28,135,23,65);Line(15,33,140,33,65);
+ if(mode==1||mode==3)
+  {WriteBlock(17,35,32,32,1,QMark);TextOut(49,37,string,1);
+   Block(56,57,86,70,1);Block(55,56,85,69,0);TextOut(56,57,"是(Y)",1);Rectangle(55,56,85,69,1);
+   Block(99,57,129,70,1);Block(98,56,128,69,0);TextOut(99,57,"否(N)",1);Rectangle(98,56,128,69,1);
+   if(mode==3)return(0);Refresh();
+   for(;;)
+    {k=Inkey();
+     if(k=='y'){Box(55,56,85,69,1,1);Delay(300);Refresh();return(1);}
+     if(k=='n'){Box(98,56,128,69,1,1);Delay(300);Refresh();return(0);}
+    }
+  }
+ else if(mode==2)
+  {WriteBlock(17,35,32,32,1,AMark);TextOut(49,37,string,1);
+   Block(75,57,99,70,1);Block(74,56,98,69,0);TextOut(75,57,"确定",1);Rectangle(74,56,98,69,1);
+   Refresh();while(Inkey()!=AC){}Box(74,56,98,69,1,1);Delay(300);Refresh();
+  }
+}
+void input(int string,int name,char mode,char len)//可以加入汉字
+{char i;
+ char k,tmp,start,j,type,max;
+ long n;
+ char sign[11];
+ swindow("输入",0,4);TextOut(17,35,string,1);Rectangle(18,52,137,66,1);
+ i=0;k=0;start=0;strcpy(sign,"0bnmghjtyu");max=1;type=0;
+ for(;;)
+  {Block(19,53,136,65,0);TextOut(19,54,name,1);j=0;n=0;
+   if(mode)TextOut(120,40,"num",1);else if(max)TextOut(120,40,"ENG",1);else TextOut(120,40,"eng",1);
+   while(j<150)
+    {if(!n)Block(19+6*i,53+12*type,25+6*i,65,2);if((n++)==60)n=0;Refresh();
+     tmp=k;k=CheckKey(128);if(!k)continue;
+     if(k==tmp){if(start){j=150;Delay(50);break;}j++;}else break;
+    }
+   if(j==150)start=1;else start=0;
+   if(k==F1){type=1-type;continue;}
+   if(k==F2){if(!(*(name+i))&&i)*(name+(--i))=0;else memmove(name+i,name+i+1,strlen(name+i));continue;}
+   if(k==F3){i=0;continue;}
+   if(k==F4){i=strlen(name);continue;}
+   if(k==AC){Delay(120);ReleaseKey(128);return;}
+   if(k==HELP){}
+   if(k==26){mode=1-mode;continue;}
+   if(k==18){max=1-max;continue;}
+   if(k==ESC){memset(name,0,strlen(name));Delay(120);ReleaseKey(128);return;}
+   if(k==LEFT&&i){i--;continue;}
+   if(k==RIGHT&&i<strlen(name)){i++;continue;}
+   if((k&0xff00)==0&&isprint(k)&&strlen(name)<len)
+    {if(!mode){if(k=='0'){tmp=GetWord(0);Delay(150);}else if(max)tmp=k-32;else tmp=k;}
+     else if(strchr(sign,k))tmp=strchr(sign,k)-sign+'0';
+     else tmp=k;
+     if(type)memmove(name+i+1,name+i,strlen(name+i));*(name+(i++))=tmp;
+    }
+  }
+}
+void error(long p,char mode)
+{dwindow("错误");TextOut(3,63,"建议:",1);TextOut(37,35,"发生在:",1);WriteBlock(3,17,32,32,1,AMark);
+ Block(35,62,156,77,1);Block(34,61,155,76,0);Rectangle(34,61,155,76,1);
+ if(mode==1)//预处理系统
+  {TextOut(45,18,"无法打开文件!",129);
+   TextOut(2,49,"该文件名:",1);TextOut(56,49,p,1);
+   TextOut(36,63,"请修理后再试!",1);
+  }
+ else if(mode==2)
+  {TextOut(45,18,"无法进入目录!",129);
+   TextOut(2,49,"该目录:",1);TextOut(44,49,p,1);
+   TextOut(36,63,"请修理后再试!",1);
+  }
+ else if(mode==3)
+  {TextOut(45,18,"无法创建文件!",129);
+   TextOut(2,49,"该文件名:",1);TextOut(56,49,p,1);
+   TextOut(36,63,"请修理后再试!",1);
+  }
+ else if(mode==4)
+  {TextOut(45,18," 无法展开宏!",129);
+   TextOut(2,49,"该宏名:",1);TextOut(42,49,p,1);
+   TextOut(36,63,"请优化原程序!",1);
+  }
+ else if(mode==5)
+  {TextOut(45,18," 字符串太长!",129);
+   TextOut(2,49,"该字符串:",1);TextOut(56,49,p,1);
+   TextOut(36,63,"缺少\",请检查原文件",1);
+  }
+ else if(mode==6)
+  {TextOut(68,18,"空文件!",129);
+   TextOut(36,63,"检查文件是否有问题",1);
+  }
+ else if(mode==7)
+  {TextOut(58,18,"非法字符!",129);
+   TextOut(2,49,"该字符:",1);TextOut(44,49,p,1);
+   TextOut(36,63,"请仔细阅读语法!",1);
+  }
+ else if(mode==8)
+  {TextOut(58,18," 空字符!",129);
+   TextOut(2,49,"该字符:",1);TextOut(44,49,p,1);
+   TextOut(36,63,"请仔细阅读语法!",1);
+  }
+ else if(mode==9)
+  {TextOut(58,18," 长字符!",129);
+   TextOut(2,49,"该字符:",1);TextOut(44,49,p,1);
+   TextOut(36,63,"请仔细阅读语法!",1);
+  }
+ else if(mode==10)
+  {TextOut(46,18,"自定义宏太多!",129);
+   TextOut(2,49,"该宏名:",1);TextOut(44,49,p,1);
+   TextOut(36,63,"请仔细阅读语法!",1);
+  }
+ else if(mode==11)
+  {TextOut(46,18,"大括号不配对!",129);
+   TextOut(2,49,"该值:",1);
+   TextOut(36,63,"请仔细检查程序!",1);
+  }
+  else if(mode==12)
+  {TextOut(46,18,"中括号不配对!",129);
+   TextOut(2,49,"该值:",1);
+   TextOut(36,63,"请仔细检查程序!",1);
+  }
+ else if(mode==13)
+  {TextOut(46,18,"小括号不配对!",129);
+   TextOut(2,49,"该值:",1);
+   TextOut(36,63,"请仔细检查程序!",1);
+  }
+ else if(mode==14)
+  {TextOut(46,18,"缺少main函数!",129);
+   TextOut(36,63,"请仔细检查程序!",1);
+  }
+ else if(mode==64)//编译系统
+  {
+  }
+ else if(mode==128)//公共
+  {
+  }
+ else if(mode==192)//其他
+  {
+  }
+ else TextOut(2,49,"if(y)box(10,1,13,103,1,1);",1);
+ Refresh();getchar();
+ fclose(new);fclose(mid);exit(0);
+}
+void readout(int p,int size,char file)
+{long addrs;
+ int n;
+ addrs=ftell(file);memset(p,0,size);n=fread(p,1,size-1,file);if(n<size-1)return;n=p+n;
+ if(!strchr(p,';'))
+  {if(!strchr(p,','))
+    {if(!strchr(p,'\n'))error(1,255);
+     else{while(*n!='\n')n--;}
+    }
+   else{while(*n!=',')n--;}
+  }
+ else{while(*n!=';')n--;}
+ memset((++n),0,size-(n-p));addrs=addrs+n-p;fseek(file,addrs,0);return;
+}
+//-----------------------------------------------宏处理系统------------------------------------------------//
+void macro(char mode,int name,int v,int n)//mode=1-read;mode=2-write;
+{char god;
+ int table;
+ ChDir("/LavaData");table=TAB;
+ if((god=fopen("macro.dat","r+"))==0)//宏定义读取
+  {if((god=fopen("macro.dat","w"))==0)error("macro.dat",162);
+   *table=1;strcpy(table+1,"NULL");*(table+20)='0';table=table+BLF;
+   *table=1;strcpy(table+1,"SEEK_SET");*(table+20)='0';table=table+BLF;
+   *table=1;strcpy(table+1,"SEEK_CUR");*(table+20)='1';table=table+BLF;
+   *table=1;strcpy(table+1,"SEEK_END");*(table+20)='2';table=table+BLF;
+   *table=1;strcpy(table+1,"EOF");strcpy(table+20,"-1");fwrite(TAB,1,4000,god);
+   *name=1;*(name+1)=5;strcpy(name+2,"内置");fwrite(name,1,70,god);
+   putc(5,god);putc(1,god);*v=5;*n=1;fclose(god);return;
+  }
+ if(mode==2)
+  {fwrite(TAB,1,4000,god);fwrite(name,1,70,god);putc(*v,god);putc(*n,god);fclose(god);return;}
+ fread(TAB,1,4000,god);fread(name,1,70,god);*v=getc(god);*n=getc(god);fclose(god);return;
+}
+long Move(int name,int topn,char mode)
+{char i,k;
+ i=0;swindow("移动","移动到:",3);Rectangle(89,36,114,50,1);
+ if(mode)TextOut(115,37,"之后",1);else TextOut(115,37,"之中",1);
+ for(;;)
+  {Block(92,38,113,48,0);TextOut(90,38,name+2+DOCF*i,1);Refresh();k=Inkey();
+   if((k==RIGHT||k==DOWN)&&i<*topn-1){i++;continue;}
+   if((k==LEFT||k==UP)&&i){i--;continue;}
+   if(k=='y'){Box(55,56,85,69,1,1);Delay(300);Refresh();return(i);}
+   if(k=='n'){Box(98,56,128,69,1,1);Delay(300);Refresh();return(255);}
+  }
+}
+void piclook()
+{dwindow("自定义宏");Rectangle(3,21,110,77,1);TextOut(10,16,"浏览",1);
+ Block(115,17,157,30,1);Block(114,16,156,29,0);TextOut(115,17,"添加(A)",1);Rectangle(114,16,156,29,1);
+ Block(115,33,157,46,1);Block(114,32,156,45,0);TextOut(115,33,"删除(D)",1);Rectangle(114,32,156,45,1);
+ Block(115,49,157,62,1);Block(114,48,156,61,0);TextOut(115,49,"移动(M)",1);Rectangle(114,48,156,61,1);
+ Block(115,65,157,78,1);Block(114,64,156,77,0);TextOut(115,65,"保存(S)",1);Rectangle(114,64,156,77,1);
+}
+void look()
+{char k;
+ char name[DOCN][DOCF],t_name[20];//名称缓冲
+ char m,n,vn;//各种值
+ char l,t,r,b;//项,页
+ char v1,v2;//值
+ char topv,topn;//最大宏个数，最大文件夹数
+ char flag;//更改标志
+ char link[4];
+ l=0;t=0;flag=0;piclook();TextOut(30,45,"载入中...",1);Refresh();//界面
+ macro(1,name,&topv,&topn);//宏读取
+ for(;;)
+  {Block(4,28,109,76,0);
+   for(n=0;n<3&&n+3*t<topn;n++){WriteBlock(5+35*n,28,32,32,1,Doc);TextOut(10+35*n,63,name[n+3*t]+2,1);}
+   Block(5+35*l,28,37+35*l,60,2);Refresh();Block(5+35*l,28,37+35*l,60,2);
+   while(!(k=Inkey()));
+   if(k=='a'||k==F1)//插入
+    {Box(114,16,156,29,1,1);Delay(300);Refresh();
+     if(topn==10){swindow("提醒!","文件夹已达10个",2);piclook();continue;}
+     input("请输入文件夹名:",name[topn]+2,0,4);
+     for(m=0;m<topn;m++)
+      {if(!strcmp(name[m]+2,name[topn]+2))
+        {swindow("警告!","存在同名文件夹",2);memset(name[topn],0,DOCF);break;}
+      }
+     if(name[topn][aaa=2])//分配数值
+      {for(m=1;m<11;m++){for(n=0;n<topn;n++){if(m==name[n][aaa=0])break;}if(n==topn)break;}
+       name[topn++][aaa=0]=m;flag=1;
+      }
+     piclook();continue;
+    }
+   if((k=='d'||k==F2)&&topn)//删除
+    {Box(114,32,156,45,1,1);Delay(300);Refresh();
+     if(!swindow("删除?"," 真的要删除么?",1)){piclook();continue;}
+     piclook();vn=3*t+l;v1=name[vn][aaa=0];v2=name[vn][aaa=1];n=0;m=0;
+     while(n<v2)//宏删除
+      {if(*(TAB+40*m)==v1)
+        {memmove(TAB+BLF*m,TAB+BLF*(m+1),BLF*((--topv)-m));memset(TAB+BLF*topv,0,BLF);n++;}
+       else m++;
+      }
+     memmove(name[vn],name[vn+1],DOCF*((--topn)-vn));memset(name[topn],0,DOCF);//文件夹删除
+     flag=1;if(!name[vn][aaa=0])k=LEFT;else continue;
+    }
+   if(k==F3&&topn)//查找
+    {memset(t_name,0,20);input("请输入文件夹名:",t_name,0,4);
+     for(m=0;m<topn;m++){if(!strcmp(name[m]+2,t_name)){t=m/3;l=m%3;break;}}
+     if(m==topn){swindow("信息!","  没有找到！",2);}
+     piclook();continue;
+    }
+   if(k==F4&&topn)//修改
+    {memset(t_name,0,20);input("当前名称替换为:",t_name,0,4);n=3*t+l;
+     for(m=0;m<topn;m++)
+      {if(!strcmp(name[m]+2,t_name)&&n!=m){swindow("警告!","存在同名文件夹",2);memset(t_name,0,20);break;}}
+     if(strcmp(t_name,name[n]+2)&&t_name[aaa=0]){strcpy(name[n]+2,t_name);flag=1;}piclook();continue;
+    }
+   if(k=='m'&&topn)//移动
+    {Box(114,48,156,61,1,1);Delay(300);Refresh();
+     vn=Move(name,&topn,1);
+     if(vn!=255)
+      {n=3*t+l;memcpy(t_name,name[n],DOCF);
+       if(n<vn){while(n<vn)memmove(name[n++],name[n],DOCF);}else{while(n>vn)memmove(name[n--],name[n],DOCF);}
+       memcpy(name[vn],t_name,DOCF);flag=1;
+      }
+      piclook();continue;
+    }
+   if(k=='s')//宏写入
+    {Box(114,64,156,77,1,1);Delay(300);Refresh();
+     Block(4,29,109,76,0);TextOut(30,45,"保存中...",1);Refresh();
+     macro(2,name,&topv,&topn);flag=0;continue;
+    }
+   if((k==UP||k==PAGEU)&&t){t--;continue;}
+   if((k==DOWN||k==PAGED)&&(3*(t+1)+l)<topn){t++;continue;}
+   if(k==LEFT){if(l)l--;else if(t){t--;l=2;}continue;}
+   if(k==RIGHT){if(l<n-1)l++;else if(3*(t+1)<topn){t++;l=0;}continue;}
+   if(k==AC)//宏浏览
+    {v1=name[aaa=3*t+l][aaa=0];v2=name[aaa=3*t+l][aaa=1];r=0;b=0;
+     for(;;)
+      {Block(4,28,109,76,0);n=0;vn=0;memset(link,0,4);
+       for(m=0;n<v2&&vn<4;m++)
+        {if(*(TAB+BLF*m)==v1)
+          {if((n++)>=4*b)
+            {memset(t_name,0,20);memcpy(t_name,TAB+BLF*m+(aaa=1),7);strcpy(t_name+7,"..");
+             TextOut(4,28+12*vn,t_name,1);link[vn]=m;memset(t_name,0,20);
+             memcpy(t_name,TAB+BLF*m+20,7);strcpy(t_name+7,"..");TextOut(56,28+12*vn++,t_name,1);
+            }
+          }
+        }
+       Block(4,28+12*r,109,39+12*r,2);Refresh();Block(4,28+12*r,109,39+12*r,2);
+       while(!(k=Inkey()));
+       if(k=='a'||k==F1)//插入
+        {Box(114,16,156,29,1,1);Delay(300);Refresh();
+         if(topv==NN){swindow("提醒!"," 宏已达100个!",2);piclook();continue;}
+         input("请输入宏名:",TAB+BLF*topv+(aaa=1),0,18);
+         for(m=0;m<topv;m++)
+          {if(!strcmp(TAB+BLF*m+(aaa=1),TAB+BLF*topv+(aaa=1)))
+            {swindow("警告!","存在同名的宏！",2);memset(TAB+BLF*topv,0,BLF);break;}
+          }
+         if(*(TAB+BLF*topv+(aaa=1)))
+          {input("请输入宏值:",TAB+BLF*topv+(aaa=20),1,18);
+           if(*(TAB+BLF*topv+(aaa=20))){*(TAB+BLF*(topv++))=v1;name[aaa=3*t+l][aaa=1]=(++v2);flag=1;}
+           else memset(TAB+BLF*topv,0,BLF);
+          }
+         piclook();continue;
+        }
+       if((k=='d'||k==F2)&&v2)//删除
+        {Box(114,32,156,45,1,1);Delay(300);Refresh();
+         if(!swindow("删除?"," 真的要删除么?",1)){piclook();continue;}
+         piclook();memmove(TAB+BLF*link[r],TAB+BLF*(link[r]+1),BLF*((--topv)-link[r]));
+         memset(TAB+BLF*topv,0,BLF);flag=1;name[aaa=3*t+l][aaa=1]=(--v2);if(!(*(TAB+BLF*link[r])))k=UP;else continue;
+        }
+       if(k==F3&&topv)//查找
+        {memset(t_name,0,20);input("请输入宏名:",t_name,0,18);
+         for(m=0;m<topv;m++)
+          {if(!strcmp(TAB+BLF*m+(aaa=1),t_name))
+            {v1=*(TAB+BLF*m);for(n=0;n<topn;n++){if(name[n][aaa=0]==v1)break;}t=n/3;l=n%3;v2=name[n][aaa=1];
+             vn=0;for(n=0;n<m;n++){if(*(TAB+BLF*n)==v1)vn++;}b=vn/4;r=vn%4;break;
+            }
+          }
+         if(m==topv){swindow("信息!","  没有找到！",2);}piclook();continue;
+        }
+       if(k==F4&&v2)//修改
+        {memset(t_name,0,20);input("当前宏名替换为:",t_name,0,18);
+         for(m=0;m<topv;m++)
+          {if(!strcmp(TAB+BLF*m+(aaa=1),t_name)){swindow("警告!","存在同名的宏!",2);memset(t_name,0,20);break;}}
+         if(strcmp(t_name,TAB+BLF*link[r]+(aaa=1))&&t_name[aaa=0]){strcpy(TAB+BLF*link[r]+(aaa=1),t_name);flag=1;}
+         memset(t_name,0,20);input("当前宏值替换为:",t_name,0,18);
+         if(strcmp(t_name,TAB+BLF*link[r]+(aaa=20))&&t_name[aaa=0]){strcpy(TAB+BLF*link[r]+(aaa=20),t_name);flag=1;}
+         piclook();continue;
+        }
+       if(k=='m'&&topv)//移动
+        {Box(114,48,156,61,1,1);Delay(300);Refresh();n=Move(name,&topn,0);
+         if(n!=255&&n!=3*t+l){*(TAB+BLF*link[r])=name[n][aaa=0];name[n][aaa=1]++;name[aaa=3*t+l][aaa=1]=(--v2);flag=1;}
+         piclook();if(r>=vn-1)k=UP;else continue;
+        }
+       if(k=='s')//宏写入
+        {Box(114,64,156,77,1,1);Delay(300);Refresh();
+         Block(4,29,109,76,0);TextOut(30,45,"保存中...",1);Refresh();
+         macro(2,name,&topv,&topn);flag=0;continue;
+        }
+       if(k==UP){if(r)r--;else if(b){b--;r=3;}continue;}
+       if(k==DOWN){if(r<vn-1)r++;else if(4*(b+1)<v2){b++;r=0;}continue;}
+       if(k==PAGEU&&b){b--;continue;}
+       if(k==PAGED&&(4*(b+1)+r)<v2){b++;continue;}
+       if(k==AC&&v2)//查看
+        {swindow("查看",0,4);
+         TextOut(16,38,"M:",1);TextOut(28,38,TAB+BLF*link[r]+(aaa=1),1);Line(28,49,136,49,65);
+         TextOut(16,55,"Z:",1);TextOut(28,55,TAB+BLF*link[r]+(aaa=20),1);Line(28,66,136,66,65);
+         Refresh();while(Inkey()!=ESC){}piclook();continue;
+        }
+       if(k==ESC)break;
+      }
+     continue;
+    }
+   if(k==ESC){if(flag){if(swindow("退出?","警告:数据已更改",1))return;piclook();continue;}return;}
+  }
+}
+//----------------------------------------------预处理系统-------------------------------------------------//
+void change(long n,int string)
+{char i,ch;
+ while(n)
+  {i=n%10;n=n/10;
+   if(i>=0&&i<=9)ch=i|0x30;if(i>9&&i<36)ch=i+55;
+   memmove(string+1,string,strlen(string)+1);*string=ch;
+  }
+}
+void progress(long p1,long p2,char mode)
+{if(mode==1)
+  {dwindow("进度");TextOut(66,22,p1,129);TextOut(3,63,"状态:",1);
+   Block(35,62,156,77,1);Block(34,61,155,76,0);Rectangle(34,61,155,76,1);TextOut(36,63,p2,1);
+   Block(45,45,150,55,0);Rectangle(45,45,150,55,1);
+   WriteBlock(8,20,32,32,1,Busy);Refresh();return;
+  }
+ Block(45,45,45+105*p1/p2,55,1);
+ for(mode=0;mode<8;mode++)Line(56+mode*12,46,56+mode*12,54,64);
+ Refresh();
+}
+void pretreat()
+{char sign[24],cush[CUSH];//缓冲
+ int pout,getn;//各个地址
+ long end;//文件长度
+ char dbrac,zbrac,xbrac,god;//错误检测
+ char i;//临时变量
+ char topv;//宏总数
+//---------------------------------------图形界面------------------------------------------//
+ progress("载入中...","预处理系统正在运行",1);//消息框
+//--------------------------------------初始化---------------------------------------------//
+ strcpy(sign,",;{}[]().!~+-*/%<>=&|^:");memset(OUT,0,12000);pout=OUT;getn=IN;
+ dbrac=0;zbrac=0;xbrac=0;
+//-------------------------------------文件操作--------------------------------------------//
+ if((new=fopen(filename,"r"))==0)error(filename,1);//打开原文件
+ fseek(new,0,2);end=ftell(new);rewind(new);//文件长度读取
+ if(!getc(new))fseek(new,24,0);else rewind(new);if(!end)error(0,6);//空文件判断
+ macro(1,cush,&topv,cush);memset(cush,0,CUSH);//宏读取
+ if(!ChDir("/函数库")){MakeDir("/函数库");if(!ChDir("/函数库"))error("/函数库",2);}
+ god=strlen(filename);filename[god-3]='h';filename[god-2]=0;god=0;
+ if((mid=fopen(filename,"w+"))==0)error(filename,3);//创建中间文件
+ progress("提取中...","预处理系统正在运行",1);//消息框
+//-----------------------------------------------------------------------------------------//
+ for(;;)
+  {if(*pout==0){readout(OUT,BLO,new);pout=OUT;if(*pout==0){fclose(new);break;}}//输出溢出判断
+   if(*pout=='/')
+    {if(*(pout+1)=='/')//注释分析1//
+      {pout++;jum1:for(;*pout!=13&&*pout;)pout++;
+       if(*pout==0){readout(OUT,BLO,new);pout=OUT;if(*pout==0)break;goto jum1;}//输出溢出判断
+       continue;
+      }
+     if(*(pout+1)=='*')//注释分析2//
+      {pout++;jum2:for(;(*pout!='*'||*(pout+1)!='/')&&*pout;)pout++;
+       if(*pout==0){readout(OUT,BLO,new);pout=OUT;if(*pout==0)break;goto jum2;}//输出溢出判断
+       pout=pout+2;continue;
+      }
+    }
+   if(strchr(sign,*pout))//符号分析//
+    {if(*pout=='{')dbrac++;else if(*pout=='}')dbrac--;else if(*pout=='[')zbrac++;
+     else if(*pout==']')zbrac--;else if(*pout=='(')xbrac++;else if(*pout==')')xbrac--;
+     else if(*pout==';'||*pout==',')progress(ftell(new)-strlen(pout),end,2);//进度查看
+     if(*(getn-1)==' ')getn--;if(getn==TAB-(aaa=2)){fwrite(IN,1,strlen(IN),mid);memset(IN,0,BLT);getn=IN;}
+     *getn++=*pout++;continue;//输入溢出判断(上)
+    }
+   if(isalnum(*pout)||*pout=='_')//词汇分析//
+    {memset(str,0,31);i=0;do{str[i++]=*pout++;}while((*pout=='_'||isalnum(*pout))&&i<30)
+     while(*pout=='_'||isalnum(*pout)){pout++;}//除去多余字符
+     for(i=0;i<topv;i++)//查找宏表
+      {if(!strcmp(str,TAB+i*BLF+(aaa=1)))
+       {if(pout-OUT<strlen(TAB+BLF*i+(aaa=20)))error(TAB+i*BLF+(aaa=1),4);
+        pout=pout-strlen(TAB+BLF*i+(aaa=20));memcpy(pout,TAB+BLF*i+(aaa=20),strlen(TAB+BLF*i+(aaa=20)));break;
+       }
+      }
+     if(i==topv)//没有找到宏
+      {if(TAB-getn<40){fwrite(IN,1,strlen(IN),mid);memset(IN,0,BLT);getn=IN;}//输入溢出判断
+       strcat(getn,str);getn=getn+strlen(str);*getn++=' ';
+      }
+     continue;
+    }
+   if(*pout=='"')//字符串//
+    {if(TAB-getn<200){fwrite(IN,1,strlen(IN),mid);memset(IN,0,BLT);getn=IN;}//输入溢出判断
+     do{if(*pout==92)//转意字符
+         {pout++;
+          if(*pout=='n')*getn++=10;
+          else if(*pout=='\'')*getn++=39;
+          else if(*pout=='\"')*getn++=34;
+          pout++;continue;
+         }
+        *getn++=*pout++;
+        if(*pout==0){readout(OUT,BLO,new);pout=OUT;}//输出溢出判断
+       }while(*pout!='"'&&*pout)
+     if(!(*pout))error(pout,5);*getn++=*pout++;continue;
+    }
+   if(*pout==13){do{pout=pout+2;}while(*pout==13)continue;}//换行分析//
+   if(*pout==' '||*pout==9){do{pout++;}while(*pout==' '||*pout==9)continue;}//空格分析//
+   if(*pout=='\'')//'
+    {if(*(++pout)=='\'')error(pout,8);memset(str,0,31);
+     if(*pout==92)//转意字符
+         {pout++;
+          if(*pout=='n')change(10,str);
+          else if(*pout=='\'')change(39,str);
+          else if(*pout=='\"')change(34,str);
+          pout++;
+         }
+      else change(*pout++,str);
+     if(TAB-getn<strlen(str)+3){fwrite(IN,1,strlen(IN),mid);memset(IN,0,BLT);getn=IN;}//输入溢出判断
+     strcat(getn,str);getn=getn+strlen(str);if(*pout==0){readout(OUT,BLO,new);pout=OUT;}//输出溢出判断
+     if(*(pout++)!='\'')error(pout,9);continue;
+    }
+   if(*pout=='#')//自定义宏
+    {pout++;memset(str,0,31);i=0;do{str[i++]=*pout++;}while((*pout=='_'||isalnum(*pout))&&i<30)
+     while(*pout=='_'||isalnum(*pout)){pout++;}while(*pout==' '||*pout==9){pout++;}//除去多余字符和空格
+     if(!strcmp(str,"loadall")){lamp=1;continue;}
+     if(!strcmp(str,"define"))
+      {if(topv==NN)error(pout,10);
+       memset(str,0,31);i=0;do{str[i++]=*pout++;}while((*pout=='_'||isalnum(*pout))&&i<18)
+       strcpy(TAB+BLF*topv+(aaa=1),str);while(*pout=='_'||isalnum(*pout)){pout++;}//除去多余字符
+       while(*pout==' '||*pout==9){pout++;}memset(str,0,31);i=0;
+       do{str[i++]=*pout++;}while((*pout=='_'||isalnum(*pout))&&i<18)
+       strcpy(TAB+BLF*(topv++)+(aaa=20),str);continue;
+      }
+     if(!strcmp(str,"include"))
+      {
+      }
+     if(!strcmp(str,"if"))
+      {
+      }
+    }
+   error(pout,7);
+  }
+ fwrite(IN,1,strlen(IN),mid);rewind(mid);progress(end,end,2);
+//--------------------------------错误检测-------------------------------------------------//
+ if(dbrac)error(dbrac,11);if(zbrac)error(zbrac,12);if(xbrac)error(xbrac,13);if(god)error(0,14);
+}
+void main()
+{ChDir("/文本文件");strcpy(filename,"a.txt");pretreat();
+ SetScreen(0);printf("\n\n        OK!");getchar();
+}
+/*通用编译伪代码:
+1=外变量|2=内变量|3=外数组|4=内数组|5=标号|6-子程序|7-外结构体|8-内结构体|9=外共用体|10=内共用体
+11=数字|12=运算符|13=字符串|14=函数|15={|16=}|17=[|18=]|19=(|20=)|21=,|22=;|
+0=无|1=数组转移|2=临时转移|3~38=子程序转移|39~74=标号转移|75~110=if转移|111~146=while转移|147~182=for转移
+183~218=continue转移|219~254=break转移
+*/

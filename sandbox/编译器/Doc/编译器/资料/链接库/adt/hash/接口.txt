@@ -1,0 +1,6 @@
+1	SwitchHash	1
+1	InitHash	1
+0	Hash		1
+1	SearchHash	1
+1	InsertHash	1
+1	DeleteHash	1

@@ -1,0 +1,24 @@
+原型:int isdigit(char c);
+功能:判断字符c是否为数字
+说明:当c为数字0-9时,返回非零值,否则返回零
+举例:
+void digit(char c)
+{
+ if (isdigit(c))
+ {
+  printf("%c:是数字\n", c);
+ }
+ else
+ {
+  printf("%c:不是数字\n", c);
+ }
+}
+
+void main()
+{
+ SetScreen(0);
+ digit('a');
+ digit('9');
+ digit('*');
+ getchar();
+}

@@ -1,0 +1,115 @@
+//*********************************************************定义*********************************************************//
+#if DEBUG != 0
+#define WQX			16													//DEBUG
+#endif
+
+#ifndef WQX
+#define WQX			8													//默认文曲星平台
+#endif
+//********************************************************TC 800********************************************************//
+#if WQX == 0
+#define PUBLIC		16500												//公共缓冲区
+//帮助
+#define HLP_L_SIZE	17000												//文字行数
+//编辑
+#define TXT_SIZE	12650												//缓冲区长度
+#define TXT_T_SIZE	300													//表大小
+#define TXT_C_SIZE	400													//临时缓冲区大小
+#define CLI_SIZE	2048												//剪切板长度
+#define SKFUN_L_LEN	200													//检索个数
+//编译
+#define FB_C_SIZE	5000												//总缓冲区长度
+#define VAR_SIZE	1000												//变量链表大小
+#define LIB_SIZE	20													//链接个数
+//查看
+#define TIME_DELAY	64													//输入时间延迟
+#define DOC_D_SIZE	255													//文件表长度<=256
+#define MAC_M_SIZE	255													//宏表长度<=256
+//预处理
+#define FY_C_SIZE	9480												//缓冲区长度
+#define FY_C_REL	2000												//缓冲偏移量
+//优化
+#define FUN_MAX		337													//函数信息表长度
+#define MAP_MAX		2207												//跳转信息表长度
+#define STACK_MAX	120
+#define TREE_MAX	255
+#endif
+//******************************************************LavaX  20K******************************************************//
+#if WQX == 20
+#define PUBLIC		15400												//公共缓冲区
+//帮助
+#define HLP_L_SIZE	15400												//文字行数
+//编辑
+#define TXT_SIZE	12000												//缓冲区长度
+#define TXT_T_SIZE	220													//表大小
+#define TXT_C_SIZE	1024												//临时缓冲区大小
+#define CLI_SIZE	2000												//剪切板长度
+#define SKFUN_L_LEN 170													//检索个数
+//编译
+#define FB_C_SIZE	4000												//总缓冲区长度
+#define VAR_SIZE	700													//变量链表大小
+#define LIB_SIZE	20													//链接个数
+//查看
+#define DOC_D_SIZE	255													//文件表长度<=256
+#define MAC_M_SIZE	255													//宏表长度<=256
+//预处理
+#define FY_C_SIZE	7700												//缓冲区长度
+#define FY_C_REL	1800												//缓冲偏移量
+//优化
+#define FUN_MAX		316													//函数信息表长度
+#define MAP_MAX		2040												//跳转信息表长度
+#define STACK_MAX	100
+#define TREE_MAX	255
+#endif
+//******************************************************LavaX  16K******************************************************//
+#if WQX == 16
+#define PUBLIC		12000												//公共缓冲区
+//帮助
+#define HLP_L_SIZE	12000												//文字行数
+//编辑
+#define TXT_SIZE	9000												//缓冲区长度
+#define TXT_T_SIZE	200													//表大小
+#define TXT_C_SIZE	1024												//临时缓冲区大小
+#define CLI_SIZE	1800												//剪切板长度
+#define SKFUN_L_LEN 170													//检索个数
+//编译
+#define FB_C_SIZE	4000												//总缓冲区长度
+#define VAR_SIZE	700													//变量链表大小
+#define LIB_SIZE	20													//链接个数
+//查看
+#define DOC_D_SIZE	255													//文件表长度<=256
+#define MAC_M_SIZE	255													//宏表长度<=256
+//预处理
+#define FY_C_SIZE	4600												//缓冲区长度
+#define FY_C_REL	1200												//缓冲偏移量
+//优化
+#define FUN_MAX		316													//函数信息表长度
+#define MAP_MAX		2040												//跳转信息表长度
+#define STACK_MAX	100
+#define TREE_MAX	255
+#endif
+//******************************************************LavaX  6K******************************************************//
+#if WQX == 6
+#define PUBLIC		3450												//公共缓冲区
+//帮助
+#define HLP_L_SIZE	2270												//文字行数
+//编辑
+#define TXT_SIZE	2400												//缓冲区长度
+#define TXT_T_SIZE	55													//表大小
+//编译
+#define VAR_SIZE	160													//变量链表大小
+//查看
+#define DOC_D_SIZE	230													//文件表长度<=256
+#define MAC_M_SIZE	84													//宏表长度<=256
+//链接
+#define LIB_N_LEN	185													//函数个数
+//优化
+#define FUN_MAX		205													//函数信息表长度
+#define MAP_MAX		310													//跳转信息表长度
+#define STACK_MAX	50
+#define TREE_MAX	102
+#endif
+//**********************************************************************************************************************//
+#ifndef PUBLIC
+#define PUBLIC		5200												//默认公共缓冲区
+#endif

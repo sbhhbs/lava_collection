@@ -1,0 +1,12 @@
+原型:int rand();
+功能:取得一个随机数值
+说明:返回值的范围是0~32767
+举例:
+void main()
+{
+ SetScreen(0);
+ printf("%d\n", rand());
+ printf("%d\n", rand());
+ printf("%d\n", rand());
+ getchar();
+}
